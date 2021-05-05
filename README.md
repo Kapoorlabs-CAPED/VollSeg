@@ -26,3 +26,19 @@ pip install -r requirements.txt
 
 
 ## Usage
+
+## Example
+
+## Requirements
+
+- Python 3.7 and above.
+
+
+## License
+
+Under MIT license. See [LICENSE](LICENSE).
+
+## Authors
+
+- Varun Kapoor <randomaccessiblekapoor@gmail.com>
+- Claudia Carabana Garcia
