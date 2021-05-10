@@ -159,21 +159,7 @@ class SmartSeeds3D(object):
                     ValRaw = sorted(glob.glob(self.BaseDir + '/ValRaw/' + '*.tif'))        
                     ValRealMask = sorted(glob.glob(self.BaseDir + '/ValRealMask/' + '*.tif'))
 
-                    if self.GenerateNPZ:
-                        
-                      raw_data = RawData.from_folder (
-                      basepath    = self.BaseDir,
-                      source_dirs = ['Raw/'],
-                      target_dir  = 'BinaryMask/',
-                      axes        = 'ZYX',
-                       )
                     
-                      X, Y, XY_axes = create_patches (
-                      raw_data            = raw_data,
-                      patch_size          = (self.PatchZ,self.PatchY,self.PatchX),
-                      n_patches_per_image = self.n_patches_per_image,
-                      save_file           = self.BaseDir + self.NPZfilename + '.npz',
-                      )
                       
                  
                     print('Instance segmentation masks:', len(RealMask))
@@ -190,7 +176,7 @@ class SmartSeeds3D(object):
                     
                            Binaryimage = label(image) 
                     
-                           imwrite((self.BaseDir + '/' + RealName + Name + '.tif'), Binaryimage)
+                           imwrite((self.BaseDir + '/' + RealName + Name + '.tif'), Binaryimage.astype('uint16'))
                            
                 
                     Mask = sorted(glob.glob(self.BaseDir + '/' + BinaryName + '*.tif'))
@@ -210,7 +196,24 @@ class SmartSeeds3D(object):
                     
                             Binaryimage = image > 0
                     
-                            imwrite((self.BaseDir + '/' + BinaryName + Name + '.tif'), Binaryimage)
+                            imwrite((self.BaseDir + '/' + BinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
+                            
+                    if self.GenerateNPZ:
+                        
+                      raw_data = RawData.from_folder (
+                      basepath    = self.BaseDir,
+                      source_dirs = ['Raw/'],
+                      target_dir  = 'BinaryMask/',
+                      axes        = 'ZYX',
+                       )
+                    
+                      X, Y, XY_axes = create_patches (
+                      raw_data            = raw_data,
+                      patch_size          = (self.PatchZ,self.PatchY,self.PatchX),
+                      n_patches_per_image = self.n_patches_per_image,
+                      save_file           = self.BaseDir + self.NPZfilename + '.npz',
+                      )        
+                            
                     
                     # Training UNET model
                     if self.TrainUNET:
