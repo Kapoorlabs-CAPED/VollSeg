@@ -36,14 +36,28 @@ from skimage import filters
 from skimage.util import random_noise
 
 
+
+def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = True, min_size = 20):
+    
+               
+    
+             
+                                           
+                      Mask = UNETPrediction3D(x, UnetModel, min_size, n_tiles, 'YX')
+                      
+                      SmartSeeds, _, StarImage = STARPrediction3D(x, StarModel, min_size, n_tiles, MaskImage = Mask, smartcorrection = None, UseProbability = UseProbability)
+                      
+                      SmartSeeds = SmartSeeds.astype('uint16') 
+                     
+                
+                
+                      return SmartSeeds
+
 def crappify_flou_G_P(x, y, mu, sigma, savedirx, savediry, name):
-    
+    x = x.astype('float32')
     gaussiannoise = np.random.normal(mu, sigma*0.05, x.shape)
-    lvar = filters.gaussian(x.copy(), sigma) + 1e-10
-    poissonnoise = random_noise(x.copy(), mode='localvar', local_vars=lvar*0.5)
-    
-    x = x + gaussiannoise + poissonnoise
-  
+    x = x + gaussiannoise 
+        
     #add noise to original image
     imwrite(savedirx + '/' + name + 'pg' + str(mu) + str(sigma) + '.tif', x.astype('float32'))    
     #keep the label the same

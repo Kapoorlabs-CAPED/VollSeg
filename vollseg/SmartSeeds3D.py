@@ -35,8 +35,8 @@ from csbdeep.data import RawData, create_patches
 from skimage.measure import label
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-
-
+from pathlib import Path
+from tifffile import imread, imwrite
 from csbdeep.utils import  plot_history
 
 def _raise(e):
@@ -147,11 +147,16 @@ class SmartSeeds3D(object):
          
      def Train(self):
          
-                    
-                    Raw = sorted(glob.glob(self.BaseDir + '/Raw/' + '*.tif'))
-                    RealMask = sorted(glob.glob(self.BaseDir + '/RealMask/' + '*.tif'))
          
-                    ValRaw = sorted(glob.glob(self.BaseDir + '/ValRaw/' + '*.tif'))
+         
+
+                    BinaryName = 'BinaryMask/' 
+                    RealName = 'RealMask/'
+                    Raw = sorted(glob.glob(self.BaseDir + '/Raw/' + '*.tif'))
+                    Path(self.BaseDir + '/' + BinaryName).mkdir(exist_ok=True)
+                    Path(self.BaseDir + '/' + RealName).mkdir(exist_ok=True)
+                    RealMask = sorted(glob.glob(self.BaseDir + '/' + RealName + '*.tif'))
+                    ValRaw = sorted(glob.glob(self.BaseDir + '/ValRaw/' + '*.tif'))        
                     ValRealMask = sorted(glob.glob(self.BaseDir + '/ValRealMask/' + '*.tif'))
 
                     if self.GenerateNPZ:
@@ -171,7 +176,41 @@ class SmartSeeds3D(object):
                       )
                       
                  
-
+                    print('Instance segmentation masks:', len(RealMask))
+                    if len(RealMask)== 0:
+                        
+                        print('Making labels')
+                        Mask = sorted(glob.glob(self.BaseDir + '/' + BinaryName + '*.tif'))
+                        
+                        for fname in Mask:
+                    
+                           image = imread(fname)
+                    
+                           Name = os.path.basename(os.path.splitext(fname)[0])
+                    
+                           Binaryimage = label(image) 
+                    
+                           imwrite((self.BaseDir + '/' + RealName + Name + '.tif'), Binaryimage)
+                           
+                
+                    Mask = sorted(glob.glob(self.BaseDir + '/' + BinaryName + '*.tif'))
+                    print('Semantic segmentation masks:', len(Mask))
+                    if len(Mask) == 0 and self.TrainUNET == True:
+                        print('Generating Binary images')
+               
+                               
+                        RealfilesMask = sorted(glob.glob(self.BaseDir + '/' + RealName + '*tif'))  
+                
+                
+                        for fname in RealfilesMask:
+                    
+                            image = imread(fname)
+                    
+                            Name = os.path.basename(os.path.splitext(fname)[0])
+                    
+                            Binaryimage = image > 0
+                    
+                            imwrite((self.BaseDir + '/' + BinaryName + Name + '.tif'), Binaryimage)
                     
                     # Training UNET model
                     if self.TrainUNET:
