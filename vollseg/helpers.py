@@ -153,8 +153,10 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     print('Generating SmartSeed results')
     UNETResults = SaveDir + 'BinaryMask/'
     SmartSeedsResults = SaveDir + 'SmartSeedsMask/' 
+    StarDistResults = SaveDir + 'StarDist/'
     Path(SaveDir).mkdir(exist_ok = True)
     Path(SmartSeedsResults).mkdir(exist_ok = True)
+    Path(StarDistResults).mkdir(exist_ok = True)
     Path(UNETResults).mkdir(exist_ok = True)
     
     #Read Image
@@ -177,6 +179,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SmartSeeds = RemoveLabels(SmartSeeds)       
     SizedSmartSeeds[:, :SmartSeeds.shape[1], :SmartSeeds.shape[2]] = SmartSeeds
             
+    imwrite((StarDistResults + Name+ '.tif' ) , StarImage.astype('uint16'))
     imwrite((SmartSeedsResults + Name+ '.tif' ) , SizedSmartSeeds.astype('uint16'))
     imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
     
