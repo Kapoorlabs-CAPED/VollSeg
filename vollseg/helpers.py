@@ -32,6 +32,22 @@ from skimage import measure
 from scipy.ndimage.filters import gaussian_filter
 from skimage.measure import label
 from csbdeep.utils import normalize
+from skimage import filters
+from skimage.util import random_noise
+
+
+def crappify_flou_G_P(x, y, mu, sigma, savedirx, savediry, name):
+    
+    gaussiannoise = np.random.normal(mu, sigma*0.05, x.shape)
+    lvar = filters.gaussian(x.copy(), sigma) + 1e-10
+    poissonnoise = random_noise(x.copy(), mode='localvar', local_vars=lvar*0.5)
+    
+    x = x + gaussiannoise + poissonnoise
+  
+    #add noise to original image
+    imwrite(savedirx + '/' + name + 'pg' + str(mu) + str(sigma) + '.tif', x.astype('float32'))    
+    #keep the label the same
+    imwrite(savediry + '/' + name + 'pg' + str(mu) + str(sigma) + '.tif', y.astype('uint16'))     
 
 
 def _fill_label_holes(lbl_img, **kwargs):
