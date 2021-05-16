@@ -175,7 +175,7 @@ def CCLabels(fname, max_size = 15000):
 
     
 
-def SmartSeedPrediction3D(ImageDir, SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 10, 
+def SmartSeedPrediction3D( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 10, 
 n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0):
     
     
@@ -197,7 +197,6 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     
     SizedMask = np.zeros([sizeZ, sizeY, sizeX], dtype = 'uint16')
     SizedSmartSeeds = np.zeros([sizeZ, sizeY, sizeX], dtype = 'uint16')
-    
     Name = os.path.basename(os.path.splitext(fname)[0])
     Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
     for i in range(0, Mask.shape[0]):
