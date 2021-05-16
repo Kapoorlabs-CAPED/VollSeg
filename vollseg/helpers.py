@@ -200,12 +200,17 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     
     Name = os.path.basename(os.path.splitext(fname)[0])
     Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
+    for i in range(0, Mask.shape[0]):
+        Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
+    
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
+    
+    
     SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, smartcorrection = smartcorrection)
     #Upsample images back to original size
     for i in range(0, Mask.shape[0]):
-        Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
         SmartSeeds[i,:] = remove_small_objects(SmartSeeds[i,:].astype('uint16'), min_size = min_size)
+        
     SmartSeeds = RemoveLabels(SmartSeeds)       
     SizedSmartSeeds[:, :SmartSeeds.shape[1], :SmartSeeds.shape[2]] = SmartSeeds
             
