@@ -198,13 +198,15 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SizedMask = np.zeros([sizeZ, sizeY, sizeX], dtype = 'uint16')
     SizedSmartSeeds = np.zeros([sizeZ, sizeY, sizeX], dtype = 'uint16')
     Name = os.path.basename(os.path.splitext(fname)[0])
+    
     Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
     for i in range(0, Mask.shape[0]):
         Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
     
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     
-    
+    if NoiseModel is not None:
+         image = NoiseModel.predict(image, axes='ZYX', n_tiles=n_tiles)
     SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, smartcorrection = smartcorrection)
     #Upsample images back to original size
     for i in range(0, Mask.shape[0]):
