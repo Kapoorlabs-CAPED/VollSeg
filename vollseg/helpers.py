@@ -207,7 +207,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     
 
-    SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, smartcorrection = smartcorrection)
+    SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection)
     #Upsample images back to original size
     for i in range(0, Mask.shape[0]):
         SmartSeeds[i,:] = remove_small_objects(SmartSeeds[i,:].astype('uint16'), min_size = min_size)
@@ -307,9 +307,18 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     else:
         
         MaxProjectDistance = Distance[:image.shape[0],:shape[0],:shape[1]]
+        
+        
+    if smartcorrection is None: 
+          
+          Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid )
+          Watershed = fill_label_holes(Watershed.astype('uint16'))
+    
+    if smartcorrection is not None:
+           
+          Watershed, Markers = WatershedSmartCorrection3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid, smartcorrection = smartcorrection )
+          Watershed = fill_label_holes(Watershed.astype('uint16'))    
 
-    Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid )
-    Watershed = fill_label_holes(Watershed.astype('uint16'))
 
     return Watershed, Markers, StarImage  
  
@@ -393,7 +402,78 @@ def WatershedwithMask3D(Image, Label,mask, grid):
 
 
 
+def WatershedSmartCorrection3D(Image, Label, mask, grid, smartcorrection = 20, max_size = 100000):
+    
+    
+   
+    CopyDist = Image.copy()
+    try:
+       thresh = threshold_otsu(CopyDist)
+    except:
+        thresh = 0   
+    CopyDist = CopyDist > thresh
+    ThinCopyDist = np.zeros([CopyDist.shape[0],CopyDist.shape[1],CopyDist.shape[2]])
+    for i in range(0, CopyDist.shape[0]):
+       ThinCopyDist[i,:] = thin(CopyDist[i,:] , max_iter = smartcorrection//4)
+  
+    ThinCopyDist = label(ThinCopyDist)
 
+
+    ## Use markers from Label image
+    Labelproperties = measure.regionprops(Label, Image)
+    LabelCoordinates = [prop.centroid for prop in Labelproperties] 
+    LabelCoordinates.append((0,0,0))
+    LabelCoordinates = sorted(LabelCoordinates , key=lambda k: [k[1], k[0], k[2]])
+    LabelCoordinates = np.asarray(LabelCoordinates)
+    sexyImage = np.zeros_like(Image)
+    Labelcoordinates_int = np.round(LabelCoordinates).astype(int)
+    
+    Labelmarkers_raw = np.zeros([Image.shape[0], Image.shape[1],Image.shape[2] ]) 
+    if(len(LabelCoordinates) > 0) :
+     Labelmarkers_raw[tuple(Labelcoordinates_int.T)] = 1 + np.arange(len(LabelCoordinates))
+     
+     Labelmarkers = morphology.dilation(Labelmarkers_raw.astype('uint16'), morphology.ball(5))
+  
+
+   
+    for i in range(0, Image.shape[0]):
+        Image[i,:] = sobel(Image[i,:].astype('uint16'))
+
+
+    watershedImage = watershed(Image, markers = Labelmarkers)
+
+    TestCopyDist = np.zeros([CopyDist.shape[0],CopyDist.shape[1],CopyDist.shape[2]])
+    for i in range(0, CopyDist.shape[0]):
+       TestCopyDist[i,:] = thin(CopyDist[i,:] , max_iter = smartcorrection//2)
+
+    watershedImage[TestCopyDist == 0] = 0
+    sexyImage = watershedImage
+    copymask = mask.copy()
+    
+    Binary = watershedImage > 0
+   
+    if smartcorrection > 0:
+       indices = list(zip(*np.where(Binary>0)))
+       if(len(indices) > 0):
+        indices = np.asarray(indices)
+        tree = spatial.cKDTree(indices)
+        copymask = copymask - Binary
+        maskindices = list(zip(*((np.where(copymask>0)))))
+        maskindices = np.asarray(maskindices)
+    
+        for i in (range(0,maskindices.shape[0])):
+    
+           pt = maskindices[i]
+           closest =  tree.query(pt)
+        
+           if closest[0] < smartcorrection:
+               sexyImage[pt[0], pt[1]] = watershedImage[indices[closest[1]][0], indices[closest[1]][1]]  
+       
+    sexyImage = fill_label_holes(sexyImage)
+    sexyImage, forward_map, inverse_map = relabel_sequential(sexyImage)
+    
+    
+    return sexyImage, Labelmarkers 
     
 def Integer_to_border(Label, max_size = 6400):
 
