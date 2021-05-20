@@ -285,16 +285,22 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     image = zero_pad_time(image, 64, 64)
     grid = copymodel.config.grid
 
-    MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
-    SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
+    try:
+         MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
+         SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
 
+    except:
+            conf = copymodel.config
+            Dummy = StarDist3D(conf)
+            overlap = Dummy._axes_tile_overlap('ZYX')
+            model._tile_overlap = [overlap]
+            MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
+            SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
 
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
     SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
     Probability = np.zeros([SmallProbability.shape[0] * grid[0],SmallProbability.shape[1] * grid[1], SmallProbability.shape[2] * grid[2] ])
     Distance = np.zeros([SmallDistance.shape[0] * grid[0], SmallDistance.shape[1] * grid[1], SmallDistance.shape[2] * grid[2] ])
-    
-    
     #We only allow for the grid parameter to be 1 along the Z axis
     for i in range(0, SmallProbability.shape[0]):
         Probability[i,:] = cv2.resize(SmallProbability[i,:], dsize=(SmallProbability.shape[2] * grid[2] , SmallProbability.shape[1] * grid[1] ))
@@ -302,25 +308,24 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     
     if UseProbability:
         
+        
+        Probability[Probability < globalthreshold ] = 0 
+             
         MaxProjectDistance = Probability[:image.shape[0],:shape[0],:shape[1]]
 
     else:
         
         MaxProjectDistance = Distance[:image.shape[0],:shape[0],:shape[1]]
-        
-        
-    if smartcorrection is None: 
-          
-          Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid )
-          Watershed = fill_label_holes(Watershed.astype('uint16'))
+
     
-    if smartcorrection is not None:
-           
-          Watershed, Markers = WatershedSmartCorrection3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid, smartcorrection = smartcorrection )
-          Watershed = fill_label_holes(Watershed.astype('uint16'))    
+          
+    Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid )
+    Watershed = fill_label_holes(Watershed.astype('uint16'))
+  
+       
+       
 
-
-    return Watershed, Markers, StarImage  
+    return Watershed, MaxProjectDistance, StarImage  
  
  
 def VetoRegions(Image, Zratio = 3):
@@ -387,7 +392,7 @@ def WatershedwithMask3D(Image, Label,mask, grid):
                          
     
     Coordinates.append((0,0,0))
-
+   
 
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int) 
@@ -395,9 +400,11 @@ def WatershedwithMask3D(Image, Label,mask, grid):
     markers_raw = np.zeros_like(Image) 
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates)) 
     markers = morphology.dilation(markers_raw.astype('uint16'), morphology.ball(2))
+    
+    watershedImage = watershed(-Image, markers, mask = mask.copy()) 
 
 
-    watershedImage = watershed(-Image, markers, mask = mask.copy()) #watershedImage[mask == 0] = 0 
+    
     return watershedImage, markers
 
 
