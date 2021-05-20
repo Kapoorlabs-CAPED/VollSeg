@@ -13,6 +13,7 @@ matplotlib = "*"
 csbdeep = "*"
 stardist = "*"
 tqdm = "*"
+vollseg = {editable = true, path = "."}
 
 [dev-packages]
 
