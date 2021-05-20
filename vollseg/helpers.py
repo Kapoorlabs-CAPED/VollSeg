@@ -36,7 +36,7 @@ from skimage import filters
 from skimage.util import random_noise
 
 
-
+globalthreshold = 0.01
 def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = True, min_size = 20):
     
                
