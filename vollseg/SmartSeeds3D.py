@@ -181,7 +181,7 @@ class SmartSeeds3D(object):
                 
                     Mask = sorted(glob.glob(self.BaseDir + '/' + BinaryName + '*.tif'))
                     print('Semantic segmentation masks:', len(Mask))
-                    if len(Mask) == 0 and self.TrainUNET == True:
+                    if len(Mask) == 0:
                         print('Generating Binary images')
                
                                

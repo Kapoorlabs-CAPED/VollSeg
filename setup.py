@@ -7,7 +7,7 @@ with open('README.md') as f:
 
 setup(
     name="vollseg",
-    version='1.0.0',
+    version='1.0.2',
     author='Varun Kapoor,Claudia Carabana Garcia',
     author_email='randomaccessiblekapoor@gmail.com',
     url='https://github.com/kapoorlab/vollseg/',
@@ -22,7 +22,8 @@ setup(
         "scikit-image",
         "scipy",
         "tifffile",
-        "matplotlib"
+        "matplotlib",
+        "imagecodecs", 
     ],
     packages=setuptools.find_packages(),
     classifiers=[
