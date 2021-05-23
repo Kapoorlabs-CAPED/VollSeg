@@ -50,7 +50,7 @@ Access the `example` folder and run the cells.
 
 ## Example
 
-To try the provided notebooks we provide an example dataset of MDA231 human breast carcinoma cells infected with a pMSCV vector including the GFP sequence, embedded in a collagen matrix from Dr. R. Kamm. Dept. of Biological Engineering, Massachusetts Institute of Technology, Cambridge MA (USA)[tracking challenge](http://celltrackingchallenge.net/3d-datasets/), download the zip file of hyperstacks of the Raw, segmentation and the mask image from [here](https://drive.google.com/drive/folders/1ze8KsrFI0-UTrsMnAPomiyf4sN8aCm__?usp=sharing). The zip file inflates inside a data folder that you can extract inside the examples folder. For training the networks use this notebook in [Colab](https://github.com/kapoorlab/VollSeg/blob/main/examples/ColabTrainModel.ipynb)
+To try the provided notebooks we provide an example dataset of MDA231 human breast carcinoma cells infected with a pMSCV vector including the GFP sequence, embedded in a collagen matrix from Dr. R. Kamm. Dept. of Biological Engineering, Massachusetts Institute of Technology, Cambridge MA (USA)[tracking challenge](http://celltrackingchallenge.net/3d-datasets/), download the zip file of hyperstacks of the Raw, segmentation and the mask image from [here](https://drive.google.com/drive/folders/1ze8KsrFI0-UTrsMnAPomiyf4sN8aCm__?usp=sharing). The zip file inflates inside a data folder that you can extract inside the examples folder. For training the networks use this notebook in [Colab](https://github.com/kapoorlab/VollSeg/blob/main/examples/ColabTrainModel.ipynb). We provide  pre-trained model weights for stardist and U-Net. To train a denoising model using noise to void use this notebook: 
 
 ## Requirements
 
