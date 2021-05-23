@@ -82,7 +82,7 @@ class SmartSeeds3D(object):
 
 
 
-     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, backbone = 'resnet', TrainUNET = True, TrainSTAR = True, GenerateNPZ = True,  copy_model_dir = None, PatchX=256, PatchY=256, PatchZ = 16,  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
+     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, backbone = 'resnet', CroppedLoad = False, TrainUNET = True, TrainSTAR = True, GenerateNPZ = True,  copy_model_dir = None, PatchX=256, PatchY=256, PatchZ = 16,  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
 
          
          
@@ -110,7 +110,7 @@ class SmartSeeds3D(object):
          self.use_gpu = use_gpu
          self.startfilter = startfilter
          self.n_patches_per_image =  n_patches_per_image
-         
+         self.CroppedLoad = CroppedLoad
          #Load training and validation data
          self.Train()
          
@@ -181,7 +181,7 @@ class SmartSeeds3D(object):
                 
                     Mask = sorted(glob.glob(self.BaseDir + '/' + BinaryName + '*.tif'))
                     print('Semantic segmentation masks:', len(Mask))
-                    if len(Mask) == 0 and self.TrainUNET == True:
+                    if len(Mask) == 0:
                         print('Generating Binary images')
                
                                
@@ -314,8 +314,7 @@ class SmartSeeds3D(object):
                                   train_dist_loss = 'mse',
                                   grid         = (1,1,1),
                                   use_gpu      = self.use_gpu,
-                                  n_channel_in = 1,
-                                  train_sample_cache = False
+                                  n_channel_in = 1
                                   )
                                 
                             if self.backbone == 'unet':
