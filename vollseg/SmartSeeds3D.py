@@ -379,7 +379,7 @@ class SmartSeeds3D(object):
                             historyStar = Starmodel.train(self.X_trn, self.Y_trn, validation_data=(self.X_val,self.Y_val), epochs = self.epochs)
                             print(sorted(list(historyStar.history.keys())))
                             plt.figure(figsize=(16,5))
-                            plot_history(historyStar,['loss','val_loss'],['mse','val_mse','mae','val_mae'])
+                            plot_history(historyStar,['loss','val_loss'],['dist_relevant_mae','val_dist_relevant_mae','dist_relevant_mse','val_dist_relevant_mse'])
         
         
                  
