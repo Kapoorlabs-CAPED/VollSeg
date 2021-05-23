@@ -7,7 +7,9 @@ with open('README.md') as f:
 
 setup(
     name="vollseg",
+
     version='1.0.2',
+
     author='Varun Kapoor,Claudia Carabana Garcia',
     author_email='randomaccessiblekapoor@gmail.com',
     url='https://github.com/kapoorlab/vollseg/',
@@ -24,6 +26,8 @@ setup(
         "tifffile",
         "matplotlib",
         "imagecodecs", 
+        "n2v",
+        
     ],
     packages=setuptools.find_packages(),
     classifiers=[
@@ -32,6 +36,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.6',
     ],
 )
