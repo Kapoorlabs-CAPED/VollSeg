@@ -1,6 +1,8 @@
 # VollSeg
 3D segmentation tool for irregular shaped cells
 
+
+
 [![Build Status](https://travis-ci.com/kapoorlab/vollseg.svg?branch=master)](https://travis-ci.com/github/kapoorlab/vollseg)
 [![PyPI version](https://img.shields.io/pypi/v/vollseg.svg?maxAge=2591000)](https://pypi.org/project/vollseg/)
 ## Installation
@@ -47,7 +49,7 @@ pipenv run jupyter notebook
 Access the `example` folder and run the cells.
 
 ## Usage
-
+![Algorithm](https://github.com/kapoorlab/VollSeg/blob/main/images/Seg_pipe-git.png)
 ## Example
 
 To try the provided notebooks we provide an example dataset of MDA231 human breast carcinoma cells infected with a pMSCV vector including the GFP sequence, embedded in a collagen matrix from Dr. R. Kamm. Dept. of Biological Engineering, Massachusetts Institute of Technology, Cambridge MA (USA)[tracking challenge](http://celltrackingchallenge.net/3d-datasets/), download the hyperstacks of the Raw, instance and semantic segmentation masks from [here](https://drive.google.com/drive/folders/1ze8KsrFI0-UTrsMnAPomiyf4sN8aCm__?usp=sharing). Pretrained model weights for denoising done via noise to void, segmentation done via U-Net and Staardist are also in the directory. For training the networks use this notebook in [Colab](https://github.com/kapoorlab/VollSeg/blob/main/examples/ColabTrainModel.ipynb). We provide  pre-trained model weights for stardist and U-Net. To train a denoising model using noise to void use this [notebook](https://github.com/kapoorlab/VollSeg/blob/main/examples/ColabN2VTrain.ipynb) 
