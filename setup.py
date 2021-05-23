@@ -7,7 +7,7 @@ with open('README.md') as f:
 
 setup(
     name="vollseg",
-    version='1.0.0',
+    version='1.0.1',
     author='Varun Kapoor,Claudia Carabana Garcia',
     author_email='randomaccessiblekapoor@gmail.com',
     url='https://github.com/kapoorlab/vollseg/',
@@ -31,6 +31,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.6',
     ],
 )
