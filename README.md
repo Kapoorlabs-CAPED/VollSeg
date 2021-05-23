@@ -1,7 +1,7 @@
 # VollSeg
 3D segmentation tool for irregular shaped cells
 
-
+![Segmentation](https://github.com/kapoorlab/VollSeg/blob/main/images/Seg_compare.png)
 
 [![Build Status](https://travis-ci.com/kapoorlab/vollseg.svg?branch=master)](https://travis-ci.com/github/kapoorlab/vollseg)
 [![PyPI version](https://img.shields.io/pypi/v/vollseg.svg?maxAge=2591000)](https://pypi.org/project/vollseg/)
