@@ -7,7 +7,13 @@ with open('README.md') as f:
 
 setup(
     name="vollseg",
+<<<<<<< HEAD
     version='1.0.2',
+=======
+
+    version='1.0.2',
+
+>>>>>>> c936a43db86e827802dd3b428751308ae75df689
     author='Varun Kapoor,Claudia Carabana Garcia',
     author_email='randomaccessiblekapoor@gmail.com',
     url='https://github.com/kapoorlab/vollseg/',
@@ -24,7 +30,12 @@ setup(
         "tifffile",
         "matplotlib",
         "imagecodecs", 
+<<<<<<< HEAD
         "n2v"
+=======
+        "n2v",
+        
+>>>>>>> c936a43db86e827802dd3b428751308ae75df689
     ],
     packages=setuptools.find_packages(),
     classifiers=[
@@ -33,6 +44,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.6',
     ],
 )
