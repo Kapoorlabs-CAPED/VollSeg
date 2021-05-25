@@ -69,4 +69,4 @@ Under MIT license. See [LICENSE](LICENSE).
 ## Authors
 
 - Varun Kapoor <randomaccessiblekapoor@gmail.com>
-- Claudia Carabana Garcia
+- Claudia Carabaña
