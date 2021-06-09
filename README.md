@@ -57,6 +57,24 @@ Schematic representation showing the segmentation approach used in VollSeg. Firs
 
 To try the provided notebooks we provide an example dataset of MDA231 human breast carcinoma cells infected with a pMSCV vector including the GFP sequence, embedded in a collagen matrix from Dr. R. Kamm. Dept. of Biological Engineering, Massachusetts Institute of Technology, Cambridge MA (USA)[tracking challenge](http://celltrackingchallenge.net/3d-datasets/), download the hyperstacks of the Raw, instance and semantic segmentation masks from [here](https://drive.google.com/drive/folders/1ze8KsrFI0-UTrsMnAPomiyf4sN8aCm__?usp=sharing). Pretrained model weights for denoising done via noise to void, segmentation done via U-Net and Stardist are also in the directory. For training the networks use this notebook in [Colab](https://github.com/kapoorlab/VollSeg/blob/main/examples/ColabTrainModel.ipynb). To train a denoising model using noise to void use this [notebook](https://github.com/kapoorlab/VollSeg/blob/main/examples/ColabN2VTrain.ipynb) 
 
+
+
+## Docker
+
+A Docker image can be used to run the code in a container. Once inside the project's directory, build the image with:
+
+~~~bash
+docker build -t voll .
+~~~
+
+Now to run the `track` command:
+
+~~~bash
+# show help
+docker run --rm -it voll
+~~~
+
+
 ## Requirements
 
 - Python 3.7 and above.
