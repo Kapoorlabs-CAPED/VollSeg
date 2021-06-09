@@ -7,13 +7,9 @@ with open('README.md') as f:
 
 setup(
     name="vollseg",
-<<<<<<< HEAD
-    version='1.0.2',
-=======
 
     version='1.0.2',
 
->>>>>>> c936a43db86e827802dd3b428751308ae75df689
     author='Varun Kapoor,Claudia Carabana Garcia',
     author_email='randomaccessiblekapoor@gmail.com',
     url='https://github.com/kapoorlab/vollseg/',
@@ -23,19 +19,15 @@ setup(
     install_requires=[
         "numpy",
         "pandas",
-        "csbdeep==0.6.0",
+        "csbdeep",
         "stardist",
         "scikit-image",
         "scipy",
         "tifffile",
         "matplotlib",
-        "imagecodecs", 
-<<<<<<< HEAD
-        "n2v"
-=======
+        "imagecodecs",
         "n2v",
         
->>>>>>> c936a43db86e827802dd3b428751308ae75df689
     ],
     packages=setuptools.find_packages(),
     classifiers=[
