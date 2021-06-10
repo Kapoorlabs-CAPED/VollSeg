@@ -28,7 +28,8 @@ WORKDIR /usr/src/app
 RUN chown worker:worker .
 USER worker
 
-COPY requirements.txt .
+COPY requirements.txt setup.py README.md .
+
 RUN pip install -vv --no-cache-dir --prefer-binary --user -r requirements.txt
 # chown is necessary or everything will be root owned
 COPY --chown=worker:worker . .
