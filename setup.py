@@ -19,8 +19,8 @@ setup(
     install_requires=[
         "numpy",
         "pandas",
-        "csbdeep",
-        "stardist",
+        "csbdeep==0.5.2",
+        "stardist==0.5",
         "scikit-image",
         "scipy",
         "tifffile",
