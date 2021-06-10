@@ -171,9 +171,64 @@ def CCLabels(fname, max_size = 15000):
     return AugmentedLabel 
 
 
+def SmartSeedPrediction3DTime( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 10, 
+n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0):
 
-
+    print('Generating SmartSeed results')
+    UNETResults = SaveDir + 'BinaryMask/'
+    SmartSeedsResults = SaveDir + 'SmartSeedsMask/' 
+    StarDistResults = SaveDir + 'StarDist/'
+    Path(SaveDir).mkdir(exist_ok = True)
+    Path(SmartSeedsResults).mkdir(exist_ok = True)
+    Path(StarDistResults).mkdir(exist_ok = True)
+    Path(UNETResults).mkdir(exist_ok = True)
     
+    #Read Image
+    bigimage = imread(fname)
+
+
+    bigWatershed = np.zeros_like(bigimage)
+    bigStarImage = np.zeros_like(bigimage)
+    bigUnetImage = np.zeros_like(bigimage)
+    
+    for i in range(0,bigimage.shape[0]):
+        
+        image = bigimage[i,:]
+        
+        sizeZ = image.shape[0]
+        sizeY = image.shape[1]
+        sizeX = image.shape[2]
+        
+        SizedMask = np.zeros([sizeZ, sizeY, sizeX], dtype = 'uint16')
+        SizedSmartSeeds = np.zeros([sizeZ, sizeY, sizeX], dtype = 'uint16')
+        Name = os.path.basename(os.path.splitext(fname)[0])
+        if NoiseModel is not None:
+             image = NoiseModel.predict(image, axes='ZYX', n_tiles=n_tiles)
+        Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
+        for i in range(0, Mask.shape[0]):
+            Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
+        
+        SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
+        
+    
+        SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection)
+        #Upsample images back to original size
+        for i in range(0, Mask.shape[0]):
+            SmartSeeds[i,:] = remove_small_objects(SmartSeeds[i,:].astype('uint16'), min_size = min_size)
+            
+        SmartSeeds = RemoveLabels(SmartSeeds)       
+        SizedSmartSeeds[:, :SmartSeeds.shape[1], :SmartSeeds.shape[2]] = SmartSeeds
+        
+        bigWatershed[i,:] = SizedSmartSeeds
+        bigStarImage[i,:] = StarImage
+        bigUnetImage[i,:] = SizedMask
+        
+    imwrite((StarDistResults + Name+ '.tif' ) , bigStarImage.astype('uint16'))
+    imwrite((SmartSeedsResults + Name+ '.tif' ) , bigWatershed.astype('uint16'))
+    imwrite((UNETResults + Name+ '.tif' ) , bigUnetImage.astype('uint16')) 
+
+        
+        
 
 def SmartSeedPrediction3D( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 10, 
 n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0):
@@ -328,6 +383,8 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     return Watershed, MaxProjectDistance, StarImage  
  
  
+    
+    
 def VetoRegions(Image, Zratio = 3):
     
     Image = Image.astype('uint16')
@@ -346,66 +403,51 @@ def VetoRegions(Image, Zratio = 3):
     return Image
     
 
-#Default method that works well with cells which are below a certain shape and do not have weak edges
-    
-def iou3D(boxA, centroid):
-    
-    ndim = len(centroid)
-    inside = False
-    
-    Condition = [Conditioncheck(centroid, boxA, p, ndim) for p in range(0,ndim)]
-        
-    inside = all(Condition)
-    
-    return inside
-
-def Conditioncheck(centroid, boxA, p, ndim):
-    
-      condition = False
-    
-      if centroid[p] >= boxA[p] and centroid[p] <= boxA[p + ndim]:
-          
-           condition = True
-           
-      return condition     
-    
-
-def WatershedwithMask3D(Image, Label,mask, grid): 
-    properties = measure.regionprops(Label, Image) 
-    binaryproperties = measure.regionprops(label(mask), Image) 
-    
-    
-    Coordinates = [prop.centroid for prop in properties] 
-    BinaryCoordinates = [prop.centroid for prop in binaryproperties]
-    
-    Binarybbox = [prop.bbox for prop in binaryproperties]
-    Coordinates = sorted(Coordinates , key=lambda k: [k[0], k[1], k[2]]) 
-    
-    if len(Binarybbox) > 0:    
-            for i in range(0, len(Binarybbox)):
-                
-                box = Binarybbox[i]
-                inside = [iou3D(box, star) for star in Coordinates]
-                
-                if not any(inside) :
-                         Coordinates.append(BinaryCoordinates[i])    
-                         
-    
-    Coordinates.append((0,0,0))
    
-
-    Coordinates = np.asarray(Coordinates)
-    coordinates_int = np.round(Coordinates).astype(int) 
     
-    markers_raw = np.zeros_like(Image) 
-    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates)) 
-    markers = morphology.dilation(markers_raw.astype('uint16'), morphology.ball(2))
-    
-    watershedImage = watershed(-Image, markers, mask = mask.copy()) 
 
+def WatershedwithMask3D(Image, Label, mask, grid):
+          #Image = ProbabilityMap of Stardist
+          #Label = Label segmentation image of Stardist
+          #Mask = U-Net predicted image post binarization
+          properties = measure.regionprops(Label, Image)
+          cord = np.array([prop.centroid for prop
+          in properties])
+          Unet_out, nb_labels = label(mask, return_num=True)
+          # Getting the set of labels where the Stardist
+          #centroids fall
+          intersection = Unet_out[tuple(cord.T)]
+          # Creating a mapping to remove the
+          #connected componnents (cc)
+          # from Unet that contain a centroid
+          #from Stardist.
+          # After the following 2 opperations,
+          # mapping is a 1d array where:
+          # mapping[i] -> 0 if the cc
+          #contains a Stardist barycenter
+          # mapping[i] -> i otherwise
+          mapping = np.arange(nb_labels+1,
+          dtype=Unet_out.dtype)
+          mapping[intersection] = 0
+          # Applying the mapping, masked_Unet only has
+          # connected components that do not contain
+          # a Stardist centroid
+          masked_Unet = mapping[Unet_out]
+          # Only the necessary centroids are computed,
+          # the bounding boxes does not have to be computed
+          binaryproperties = measure.regionprops(masked_Unet)
+          bin_cord = [prop.centroid for prop
+          in binaryproperties]
+          # Concatenating all the centroids together
+          # and proceeding as before
+          cord = np.vstack(([0, 0, 0], cord, bin_cord))
+          cord_int = np.round(cord).astype(int)
+          markers_raw = np.zeros_like(Image)
+          markers_raw[tuple(cord_int.T)] = 1 + np.arange(len(cord))
+          markers = morphology.dilation(markers_raw, morphology.ball(2))
+          watershedImage = watershed(-Image, markers, mask)
+          return watershedImage, markers
 
-    
-    return watershedImage, markers
 
 
 
