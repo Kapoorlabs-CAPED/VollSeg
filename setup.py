@@ -8,7 +8,7 @@ with open('README.md') as f:
 setup(
     name="vollseg",
 
-    version='1.0.2',
+    version='1.0.4',
 
     author='Varun Kapoor,Claudia Carabana Garcia',
     author_email='randomaccessiblekapoor@gmail.com',
@@ -19,8 +19,8 @@ setup(
     install_requires=[
         "numpy",
         "pandas",
-        "csbdeep==0.5.2",
-        "stardist==0.5",
+        "csbdeep",
+        "stardist",
         "scikit-image",
         "scipy",
         "tifffile",
