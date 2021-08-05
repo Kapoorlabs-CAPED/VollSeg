@@ -14,6 +14,7 @@ from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
 import cv2
+from stardist.models import StarDist3D
 from skimage.filters import gaussian
 from six.moves import reduce
 from matplotlib import cm
