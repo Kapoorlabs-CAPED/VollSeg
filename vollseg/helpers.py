@@ -253,7 +253,7 @@ def CCLabels(fname, max_size = 15000):
 
 
 
-def SmartSeedPredcition2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n_tiles = (2,2), UseProbability = True):
+def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n_tiles = (2,2), UseProbability = True):
     
     print('Generating SmartSeed results')
     UNETResults = SaveDir + 'BinaryMask/'
@@ -391,7 +391,7 @@ def SuperWatershedwithoutMask(Image, Label,mask, grid):
 
 #Default method that works well with cells which are below a certain shape and do not have weak edges    
     
-def SmartSeedPredcitionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel = None, min_size = 5, n_tiles = (1,1), UseProbability = True):
+def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel = None, min_size = 5, n_tiles = (1,1), UseProbability = True):
     
     print('Generating SmartSeed results')
     UNETResults = SaveDir + 'BinaryMask/'
