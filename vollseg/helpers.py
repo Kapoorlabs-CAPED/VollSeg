@@ -19,6 +19,7 @@ from stardist.models import StarDist3D
 from skimage.filters import gaussian
 from six.moves import reduce
 from matplotlib import cm
+from scipy import spatial
 from skimage.filters import threshold_local, threshold_otsu
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
