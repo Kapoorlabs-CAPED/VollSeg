@@ -35,7 +35,7 @@ from skimage.measure import label
 from csbdeep.utils import normalize
 from skimage import filters
 from skimage.util import random_noise
-
+from scipy.ndimage import distance_transform_edt
 
 globalthreshold = 0.01
 
