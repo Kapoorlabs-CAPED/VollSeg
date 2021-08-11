@@ -36,7 +36,7 @@ from csbdeep.utils import normalize
 from skimage import filters
 from skimage.util import random_noise
 from scipy.ndimage import distance_transform_edt
-
+from skimage.morphology import skeletonize
 globalthreshold = 0.01
 
 def expand_labels(label_image, distance=1):
