@@ -34,6 +34,7 @@ from scipy.ndimage.filters import gaussian_filter
 from skimage.measure import label
 from csbdeep.utils import normalize
 from skimage import filters
+from tqdm import tqdm
 from skimage.util import random_noise
 from scipy.ndimage import distance_transform_edt
 from skimage.morphology import skeletonize
