@@ -285,9 +285,12 @@ def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n
   
     #Smart Seed prediction 
     SmartSeeds, _, StarImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
+    labelmax = np.amax(StarImage)
+    Mask[StarImage > 0] == labelmax + 1
     #For avoiding pixel level error 
     Mask = expand_labels(Mask, distance = 1)
     SmartSeeds = expand_labels(SmartSeeds, distance = 1)
+    SmartSeeds = merge_labels_across_volume(SmartSeeds.astype('uint16'), RelabelZ, threshold= threshold)
     SmartSeedsInteger = SmartSeeds
     
     BinaryMask = Integer_to_border(Mask.astype('uint16'))  
@@ -434,11 +437,13 @@ def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel =
       
         #Smart Seed prediction 
         SmartSeeds, _, StarImage = SuperSTARPrediction(image[i,:], StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
-      
+        
+        labelmax = np.amax(StarImage)
+        Mask[StarImage > 0] == labelmax + 1
         #For avoiding pixel level error 
         Mask = expand_labels(Mask, distance = 1)
         SmartSeeds = expand_labels(SmartSeeds, distance = 1)
-        
+        SmartSeeds = merge_labels_across_volume(SmartSeeds.astype('uint16'), RelabelZ, threshold= threshold)
         SmartSeedsInteger = SmartSeeds
         BinaryMask = Integer_to_border(Mask.astype('uint16'))  
         SmartSeeds = Integer_to_border(SmartSeeds.astype('uint16'))
@@ -567,9 +572,62 @@ def SuperUNETPrediction(image, model, n_tiles, axis, threshold = 20):
     Finalimage = label(Binary)
     Finalimage = fill_label_holes(Finalimage)
     Finalimage = relabel_sequential(Finalimage)[0]
-    
+    Finalimage = merge_labels_across_volume(Finalimage.astype('uint16'), RelabelZ, threshold= threshold)
     
     return  Finalimage
+def merge_labels_across_volume(labelvol, relabelfunc, threshold=3):
+    nz, ny, nx = labelvol.shape
+    res = np.zeros_like(labelvol)
+    res[0,...] = labelvol[0,...]
+    backup = labelvol.copy() # kapoors code modifies the input array
+    for i in tqdm(range(nz-1)):
+        
+        res[i+1,...] = relabelfunc(res[i,...], labelvol[i+1,...],threshold=threshold)
+        labelvol = backup.copy() # restore the input array
+    return res
+
+def RelabelZ(previousImage, currentImage,threshold):
+      # This line ensures non-intersecting label sets
+      copyImage = currentImage.copy()
+      copypreviousImage = previousImage.copy()
+      copyImage = relabel_sequential(copyImage,offset=copypreviousImage.max()+1)[0]
+        # I also don't like modifying the input image, so we take a copy
+      relabelimage = copyImage.copy()
+      waterproperties = measure.regionprops(copypreviousImage, copypreviousImage)
+      indices = [] 
+      labels = []
+      for prop in waterproperties:
+        if prop.label > 0:
+                 
+                  labels.append(prop.label)
+                  indices.append(prop.centroid) 
+     
+      if len(indices) > 0:
+        tree = spatial.cKDTree(indices)
+        currentwaterproperties = measure.regionprops(copyImage, copyImage)
+        currentindices = [prop.centroid for prop in currentwaterproperties] 
+        currentlabels = [prop.label for prop in currentwaterproperties] 
+        if len(currentindices) > 0: 
+            for i in range(0,len(currentindices)):
+                index = currentindices[i]
+                currentlabel = currentlabels[i] 
+                if currentlabel > 0:
+                        previouspoint = tree.query(index)
+                        for prop in waterproperties:
+                               
+                                      if int(prop.centroid[0]) == int(indices[previouspoint[1]][0]) and int(prop.centroid[1]) == int(indices[previouspoint[1]][1]):
+                                                previouslabel = prop.label
+                                                break
+                        
+                        if previouspoint[0] > threshold:
+                              relabelimage[np.where(copyImage == currentlabel)] = currentlabel
+                        else:
+                              relabelimage[np.where(copyImage == currentlabel)] = previouslabel
+      
+                              
+
+    
+      return relabelimage
 
 def SuperSTARPrediction(image, model, n_tiles, MaskImage, UseProbability = True):
     
