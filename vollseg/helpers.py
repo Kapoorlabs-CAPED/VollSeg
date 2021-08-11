@@ -290,7 +290,7 @@ def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n
     #For avoiding pixel level error 
     Mask = expand_labels(Mask, distance = 1)
     SmartSeeds = expand_labels(SmartSeeds, distance = 1)
-    SmartSeeds = merge_labels_across_volume(SmartSeeds.astype('uint16'), RelabelZ, threshold= threshold)
+    
     SmartSeedsInteger = SmartSeeds
     
     BinaryMask = Integer_to_border(Mask.astype('uint16'))  
@@ -404,7 +404,7 @@ def SuperWatershedwithoutMask(Image, Label,mask, grid):
 
 #Default method that works well with cells which are below a certain shape and do not have weak edges    
     
-def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel = None, min_size = 5, n_tiles = (1,1), UseProbability = True):
+def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel = None, min_size = 5, n_tiles = (1,1), UseProbability = True, threshold = 20):
     
     print('Generating SmartSeed results')
     UNETResults = SaveDir + 'BinaryMask/'
@@ -443,7 +443,6 @@ def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel =
         #For avoiding pixel level error 
         Mask = expand_labels(Mask, distance = 1)
         SmartSeeds = expand_labels(SmartSeeds, distance = 1)
-        SmartSeeds = merge_labels_across_volume(SmartSeeds.astype('uint16'), RelabelZ, threshold= threshold)
         SmartSeedsInteger = SmartSeeds
         BinaryMask = Integer_to_border(Mask.astype('uint16'))  
         SmartSeeds = Integer_to_border(SmartSeeds.astype('uint16'))
@@ -466,6 +465,7 @@ def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel =
         SmartSeedsIntegerTime[i,:] = SmartSeedsInteger
         
     #Save results, we only need smart seeds finale results but hey!
+    SmartSeedsIntegerTime = merge_labels_across_volume(SmartSeedsIntegerTime.astype('uint16'), RelabelZ, threshold= threshold)
     imwrite((SmartSeedsResults + Name+ '.tif' ) , SmartSeedsTime.astype('uint8'))
     imwrite((SmartSeedsIntegerResults + Name+ '.tif' ) , SmartSeedsIntegerTime.astype('uint16'))
     imwrite((StarImageResults + Name+ '.tif' ) , StarTime.astype('uint16'))
@@ -572,7 +572,6 @@ def SuperUNETPrediction(image, model, n_tiles, axis, threshold = 20):
     Finalimage = label(Binary)
     Finalimage = fill_label_holes(Finalimage)
     Finalimage = relabel_sequential(Finalimage)[0]
-    Finalimage = merge_labels_across_volume(Finalimage.astype('uint16'), RelabelZ, threshold= threshold)
     
     return  Finalimage
 def merge_labels_across_volume(labelvol, relabelfunc, threshold=3):
