@@ -14,12 +14,12 @@ from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
 import cv2
+from skimage.morphology import remove_small_objects, remove_small_holes, thin
 from stardist.models import StarDist3D
 from skimage.filters import gaussian
 from six.moves import reduce
 from matplotlib import cm
 from skimage.filters import threshold_local, threshold_otsu
-from skimage.morphology import remove_small_objects
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 from scipy.ndimage.morphology import binary_fill_holes
@@ -38,6 +38,18 @@ from skimage.util import random_noise
 from scipy.ndimage import distance_transform_edt
 from skimage.morphology import skeletonize
 globalthreshold = 0.01
+
+
+def BinaryLabel(BinaryImageOriginal, max_size = 15000):
+    
+    BinaryImageOriginal = BinaryImageOriginal.astype('uint16')
+    image = normalizeFloatZeroOne(BinaryImageOriginal)
+    image = invertimage(image)
+    IntegerImage = watershed(-image)
+    AugmentedLabel = remove_big_objects(IntegerImage, max_size = max_size) 
+
+    return AugmentedLabel 
+
 
 def expand_labels(label_image, distance=1):
     """Expand labels in label image by ``distance`` pixels without overlapping.
@@ -273,7 +285,6 @@ def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n
   
     #Smart Seed prediction 
     SmartSeeds, _, StarImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
-   
     #For avoiding pixel level error 
     Mask = expand_labels(Mask, distance = 1)
     SmartSeeds = expand_labels(SmartSeeds, distance = 1)
@@ -281,7 +292,6 @@ def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n
     
     BinaryMask = Integer_to_border(Mask.astype('uint16'))  
     SmartSeeds = Integer_to_border(SmartSeeds.astype('uint16'))
-
     #Missing edges of one network prevented by others
     SmartSeeds = skeletonize(SmartSeeds)
     BinaryMask = skeletonize(BinaryMask)
@@ -511,7 +521,14 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
 
 
 
+def Integer_to_border(Label):
 
+        BoundaryLabel =  find_boundaries(SmallLabel, mode='outer')
+           
+        Binary = BoundaryLabel > 0
+        
+        return Binary
+        
 
 def DownsampleData(image, DownsampleFactor):
                     
@@ -537,18 +554,19 @@ def SuperUNETPrediction(image, model, n_tiles, axis, threshold = 20):
     
     
     Segmented = model.predict(image, axis, n_tiles = n_tiles)
-    
     try:
        thresh = threshold_otsu(Segmented)
        Binary = Segmented > thresh
     except:
         Binary = Segmented > 0
+        
+    Binary= binary_erosion(Binary)    
     #Postprocessing steps
-    Filled = binary_fill_holes(Binary)
-    Finalimage = label(Filled)
+    
+    
+    Finalimage = label(Binary)
     Finalimage = fill_label_holes(Finalimage)
     Finalimage = relabel_sequential(Finalimage)[0]
-   
     
     
     return  Finalimage
