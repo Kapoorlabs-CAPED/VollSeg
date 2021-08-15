@@ -8,12 +8,12 @@ with open('README.md') as f:
 setup(
     name="vollseg",
 
-    version='1.0.5',
+    version='1.2.0',
 
     author='Varun Kapoor,Claudia Carabana Garcia',
     author_email='randomaccessiblekapoor@gmail.com',
     url='https://github.com/kapoorlab/vollseg/',
-    description='Segmentation tool for biological cells of irregular size and shape in 3D.',
+    description='Segmentation tool for biological cells of irregular size and shape in 3D and 2D.',
     long_description=long_description,
     long_description_content_type='text/markdown',
     install_requires=[

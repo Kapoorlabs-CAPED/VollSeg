@@ -14,12 +14,13 @@ from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
 import cv2
+from skimage.morphology import remove_small_objects, remove_small_holes, thin
 from stardist.models import StarDist3D
 from skimage.filters import gaussian
 from six.moves import reduce
 from matplotlib import cm
+from scipy import spatial
 from skimage.filters import threshold_local, threshold_otsu
-from skimage.morphology import remove_small_objects
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 from scipy.ndimage.morphology import binary_fill_holes
@@ -34,10 +35,103 @@ from scipy.ndimage.filters import gaussian_filter
 from skimage.measure import label
 from csbdeep.utils import normalize
 from skimage import filters
+from tqdm import tqdm
 from skimage.util import random_noise
-
-
+from scipy.ndimage import distance_transform_edt
+from skimage.morphology import skeletonize
 globalthreshold = 0.01
+
+
+def BinaryLabel(BinaryImageOriginal, max_size = 15000):
+    
+    BinaryImageOriginal = BinaryImageOriginal.astype('uint16')
+    image = normalizeFloatZeroOne(BinaryImageOriginal)
+    image = invertimage(image)
+    IntegerImage = watershed(-image)
+    AugmentedLabel = remove_big_objects(IntegerImage, max_size = max_size) 
+
+    return AugmentedLabel 
+
+
+def expand_labels(label_image, distance=1):
+    """Expand labels in label image by ``distance`` pixels without overlapping.
+    Given a label image, ``expand_labels`` grows label regions (connected components)
+    outwards by up to ``distance`` pixels without overflowing into neighboring regions.
+    More specifically, each background pixel that is within Euclidean distance
+    of <= ``distance`` pixels of a connected component is assigned the label of that
+    connected component.
+    Where multiple connected components are within ``distance`` pixels of a background
+    pixel, the label value of the closest connected component will be assigned (see
+    Notes for the case of multiple labels at equal distance).
+    Parameters
+    ----------
+    label_image : ndarray of dtype int
+        label image
+    distance : float
+        Euclidean distance in pixels by which to grow the labels. Default is one.
+    Returns
+    -------
+    enlarged_labels : ndarray of dtype int
+        Labeled array, where all connected regions have been enlarged
+    Notes
+    -----
+    Where labels are spaced more than ``distance`` pixels are apart, this is
+    equivalent to a morphological dilation with a disc or hyperball of radius ``distance``.
+    However, in contrast to a morphological dilation, ``expand_labels`` will
+    not expand a label region into a neighboring region.  
+    This implementation of ``expand_labels`` is derived from CellProfiler [1]_, where
+    it is known as module "IdentifySecondaryObjects (Distance-N)" [2]_.
+    There is an important edge case when a pixel has the same distance to
+    multiple regions, as it is not defined which region expands into that
+    space. Here, the exact behavior depends on the upstream implementation
+    of ``scipy.ndimage.distance_transform_edt``.
+    See Also
+    --------
+    :func:`skimage.measure.label`, :func:`skimage.segmentation.watershed`, :func:`skimage.morphology.dilation`
+    References
+    ----------
+    .. [1] https://cellprofiler.org
+    .. [2] https://github.com/CellProfiler/CellProfiler/blob/082930ea95add7b72243a4fa3d39ae5145995e9c/cellprofiler/modules/identifysecondaryobjects.py#L559
+    Examples
+    --------
+    >>> labels = np.array([0, 1, 0, 0, 0, 0, 2])
+    >>> expand_labels(labels, distance=1)
+    array([1, 1, 1, 0, 0, 2, 2])
+    Labels will not overwrite each other:
+    >>> expand_labels(labels, distance=3)
+    array([1, 1, 1, 1, 2, 2, 2])
+    In case of ties, behavior is undefined, but currently resolves to the
+    label closest to ``(0,) * ndim`` in lexicographical order.
+    >>> labels_tied = np.array([0, 1, 0, 2, 0])
+    >>> expand_labels(labels_tied, 1)
+    array([1, 1, 1, 2, 2])
+    >>> labels2d = np.array(
+    ...     [[0, 1, 0, 0],
+    ...      [2, 0, 0, 0],
+    ...      [0, 3, 0, 0]]
+    ... )
+    >>> expand_labels(labels2d, 1)
+    array([[2, 1, 1, 0],
+           [2, 2, 0, 0],
+           [2, 3, 3, 0]])
+    """
+
+    distances, nearest_label_coords = distance_transform_edt(
+        label_image == 0, return_indices=True
+    )
+    labels_out = np.zeros_like(label_image)
+    dilate_mask = distances <= distance
+    # build the coordinates to find nearest labels,
+    # in contrast to [1] this implementation supports label arrays
+    # of any dimension
+    masked_nearest_label_coords = [
+        dimension_indices[dilate_mask]
+        for dimension_indices in nearest_label_coords
+    ]
+    nearest_labels = label_image[tuple(masked_nearest_label_coords)]
+    labels_out[dilate_mask] = nearest_labels
+    return labels_out
+
 def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = True, min_size = 20):
     
                
@@ -173,9 +267,213 @@ def CCLabels(fname, max_size = 15000):
 
 
 
-
+def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n_tiles = (2,2), UseProbability = True):
     
+    print('Generating SmartSeed results')
+    UNETResults = SaveDir + 'BinaryMask/'
+    StarImageResults = SaveDir + 'StarDist/'
+    SmartSeedsResults = SaveDir + 'SmartSeedsMask/' 
+    SmartSeedsIntegerResults = SaveDir + 'SmartSeedsInteger/'
+    Path(SaveDir).mkdir(exist_ok = True)
+    Path(SmartSeedsResults).mkdir(exist_ok = True)
+    Path(StarImageResults).mkdir(exist_ok = True)
+    Path(UNETResults).mkdir(exist_ok = True)
+    Path(SmartSeedsIntegerResults).mkdir(exist_ok = True)
+    #Read Image
+    image = imread(fname)
+    Name = os.path.basename(os.path.splitext(fname)[0])
+    #U-net prediction
+    Mask = SuperUNETPrediction(image, UnetModel, n_tiles, 'YX')
+  
+    #Smart Seed prediction 
+    SmartSeeds, _, StarImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
+    labelmax = np.amax(StarImage)
+    Mask[StarImage > 0] == labelmax + 1
+    #For avoiding pixel level error 
+    Mask = expand_labels(Mask, distance = 1)
+    SmartSeeds = expand_labels(SmartSeeds, distance = 1)
+    
+    SmartSeedsInteger = SmartSeeds
+    
+    BinaryMask = Integer_to_border(Mask.astype('uint16'))  
+    SmartSeeds = Integer_to_border(SmartSeeds.astype('uint16'))
+    #Missing edges of one network prevented by others
+    SmartSeeds = skeletonize(SmartSeeds)
+    BinaryMask = skeletonize(BinaryMask)
+    SmartSeeds = np.logical_or(SmartSeeds, BinaryMask)
+    SmartSeeds = skeletonize(SmartSeeds)
+    
+    #Could create double pixels and new pockets, use watershed and skeletonize to remove again
+    SmartSeeds = BinaryLabel(SmartSeeds)
+   
+    SmartSeeds = Integer_to_border(SmartSeeds.astype('uint16'))
+    SmartSeeds = remove_small_holes(SmartSeeds, min_size)
+    SmartSeeds = skeletonize(SmartSeeds)
+    #Save results, we only need smart seeds finale results but hey!
+    imwrite((SmartSeedsResults + Name+ '.tif' ) , SmartSeeds.astype('uint8'))
+    imwrite((SmartSeedsIntegerResults + Name+ '.tif' ) , SmartSeedsInteger.astype('uint16'))
+    imwrite((StarImageResults + Name+ '.tif' ) , StarImage.astype('uint16'))
+    imwrite((UNETResults + Name+ '.tif' ) , BinaryMask.astype('uint8'))   
+    
+ 
+    return SmartSeeds, Mask
+  
+def SuperWatershedwithMask(Image, Label,mask, grid):
+    
+    
+   
+    properties = measure.regionprops(Label, Image)
+    binaryproperties = measure.regionprops(label(mask), Image) 
+    
+    Coordinates = [prop.centroid for prop in properties]
+    BinaryCoordinates = [prop.centroid for prop in binaryproperties]
+    Binarybbox = [prop.bbox for prop in binaryproperties]
+    
+    if len(Binarybbox) > 0:    
+            for i in range(0, len(Binarybbox)):
+                
+                box = Binarybbox[i]
+                inside = [iouNotum(box, star) for star in Coordinates]
+                
+                if not any(inside) :
+                         Coordinates.append(BinaryCoordinates[i])
+    Coordinates = sorted(Coordinates , key=lambda k: [k[1], k[0]])
+    Coordinates.append((0,0))
+    Coordinates = np.asarray(Coordinates)
 
+    coordinates_int = np.round(Coordinates).astype(int)
+    markers_raw = np.zeros_like(Image)  
+    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+    
+    markers = morphology.dilation(markers_raw, morphology.disk(2))
+    watershedImage = watershed(-Image, markers, mask = mask.copy())
+    
+    return watershedImage, markers
+#If there are neighbouring seeds we do not put more seeds
+def ConditioncheckNotum(centroid, boxA, p, ndim):
+    
+      condition = False
+    
+      if centroid[p] >=  boxA[p]  and centroid[p] <=  boxA[p + ndim]:
+          
+           condition = True
+           
+      return condition     
+ 
+def iouNotum(boxA, centroid):
+    
+    ndim = len(centroid)
+    inside = False
+    
+    Condition = [ConditioncheckNotum(centroid, boxA, p, ndim) for p in range(0,ndim)]
+        
+    inside = all(Condition)
+    
+    return inside
+
+
+def SuperWatershedwithoutMask(Image, Label,mask, grid):
+    
+    
+   
+    properties = measure.regionprops(Label, Image)
+    binaryproperties = measure.regionprops(label(mask), Image) 
+    
+    Coordinates = [prop.centroid for prop in properties]
+    BinaryCoordinates = [prop.centroid for prop in binaryproperties]
+    Binarybbox = [prop.bbox for prop in binaryproperties]
+    
+    if len(Binarybbox) > 0:    
+            for i in range(0, len(Binarybbox)):
+                
+                box = Binarybbox[i]
+                inside = [iouNotum(box, star) for star in Coordinates]
+                
+                if not any(inside) :
+                         Coordinates.append(BinaryCoordinates[i])
+    Coordinates = sorted(Coordinates , key=lambda k: [k[1], k[0]])
+    Coordinates.append((0,0))
+    Coordinates = np.asarray(Coordinates)
+
+    coordinates_int = np.round(Coordinates).astype(int)
+    markers_raw = np.zeros_like(Image)  
+    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+    
+    markers = morphology.dilation(markers_raw, morphology.disk(2))
+    watershedImage = watershed(-Image, markers)
+    
+    return watershedImage, markers
+
+#Default method that works well with cells which are below a certain shape and do not have weak edges    
+    
+def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel = None, min_size = 5, n_tiles = (1,1), UseProbability = True, threshold = 20):
+    
+    print('Generating SmartSeed results')
+    UNETResults = SaveDir + 'BinaryMask/'
+    StarImageResults = SaveDir + 'StarDist/'
+    SmartSeedsResults = SaveDir + 'SmartSeedsMask/' 
+    SmartSeedsIntegerResults = SaveDir + 'SmartSeedsInteger/'
+    DenoiseResults = SaveDir + 'Denoised/'
+    
+    Path(SaveDir).mkdir(exist_ok = True)
+    Path(DenoiseResults).mkdir(exist_ok = True)
+    Path(SmartSeedsResults).mkdir(exist_ok = True)
+    Path(SmartSeedsIntegerResults).mkdir(exist_ok = True)
+    Path(StarImageResults).mkdir(exist_ok = True)
+    Path(UNETResults).mkdir(exist_ok = True)
+    
+    #Read Image
+    image = imread(fname)
+    Name = os.path.basename(os.path.splitext(fname)[0])
+    
+    if NoiseModel is not None:
+         image = NoiseModel.predict(image, axes='ZYX', n_tiles=(1,n_tiles[0], n_tiles[1]))
+         imwrite((DenoiseResults + Name+ '.tif' ) , image.astype('float32'))
+    BinaryTime = np.zeros([image.shape[0], image.shape[1], image.shape[2]])
+    StarTime = np.zeros([image.shape[0], image.shape[1], image.shape[2]])
+    SmartSeedsTime = np.zeros([image.shape[0], image.shape[1], image.shape[2]])
+    SmartSeedsIntegerTime = np.zeros([image.shape[0], image.shape[1], image.shape[2]])
+    for i in range(0, image.shape[0]):
+        #U-net prediction
+        Mask = SuperUNETPrediction(image[i,:], UnetModel, n_tiles, 'YX')
+      
+        #Smart Seed prediction 
+        SmartSeeds, _, StarImage = SuperSTARPrediction(image[i,:], StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
+        
+        labelmax = np.amax(StarImage)
+        Mask[StarImage > 0] == labelmax + 1
+        #For avoiding pixel level error 
+        Mask = expand_labels(Mask, distance = 1)
+        SmartSeeds = expand_labels(SmartSeeds, distance = 1)
+        SmartSeedsInteger = SmartSeeds
+        BinaryMask = Integer_to_border(Mask.astype('uint16'))  
+        SmartSeeds = Integer_to_border(SmartSeeds.astype('uint16'))
+
+        #Missing edges of one network prevented by others
+        SmartSeeds = skeletonize(SmartSeeds)
+        BinaryMask = skeletonize(BinaryMask)
+        SmartSeeds = np.logical_or(SmartSeeds, BinaryMask)
+        SmartSeeds = skeletonize(SmartSeeds)
+    
+        #Could create double pixels and new pockets, use watershed and skeletonize to remove again
+        SmartSeeds = BinaryLabel(SmartSeeds)
+      
+        SmartSeeds = Integer_to_border(SmartSeeds.astype('uint16'))
+        SmartSeeds = remove_small_holes(SmartSeeds, min_size)
+        SmartSeeds = skeletonize(SmartSeeds)
+        BinaryTime[i,:] = BinaryMask
+        StarTime[i,:] = StarImage
+        SmartSeedsTime[i,:] = SmartSeeds
+        SmartSeedsIntegerTime[i,:] = SmartSeedsInteger
+        
+    #Save results, we only need smart seeds finale results but hey!
+    SmartSeedsIntegerTime = merge_labels_across_volume(SmartSeedsIntegerTime.astype('uint16'), RelabelZ, threshold= threshold)
+    imwrite((SmartSeedsResults + Name+ '.tif' ) , SmartSeedsTime.astype('uint8'))
+    imwrite((SmartSeedsIntegerResults + Name+ '.tif' ) , SmartSeedsIntegerTime.astype('uint16'))
+    imwrite((StarImageResults + Name+ '.tif' ) , StarTime.astype('uint16'))
+    imwrite((UNETResults + Name+ '.tif' ) , BinaryTime.astype('uint8'))   
+    
+    
 def SmartSeedPrediction3D( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 10, 
 n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0):
     
@@ -183,9 +481,13 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     
     print('Generating SmartSeed results')
     UNETResults = SaveDir + 'BinaryMask/'
+    
     SmartSeedsResults = SaveDir + 'SmartSeedsMask/' 
     StarDistResults = SaveDir + 'StarDist/'
+    DenoiseResults = SaveDir + 'Denoised/'
+    
     Path(SaveDir).mkdir(exist_ok = True)
+    Path(DenoiseResults).mkdir(exist_ok = True)
     Path(SmartSeedsResults).mkdir(exist_ok = True)
     Path(StarDistResults).mkdir(exist_ok = True)
     Path(UNETResults).mkdir(exist_ok = True)
@@ -201,6 +503,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     Name = os.path.basename(os.path.splitext(fname)[0])
     if NoiseModel is not None:
          image = NoiseModel.predict(image, axes='ZYX', n_tiles=n_tiles)
+         imwrite((DenoiseResults + Name+ '.tif' ) , image.astype('float32'))   
     Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
     for i in range(0, Mask.shape[0]):
         Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
@@ -225,7 +528,14 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
 
 
 
+def Integer_to_border(Label):
 
+        BoundaryLabel =  find_boundaries(SmallLabel, mode='outer')
+           
+        Binary = BoundaryLabel > 0
+        
+        return Binary
+        
 
 def DownsampleData(image, DownsampleFactor):
                     
@@ -247,7 +557,109 @@ def DownsampleData(image, DownsampleFactor):
                 
 
 
+def SuperUNETPrediction(image, model, n_tiles, axis, threshold = 20):
+    
+    
+    Segmented = model.predict(image, axis, n_tiles = n_tiles)
+    try:
+       thresh = threshold_otsu(Segmented)
+       Binary = Segmented > thresh
+    except:
+        Binary = Segmented > 0
+        
+    Binary= binary_erosion(Binary)    
+    #Postprocessing steps
+    
+    
+    Finalimage = label(Binary)
+    Finalimage = fill_label_holes(Finalimage)
+    Finalimage = relabel_sequential(Finalimage)[0]
+    
+    return  Finalimage
+def merge_labels_across_volume(labelvol, relabelfunc, threshold=3):
+    nz, ny, nx = labelvol.shape
+    res = np.zeros_like(labelvol)
+    res[0,...] = labelvol[0,...]
+    backup = labelvol.copy() # kapoors code modifies the input array
+    for i in tqdm(range(nz-1)):
+        
+        res[i+1,...] = relabelfunc(res[i,...], labelvol[i+1,...],threshold=threshold)
+        labelvol = backup.copy() # restore the input array
+    return res
 
+def RelabelZ(previousImage, currentImage,threshold):
+      # This line ensures non-intersecting label sets
+      copyImage = currentImage.copy()
+      copypreviousImage = previousImage.copy()
+      copyImage = relabel_sequential(copyImage,offset=copypreviousImage.max()+1)[0]
+        # I also don't like modifying the input image, so we take a copy
+      relabelimage = copyImage.copy()
+      waterproperties = measure.regionprops(copypreviousImage, copypreviousImage)
+      indices = [] 
+      labels = []
+      for prop in waterproperties:
+        if prop.label > 0:
+                 
+                  labels.append(prop.label)
+                  indices.append(prop.centroid) 
+     
+      if len(indices) > 0:
+        tree = spatial.cKDTree(indices)
+        currentwaterproperties = measure.regionprops(copyImage, copyImage)
+        currentindices = [prop.centroid for prop in currentwaterproperties] 
+        currentlabels = [prop.label for prop in currentwaterproperties] 
+        if len(currentindices) > 0: 
+            for i in range(0,len(currentindices)):
+                index = currentindices[i]
+                currentlabel = currentlabels[i] 
+                if currentlabel > 0:
+                        previouspoint = tree.query(index)
+                        for prop in waterproperties:
+                               
+                                      if int(prop.centroid[0]) == int(indices[previouspoint[1]][0]) and int(prop.centroid[1]) == int(indices[previouspoint[1]][1]):
+                                                previouslabel = prop.label
+                                                break
+                        
+                        if previouspoint[0] > threshold:
+                              relabelimage[np.where(copyImage == currentlabel)] = currentlabel
+                        else:
+                              relabelimage[np.where(copyImage == currentlabel)] = previouslabel
+      
+                              
+
+    
+      return relabelimage
+
+def SuperSTARPrediction(image, model, n_tiles, MaskImage, UseProbability = True):
+    
+    
+    image = normalize(image, 1, 99.8, axis = (0,1))
+    shape = [image.shape[0], image.shape[1]]
+    image = zero_pad(image, 64, 64)
+    
+    MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
+    
+    StarImage = MidImage[:shape[0],:shape[1]]
+    
+    SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
+    grid = model.config.grid
+    Probability = cv2.resize(SmallProbability, dsize=(SmallProbability.shape[1] * grid[1] , SmallProbability.shape[0] * grid[0] ))
+    Distance = MaxProjectDist(SmallDistance, axis=-1)
+    Distance = cv2.resize(Distance, dsize=(Distance.shape[1] * grid[1] , Distance.shape[0] * grid[0] ))
+    if UseProbability:
+        
+        MaxProjectDistance = Probability[:shape[0],:shape[1]]
+
+    else:
+        
+        MaxProjectDistance = Distance[:shape[0],:shape[1]]
+
+          
+    Watershed, Markers = SuperWatershedwithMask(MaxProjectDistance, StarImage.astype('uint16'), MaskImage.astype('uint16'), grid)
+    Watershed = fill_label_holes(Watershed.astype('uint16'))
+    
+
+    return Watershed, Markers, StarImage 
 
 def UNETPrediction3D(image, model, n_tiles, axis):
     
