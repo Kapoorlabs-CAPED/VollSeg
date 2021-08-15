@@ -150,7 +150,7 @@ def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = 
 
 def crappify_flou_G_P(x, y, mu, sigma, savedirx, savediry, name):
     x = x.astype('float32')
-    gaussiannoise = np.random.normal(mu, sigma*0.05, x.shape)
+    gaussiannoise = np.random.normal(mu, sigma, x.shape)
     x = x + gaussiannoise 
         
     #add noise to original image
