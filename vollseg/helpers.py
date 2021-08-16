@@ -640,8 +640,9 @@ def SuperSTARPrediction(image, model, n_tiles, MaskImage, UseProbability = True)
     MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
     
     StarImage = MidImage[:shape[0],:shape[1]]
+    CopyStarImage = StarImage.copy()
     if MaskImage is not None:
-      indices = np.where(StarImage > 0)
+      indices = np.where(CopyStarImage > 0)
       MaskImage[indices] = 1
     SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
     grid = model.config.grid
@@ -706,9 +707,9 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
 
 
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
-    
+    CopyStarImage = StarImage.copy()
     if MaskImage is not None:
-      indices = np.where(StarImage > 0)
+      indices = np.where(CopyStarImage > 0)
       MaskImage[indices] = 1
     SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
     Probability = np.zeros([SmallProbability.shape[0] * grid[0],SmallProbability.shape[1] * grid[1], SmallProbability.shape[2] * grid[2] ])
