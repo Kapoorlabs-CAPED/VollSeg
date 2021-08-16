@@ -138,7 +138,7 @@ def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = 
     
              
                                            
-                      Mask = UNETPrediction3D(x, UnetModel, min_size, n_tiles, 'YX')
+                      Mask = UNETPrediction3D(x, UnetModel, n_tiles, 'YX')
                       
                       SmartSeeds, _, StarImage = STARPrediction3D(x, StarModel, min_size, n_tiles, MaskImage = Mask, smartcorrection = None, UseProbability = UseProbability)
                       
