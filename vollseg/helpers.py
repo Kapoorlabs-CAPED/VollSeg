@@ -510,7 +510,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     
-
+    
     SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection)
     #Upsample images back to original size
     for i in range(0, Mask.shape[0]):
@@ -640,7 +640,9 @@ def SuperSTARPrediction(image, model, n_tiles, MaskImage, UseProbability = True)
     MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
     
     StarImage = MidImage[:shape[0],:shape[1]]
-    
+    if MaskImage is not None:
+      indices = [np.where(StarImage > 0)]  
+      Mask[indices] = 1
     SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
     grid = model.config.grid
     Probability = cv2.resize(SmallProbability, dsize=(SmallProbability.shape[1] * grid[1] , SmallProbability.shape[0] * grid[0] ))
@@ -704,6 +706,10 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
 
 
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
+    
+    if MaskImage is not None:
+      indices = [np.where(StarImage > 0)]  
+      Mask[indices] = 1
     SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
     Probability = np.zeros([SmallProbability.shape[0] * grid[0],SmallProbability.shape[1] * grid[1], SmallProbability.shape[2] * grid[2] ])
     Distance = np.zeros([SmallDistance.shape[0] * grid[0], SmallDistance.shape[1] * grid[1], SmallDistance.shape[2] * grid[2] ])
