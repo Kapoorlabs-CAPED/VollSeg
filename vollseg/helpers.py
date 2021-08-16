@@ -132,15 +132,15 @@ def expand_labels(label_image, distance=1):
     labels_out[dilate_mask] = nearest_labels
     return labels_out
 
-def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = True, min_size = 20):
+def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = True, min_size = 20, axis = 'ZYX'):
     
                
     
              
                                            
-                      Mask = UNETPrediction3D(x, UnetModel, n_tiles, 'YX')
+                      Mask = UNETPrediction3D(x, UnetModel, n_tiles, axis)
                       
-                      SmartSeeds, _, StarImage = STARPrediction3D(x, StarModel, min_size, n_tiles, MaskImage = Mask, smartcorrection = None, UseProbability = UseProbability)
+                      SmartSeeds, _, StarImage = STARPrediction3D(x, StarModel, n_tiles, MaskImage = Mask, smartcorrection = None, UseProbability = UseProbability)
                       
                       SmartSeeds = SmartSeeds.astype('uint16') 
                      

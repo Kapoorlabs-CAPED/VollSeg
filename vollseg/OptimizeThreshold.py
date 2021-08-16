@@ -19,7 +19,7 @@ from skimage.measure import label
 class OptimizeThreshold(object):
     
     
-    def __init__(self, Starmodel, Unetmodel, X, Y, basedir, UseProbability = True, n_tiles = (4,4), min_size = 20, nms_threshs=[0,0.05,0.1,0.15,0.2,0.3,0.4], iou_threshs=[0.6, 0.65, 0.68], measure='accuracy'):
+    def __init__(self, Starmodel, Unetmodel, X, Y, basedir, UseProbability = True, n_tiles = (4,4), min_size = 20, nms_threshs=[0,0.05,0.1,0.15,0.2,0.3,0.4], iou_threshs=[0.6, 0.65, 0.68], measure='accuracy', axis = 'ZYX'):
         
         
         self.Starmodel = Starmodel
@@ -29,7 +29,7 @@ class OptimizeThreshold(object):
         self.UseProbability = UseProbability
         self.X = X
         self.Y = Y
-        
+        self.axis = axis
         self.nms_threshs = nms_threshs
         self.iou_threshs = iou_threshs
         self.measure = measure
@@ -84,7 +84,7 @@ class OptimizeThreshold(object):
                         value = values.get(prob_thresh)
                         if value is None:
                             
-                            Y_instances = [SimplePrediction(x, self.Unetmodel, self.Starmodel, n_tiles = self.n_tiles, UseProbability = self.UseProbability, min_size = self.min_size) for x in tqdm(self.X)]
+                            Y_instances = [SimplePrediction(x, self.Unetmodel, self.Starmodel, n_tiles = self.n_tiles, UseProbability = self.UseProbability, min_size = self.min_size, axis = self.axis) for x in tqdm(self.X)]
                             stats = matching_dataset(Y, Y_instances, thresh=self.iou_threshs, show_progress=False, parallel=True)
                             values[prob_thresh] = value = np.mean([s._asdict()[measure] for s in stats])
                         if verbose > 1:
