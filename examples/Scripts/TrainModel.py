@@ -5,7 +5,7 @@
 
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="1"
 import glob
 import glob
 from vollseg import SmartSeeds3D
@@ -28,10 +28,10 @@ os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 # In[ ]:
 
 
-Data_dir = '/data/'
-NPZ_filename = 'VolumeSeg'
-Model_dir = '/data/'
-Model_Name = 'VolumeSeg'
+Data_dir = '/data/u934/service_imagerie/v_kapoor/Twitter/'
+NPZ_filename = 'Arabidopsisp64'
+Model_dir = '/data/u934/service_imagerie/v_kapoor/Twitter/'
+Model_Name = 'p64BUArabidopsisVollSeg'
 
 
 # # In this cell choose the network training parameters for the Neural Network
@@ -61,21 +61,21 @@ Model_Name = 'VolumeSeg'
 
 
 #Network training parameters
-NetworkDepth = 5
+NetworkDepth = 3
 Epochs = 100
 LearningRate = 1.0E-4
 batch_size = 1
-PatchX = 256
-PatchY = 256
+PatchX = 128
+PatchY = 128
 PatchZ = 64
 Kernel = 3
-n_patches_per_image = 16
-Rays = 128
-startfilter = 48
-use_gpu_opencl = True
-GenerateNPZ = True
+n_patches_per_image = 40
+Rays = 32
+startfilter = 32
+use_gpu_opencl = False
+GenerateNPZ = False
 TrainUNET = False
-TrainSTAR = False
+TrainSTAR = True
 
 
 # # Generate the npz file first and then train the model
@@ -84,15 +84,12 @@ TrainSTAR = False
 
 
 
-SmartSeeds3D(BaseDir = Data_dir, NPZfilename = NPZ_filename, model_name = Model_Name, model_dir = Model_dir, n_patches_per_image = n_patches_per_image,GenerateNPZ = GenerateNPZ, TrainUNET = TrainUNET, TrainSTAR = TrainSTAR, PatchX= PatchX, PatchY= PatchY, PatchZ = PatchZ,  use_gpu = use_gpu_opencl,  batch_size = batch_size, depth = NetworkDepth, kern_size = Kernel, startfilter = startfilter, n_rays = Rays, epochs = Epochs, learning_rate = LearningRate)
+SmartSeeds3D(BaseDir = Data_dir, backbone = 'unet', NPZfilename = NPZ_filename, model_name = Model_Name, model_dir = Model_dir, n_patches_per_image = n_patches_per_image,GenerateNPZ = GenerateNPZ, CroppedLoad = True, TrainUNET = TrainUNET, TrainSTAR = TrainSTAR, PatchX= PatchX, PatchY= PatchY, PatchZ = PatchZ,  use_gpu = use_gpu_opencl,  batch_size = batch_size, depth = NetworkDepth, kern_size = Kernel, startfilter = startfilter, n_rays = Rays, epochs = Epochs, learning_rate = LearningRate)
 
 
 # In[ ]:
 
 
-TrainUNET = True
-TrainSTAR = True
-SmartSeeds3D(BaseDir = Data_dir, NPZfilename = NPZ_filename, model_name = Model_Name, model_dir = Model_dir, n_patches_per_image = n_patches_per_image,GenerateNPZ = GenerateNPZ, TrainUNET = TrainUNET, TrainSTAR = TrainSTAR, PatchX= PatchX, PatchY= PatchY, PatchZ = PatchZ,  use_gpu = use_gpu_opencl,  batch_size = batch_size, depth = NetworkDepth, kern_size = Kernel, startfilter = startfilter, n_rays = Rays, epochs = Epochs, learning_rate = LearningRate)
 
 
 # In[ ]:

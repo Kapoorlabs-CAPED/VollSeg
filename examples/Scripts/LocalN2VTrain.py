@@ -9,7 +9,7 @@
 from n2v.models import N2VConfig, N2V
 import numpy as np
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="0"
 from csbdeep.utils import plot_history,plot_some
 from n2v.utils.n2v_utils import manipulate_val_data
 from n2v.internals.N2V_DataGenerator import N2V_DataGenerator
@@ -21,10 +21,10 @@ import zipfile
 # In[ ]:
 
 
-BaseDir = 'data/'
+BaseDir = '/data/u934/service_imagerie/v_kapoor/Twitter/'
 
-Model_Dir = 'data/'
-Model_Name = 'ScipyDenoising'
+Model_Dir = '/data/u934/service_imagerie/v_kapoor/Twitter/'
+Model_Name = 'ArabDenoising'
 datagen = N2V_DataGenerator()
 
 imgs = datagen.load_imgs_from_directory(directory = BaseDir + "Raw/", dims='ZYX')
@@ -35,13 +35,14 @@ imgs = datagen.load_imgs_from_directory(directory = BaseDir + "Raw/", dims='ZYX'
 # In[ ]:
 
 
-patch_shape = (16, 128, 128)
+patch_shape = (64, 256, 256)
 Epochs = 200
 NetworkDepth = 3
 batch_size = 1
 patches = datagen.generate_patches_from_list(imgs[:1], shape=patch_shape)
-X = patches[:180]
-X_val = patches[180:]
+print(patches.shape)
+X = patches[:14]
+X_val = patches[14:]
 
 
 
