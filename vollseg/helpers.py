@@ -704,7 +704,7 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
 
 
-     print('Predictions Done')
+    print('Predictions Done')
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
     if UseProbability == False:
         
