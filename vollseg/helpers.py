@@ -502,21 +502,21 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SizedSmartSeeds = np.zeros([sizeZ, sizeY, sizeX], dtype = 'uint16')
     Name = os.path.basename(os.path.splitext(fname)[0])
     if NoiseModel is not None:
+         print('Denoising Image')
          image = NoiseModel.predict(image, axes='ZYX', n_tiles=n_tiles)
          imwrite((DenoiseResults + Name+ '.tif' ) , image.astype('float32'))   
+    print('UNET segmentation on Image')     
     Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
     for i in range(0, Mask.shape[0]):
         Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
     
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     
-    
+    print('Stardist segmentation on Image')  
     SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection)
-    #Upsample images back to original size
-    for i in range(0, Mask.shape[0]):
-        SmartSeeds[i,:] = remove_small_objects(SmartSeeds[i,:].astype('uint16'), min_size = min_size)
-        
-    SmartSeeds = RemoveLabels(SmartSeeds)       
+    SmartSeeds= remove_small_objects(SmartSeeds.astype('uint16'), min_size = min_size)
+    SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
+    SmartSeeds = RemoveLabels(SmartSeeds) 
     SizedSmartSeeds[:, :SmartSeeds.shape[1], :SmartSeeds.shape[2]] = SmartSeeds
             
     imwrite((StarDistResults + Name+ '.tif' ) , StarImage.astype('uint16'))
@@ -704,14 +704,18 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
 
 
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
+    if UseProbability == False:
+        
+        SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
+        Distance = np.zeros([SmallDistance.shape[0] * grid[0], SmallDistance.shape[1] * grid[1], SmallDistance.shape[2] * grid[2] ])
     
-    SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
     Probability = np.zeros([SmallProbability.shape[0] * grid[0],SmallProbability.shape[1] * grid[1], SmallProbability.shape[2] * grid[2] ])
-    Distance = np.zeros([SmallDistance.shape[0] * grid[0], SmallDistance.shape[1] * grid[1], SmallDistance.shape[2] * grid[2] ])
+    
     #We only allow for the grid parameter to be 1 along the Z axis
     for i in range(0, SmallProbability.shape[0]):
         Probability[i,:] = cv2.resize(SmallProbability[i,:], dsize=(SmallProbability.shape[2] * grid[2] , SmallProbability.shape[1] * grid[1] ))
-        Distance[i,:] = cv2.resize(SmallDistance[i,:], dsize=(SmallDistance.shape[2] * grid[2] , SmallDistance.shape[1] * grid[1] ))
+        if UseProbability == False:
+            Distance[i,:] = cv2.resize(SmallDistance[i,:], dsize=(SmallDistance.shape[2] * grid[2] , SmallDistance.shape[1] * grid[1] ))
     
     if UseProbability:
         
