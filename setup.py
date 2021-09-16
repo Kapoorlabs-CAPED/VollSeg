@@ -8,7 +8,7 @@ with open('README.md') as f:
 setup(
     name="vollseg",
 
-    version='1.3.3',
+    version='1.4.1',
 
     author='Varun Kapoor,Claudia Carabana Garcia',
     author_email='randomaccessiblekapoor@gmail.com',

@@ -698,11 +698,13 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     image = zero_pad_time(image, 64, 64)
     grid = copymodel.config.grid
 
+    print('Predicting Instances')
     MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
+    print('Predicting Proabbilities')
     SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
 
 
-
+     print('Predictions Done')
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
     if UseProbability == False:
         
@@ -711,6 +713,7 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     
     Probability = np.zeros([SmallProbability.shape[0] * grid[0],SmallProbability.shape[1] * grid[1], SmallProbability.shape[2] * grid[2] ])
     
+    print('Reshaping')
     #We only allow for the grid parameter to be 1 along the Z axis
     for i in range(0, SmallProbability.shape[0]):
         Probability[i,:] = cv2.resize(SmallProbability[i,:], dsize=(SmallProbability.shape[2] * grid[2] , SmallProbability.shape[1] * grid[1] ))
