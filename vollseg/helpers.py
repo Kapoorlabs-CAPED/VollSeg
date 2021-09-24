@@ -139,7 +139,7 @@ def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = 
                                            
                       Mask = UNETPrediction3D(x, UnetModel, n_tiles, axis)
                       
-                      SmartSeeds, _, StarImage = STARPrediction3D(x, StarModel, n_tiles, MaskImage = Mask, smartcorrection = None, UseProbability = UseProbability, globalthreshold = globalthreshold)
+                      SmartSeeds, _, StarImage, _ = STARPrediction3D(x, StarModel, n_tiles, MaskImage = Mask, smartcorrection = None, UseProbability = UseProbability, globalthreshold = globalthreshold)
                       
                       SmartSeeds = SmartSeeds.astype('uint16') 
                      
@@ -484,13 +484,15 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SmartSeedsResults = SaveDir + 'SmartSeedsMask/' 
     StarDistResults = SaveDir + 'StarDist/'
     DenoiseResults = SaveDir + 'Denoised/'
-    
+    ProbabilityResults = SaveDir + 'Probability/'
+    MarkerResults = SaveDir + 'Markers/'
     Path(SaveDir).mkdir(exist_ok = True)
     Path(DenoiseResults).mkdir(exist_ok = True)
     Path(SmartSeedsResults).mkdir(exist_ok = True)
     Path(StarDistResults).mkdir(exist_ok = True)
     Path(UNETResults).mkdir(exist_ok = True)
-    
+    Path(ProbabilityResults).mkdir(exist_ok = True)
+    Path(MarkerResults).mkdir(exist_ok = True)
     #Read Image
     image = imread(fname)
     sizeZ = image.shape[0]
@@ -499,6 +501,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     
     SizedMask = np.zeros([sizeZ, sizeY, sizeX], dtype = 'uint16')
     SizedSmartSeeds = np.zeros([sizeZ, sizeY, sizeX], dtype = 'uint16')
+    SizedProbabilityMap = np.zeros([sizeZ, sizeY, sizeX], dtype = 'float32')
     Name = os.path.basename(os.path.splitext(fname)[0])
     if NoiseModel is not None:
          print('Denoising Image')
@@ -512,16 +515,16 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
     print('Stardist segmentation on Image')  
-    SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold)
+    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold)
     SmartSeeds= remove_small_objects(SmartSeeds.astype('uint16'), min_size = min_size)
     SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
     SmartSeeds = RemoveLabels(SmartSeeds) 
     SizedSmartSeeds[:, :SmartSeeds.shape[1], :SmartSeeds.shape[2]] = SmartSeeds
-            
+    SizedProbabilityMap[:, :ProbabilityMap.shape[1], :ProbabilityMap.shape[2]] = ProbabilityMap        
     imwrite((StarDistResults + Name+ '.tif' ) , StarImage.astype('uint16'))
     imwrite((SmartSeedsResults + Name+ '.tif' ) , SizedSmartSeeds.astype('uint16'))
-    
-    
+    imwrite((ProbabilityResults + Name+ '.tif' ) , ProbabilityMap.astype('float32'))
+    imwrite((MarkerResults + Name+ '.tif' ) , Markers.astype('uint16'))
         
     return SizedSmartSeeds, SizedMask    
 
@@ -699,7 +702,7 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
 
     print('Predicting Instances')
     MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
-    print('Predicting Proabbilities')
+    print('Predicting Probabilities')
     SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
 
 
@@ -739,7 +742,7 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
        
        
 
-    return Watershed, MaxProjectDistance, StarImage  
+    return Watershed, MaxProjectDistance, StarImage, Markers  
  
  
 def VetoRegions(Image, Zratio = 3):
