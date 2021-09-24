@@ -795,7 +795,7 @@ def WatershedwithMask3D(Image, Label,mask, grid):
     properties = measure.regionprops(Label, Image) 
     binaryproperties = measure.regionprops(label(mask), Image) 
     
-    Image = np.add(Image, mask>0)
+    
     Coordinates = [prop.centroid for prop in properties] 
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
     
