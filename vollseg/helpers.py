@@ -131,7 +131,7 @@ def expand_labels(label_image, distance=1):
     labels_out[dilate_mask] = nearest_labels
     return labels_out
 
-def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = True, min_size = 20, axis = 'ZYX'):
+def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = True, min_size = 20, axis = 'ZYX', globalthreshold = 1.0E-5):
     
                
     
@@ -139,7 +139,7 @@ def SimplePrediction(x, UnetModel, StarModel, n_tiles = (2,2), UseProbability = 
                                            
                       Mask = UNETPrediction3D(x, UnetModel, n_tiles, axis)
                       
-                      SmartSeeds, _, StarImage = STARPrediction3D(x, StarModel, n_tiles, MaskImage = Mask, smartcorrection = None, UseProbability = UseProbability)
+                      SmartSeeds, _, StarImage = STARPrediction3D(x, StarModel, n_tiles, MaskImage = Mask, smartcorrection = None, UseProbability = UseProbability, globalthreshold = globalthreshold)
                       
                       SmartSeeds = SmartSeeds.astype('uint16') 
                      
@@ -474,7 +474,7 @@ def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel =
     
     
 def SmartSeedPrediction3D( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 10, 
-n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0):
+n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5):
     
     
     
@@ -512,7 +512,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     
     print('Stardist segmentation on Image')  
-    SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection)
+    SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold)
     SmartSeeds= remove_small_objects(SmartSeeds.astype('uint16'), min_size = min_size)
     SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
     SmartSeeds = RemoveLabels(SmartSeeds) 
