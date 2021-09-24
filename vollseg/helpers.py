@@ -692,7 +692,7 @@ def RemoveLabels(LabelImage, minZ = 2):
                     LabelImage[LabelImage == regionlabel] = 0
     return LabelImage                
 
-def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, min_size = min_size):
+def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, min_size = 10):
     
     copymodel = model
     image = normalize(image, 1, 99.8, axis = (0,1,2))
