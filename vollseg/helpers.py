@@ -510,7 +510,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
         Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
     
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
-    
+    imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
     print('Stardist segmentation on Image')  
     SmartSeeds, _, StarImage = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold)
     SmartSeeds= remove_small_objects(SmartSeeds.astype('uint16'), min_size = min_size)
@@ -520,7 +520,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
             
     imwrite((StarDistResults + Name+ '.tif' ) , StarImage.astype('uint16'))
     imwrite((SmartSeedsResults + Name+ '.tif' ) , SizedSmartSeeds.astype('uint16'))
-    imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
+    
     
         
     return SizedSmartSeeds, SizedMask    
@@ -721,17 +721,18 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     
     if UseProbability:
         
-        
+        print('Using Probability maps')
         Probability[Probability < globalthreshold ] = 0 
              
         MaxProjectDistance = Probability[:image.shape[0],:shape[0],:shape[1]]
 
     else:
         
+        print('Using Distance maps')
         MaxProjectDistance = Distance[:image.shape[0],:shape[0],:shape[1]]
 
     
-          
+    print('Doing Watershedding')      
     Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid )
     Watershed = fill_label_holes(Watershed.astype('uint16'))
   
