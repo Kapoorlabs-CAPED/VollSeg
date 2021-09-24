@@ -39,7 +39,6 @@ from tqdm import tqdm
 from skimage.util import random_noise
 from scipy.ndimage import distance_transform_edt
 from skimage.morphology import skeletonize
-globalthreshold = 0.01
 
 
 def BinaryLabel(BinaryImageOriginal, max_size = 15000):
@@ -530,7 +529,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
 
 def Integer_to_border(Label):
 
-        BoundaryLabel =  find_boundaries(SmallLabel, mode='outer')
+        BoundaryLabel =  find_boundaries(Label, mode='outer')
            
         Binary = BoundaryLabel > 0
         
@@ -690,7 +689,7 @@ def RemoveLabels(LabelImage, minZ = 2):
                     LabelImage[LabelImage == regionlabel] = 0
     return LabelImage                
 
-def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True):
+def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5):
     
     copymodel = model
     image = normalize(image, 1, 99.8, axis = (0,1,2))
