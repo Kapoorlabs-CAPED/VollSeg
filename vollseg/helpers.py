@@ -710,6 +710,8 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
     for i in range(0, StarImage.shape[0]):
         StarImage[i,:] = remove_small_objects(StarImage[i,:].astype('uint16'), min_size = min_size)
+        
+    StarImage = RemoveLabels(StarImage)    
     if UseProbability == False:
         
         SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
