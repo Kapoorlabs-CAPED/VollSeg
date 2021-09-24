@@ -515,7 +515,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
     print('Stardist segmentation on Image')  
-    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold)
+    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold, min_size = min_size)
     SmartSeeds= remove_small_objects(SmartSeeds.astype('uint16'), min_size = min_size)
     SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
     SmartSeeds = RemoveLabels(SmartSeeds) 
@@ -692,7 +692,7 @@ def RemoveLabels(LabelImage, minZ = 2):
                     LabelImage[LabelImage == regionlabel] = 0
     return LabelImage                
 
-def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5):
+def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, min_size = min_size):
     
     copymodel = model
     image = normalize(image, 1, 99.8, axis = (0,1,2))
@@ -708,6 +708,8 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
 
     print('Predictions Done')
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
+    for i in range(0, StarImage.shape[0]):
+        StarImage[i,:] = remove_small_objects(StarImage[i,:].astype('uint16'), min_size = min_size)
     if UseProbability == False:
         
         SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
