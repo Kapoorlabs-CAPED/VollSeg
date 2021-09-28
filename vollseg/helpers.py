@@ -784,7 +784,7 @@ def Conditioncheck(centroid, boxA, p, ndim):
     
       condition = False
     
-      if centroid[p] >= boxA[p] and centroid[p] <= boxA[p + ndim]:
+      if centroid[p] >= 2 * boxA[p] and centroid[p] <= 2 * boxA[p + ndim]:
           
            condition = True
            
