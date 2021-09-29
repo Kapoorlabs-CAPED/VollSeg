@@ -474,7 +474,7 @@ def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel =
     
     
 def SmartSeedPrediction3D( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 100, 
-n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5):
+n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5, extent = 0):
     
     
     
@@ -509,13 +509,12 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
          imwrite((DenoiseResults + Name+ '.tif' ) , image.astype('float32'))   
     print('UNET segmentation on Image')     
     Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
-    for i in range(0, Mask.shape[0]):
-        Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
+    
     
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
     print('Stardist segmentation on Image')  
-    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold, min_size = min_size)
+    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold, min_size = min_size, extent = extent)
     SmartSeeds= remove_small_objects(SmartSeeds.astype('uint16'), min_size = min_size)
     SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
     SmartSeeds = RemoveLabels(SmartSeeds) 
@@ -692,7 +691,7 @@ def RemoveLabels(LabelImage, minZ = 2):
                     LabelImage[LabelImage == regionlabel] = 0
     return LabelImage                
 
-def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, min_size = 100):
+def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, min_size = 100, extent = 0):
     
     copymodel = model
     image = normalize(image, 1, 99.8, axis = (0,1,2))
@@ -708,10 +707,7 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
 
     print('Predictions Done')
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
-    for i in range(0, StarImage.shape[0]):
-        StarImage[i,:] = remove_small_objects(StarImage[i,:].astype('uint16'), min_size = min_size)
-        
-    StarImage = RemoveLabels(StarImage)    
+   
     if UseProbability == False:
         
         SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
@@ -740,7 +736,7 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
 
     
     print('Doing Watershedding')      
-    Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid )
+    Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid, extent )
     Watershed = fill_label_holes(Watershed.astype('uint16'))
   
        
@@ -769,29 +765,31 @@ def VetoRegions(Image, Zratio = 3):
 
 #Default method that works well with cells which are below a certain shape and do not have weak edges
     
-def iou3D(boxA, centroid):
+def iou3D(boxA, centroid, extent = 0):
     
     ndim = len(centroid)
     inside = False
     
-    Condition = [Conditioncheck(centroid, boxA, p, ndim) for p in range(0,ndim)]
+    Condition = [Conditioncheck(centroid, boxA, p, ndim, extent) for p in range(0,ndim)]
         
     inside = all(Condition)
     
     return inside
 
-def Conditioncheck(centroid, boxA, p, ndim):
+def Conditioncheck(centroid, boxA, p, ndim, extent):
     
       condition = False
-    
-      if centroid[p] >= 2 * boxA[p] and centroid[p] <= 2 * boxA[p + ndim]:
+     
+      vol = extent * ( boxA[p + ndim] - boxA[p] ) / 2
+      
+      if centroid[p] >=  boxA[p] - vol and centroid[p] <= boxA[p + ndim] + vol:
           
            condition = True
            
       return condition     
     
 
-def WatershedwithMask3D(Image, Label,mask, grid): 
+def WatershedwithMask3D(Image, Label,mask, grid, extent = 0): 
     properties = measure.regionprops(Label, Image) 
     binaryproperties = measure.regionprops(label(mask), Image) 
     
@@ -806,7 +804,7 @@ def WatershedwithMask3D(Image, Label,mask, grid):
             for i in range(0, len(Binarybbox)):
                 
                 box = Binarybbox[i]
-                inside = [iou3D(box, star) for star in Coordinates]
+                inside = [iou3D(box, star, extent) for star in Coordinates]
                 
                 if not any(inside) :
                          Coordinates.append(BinaryCoordinates[i])    
