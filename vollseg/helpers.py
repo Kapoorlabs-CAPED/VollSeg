@@ -509,7 +509,8 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
          imwrite((DenoiseResults + Name+ '.tif' ) , image.astype('float32'))   
     print('UNET segmentation on Image')     
     Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
-    
+    for i in range(0, Mask.shape[0]):
+        Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
     
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
@@ -707,7 +708,10 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
 
     print('Predictions Done')
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
-   
+    for i in range(0, StarImage.shape[0]):
+        StarImage[i,:] = remove_small_objects(StarImage[i,:].astype('uint16'), min_size = min_size)
+        
+    StarImage = RemoveLabels(StarImage)    
     if UseProbability == False:
         
         SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
