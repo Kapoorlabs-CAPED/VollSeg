@@ -18,7 +18,7 @@ import numpy as np
 import os
 #from IPython.display import clear_output
 from stardist.models import Config3D, StarDist3D
-from stardist import  Rays_GoldenSpiral
+from stardist import  Rays_GoldenSpiral,calculate_extents
 from scipy.ndimage.morphology import binary_fill_holes
 from scipy.ndimage.measurements import find_objects
 from scipy.ndimage.morphology import  binary_dilation
