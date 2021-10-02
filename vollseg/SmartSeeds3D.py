@@ -82,7 +82,7 @@ class SmartSeeds3D(object):
 
 
 
-     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, backbone = 'resnet', CroppedLoad = False, TrainUNET = True, TrainSTAR = True, GenerateNPZ = True,  copy_model_dir = None, PatchX=256, PatchY=256, PatchZ = 16,  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
+     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, backbone = 'resnet', CroppedLoad = False, TrainUNET = True, TrainSTAR = True, GenerateNPZ = True,  copy_model_dir = None, PatchX=256, PatchY=256, PatchZ = 16, gridX = 1, gridY = 1,  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
 
          
          
@@ -106,6 +106,8 @@ class SmartSeeds3D(object):
          self.PatchX = PatchX
          self.PatchY = PatchY
          self.PatchZ = PatchZ
+         self.gridX = gridX
+         self.gridY = gridY
          self.batch_size = batch_size
          self.use_gpu = use_gpu
          self.startfilter = startfilter
@@ -312,7 +314,7 @@ class SmartSeeds3D(object):
                                   train_batch_size = self.batch_size,
                                   resnet_n_filter_base = self.startfilter,
                                   train_dist_loss = 'mse',
-                                  grid         = (1,1,1),
+                                  grid         = (1,self.gridY,self.gridX),
                                   use_gpu      = self.use_gpu,
                                   n_channel_in = 1
                                   )
@@ -332,7 +334,7 @@ class SmartSeeds3D(object):
                                   train_batch_size = self.batch_size,
                                   unet_n_filter_base = self.startfilter,
                                   train_dist_loss = 'mse',
-                                  grid         = (1,1,1),
+                                  grid         = (1,self.gridY,self.gridX),
                                   use_gpu      = self.use_gpu,
                                   n_channel_in = 1,
                                   train_sample_cache = False
