@@ -82,7 +82,7 @@ class SmartSeeds3D(object):
 
 
 
-     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, backbone = 'resnet', CroppedLoad = False, TrainUNET = True, TrainSTAR = True, GenerateNPZ = True,  copy_model_dir = None, PatchX=256, PatchY=256, PatchZ = 16, gridX = 1, gridY = 1,  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
+     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, backbone = 'resnet', CroppedLoad = False, TrainUNET = True, TrainSTAR = True, GenerateNPZ = True,  copy_model_dir = None, PatchX=256, PatchY=256, PatchZ = 16, gridX = 1, gridY = 1, annisotropy = (1,1,1),  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
 
          
          
@@ -94,6 +94,7 @@ class SmartSeeds3D(object):
          self.model_dir = model_dir
          self.backbone = backbone
          self.GenerateNPZ = GenerateNPZ
+         self.annisotropy = annisotropy
          self.TrainUNET = TrainUNET
          self.TrainSTAR = TrainSTAR
          self.copy_model_dir = copy_model_dir
@@ -293,10 +294,9 @@ class SmartSeeds3D(object):
 
                           
                             print(Config3D.__doc__)
+                           
                             
-                            extents = calculate_extents(self.Y)
-                            anisotropy = tuple(np.max(extents) / extents)
-                            rays = Rays_GoldenSpiral(self.n_rays, anisotropy=anisotropy)
+                            rays = Rays_GoldenSpiral(self.n_rays, anisotropy=self.annisotropy)
                                     
                                     
                             if self.backbone == 'resnet':
@@ -304,7 +304,7 @@ class SmartSeeds3D(object):
                                 
                                 conf = Config3D (
                                   rays       = rays,
-                                  anisotropy = anisotropy,
+                                  anisotropy = self.annisotropy,
                                   backbone = self.backbone,
                                   train_epochs = self.epochs,
                                   train_learning_rate = self.learning_rate,
@@ -324,7 +324,7 @@ class SmartSeeds3D(object):
                                 
                                 conf = Config3D (
                                   rays       = rays,
-                                  anisotropy = anisotropy,
+                                  anisotropy = self.annisotropy,
                                   backbone = self.backbone,
                                   train_epochs = self.epochs,
                                   train_learning_rate = self.learning_rate,
