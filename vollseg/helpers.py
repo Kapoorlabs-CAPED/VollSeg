@@ -474,7 +474,7 @@ def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel =
     
     
 def SmartSeedPrediction3D( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 100, 
-n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5, extent = 0):
+n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5, extent = 0, seedpool = True):
     
     
     
@@ -515,7 +515,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
     print('Stardist segmentation on Image')  
-    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold, min_size = min_size, extent = extent)
+    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold, min_size = min_size, extent = extent, seedpool = seedpool)
     SmartSeeds= remove_small_objects(SmartSeeds.astype('uint16'), min_size = min_size)
     SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
     SmartSeeds = RemoveLabels(SmartSeeds) 
@@ -692,7 +692,7 @@ def RemoveLabels(LabelImage, minZ = 2):
                     LabelImage[LabelImage == regionlabel] = 0
     return LabelImage                
 
-def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, min_size = 100, extent = 0):
+def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, min_size = 100, extent = 0, seedpool = True):
     
     copymodel = model
     image = normalize(image, 1, 99.8, axis = (0,1,2))
@@ -740,7 +740,7 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
 
     
     print('Doing Watershedding')      
-    Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid, extent )
+    Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype('uint16'), StarImage.astype('uint16'), MaskImage.astype('uint16'), grid, extent,seedpool )
     Watershed = fill_label_holes(Watershed.astype('uint16'))
   
        
@@ -793,7 +793,7 @@ def Conditioncheck(centroid, boxA, p, ndim, extent):
       return condition     
     
 
-def WatershedwithMask3D(Image, Label,mask, grid, extent = 0): 
+def WatershedwithMask3D(Image, Label,mask, grid, extent = 0, seedpool = True): 
     properties = measure.regionprops(Label, Image) 
     binaryproperties = measure.regionprops(label(mask), Image) 
     
@@ -804,7 +804,8 @@ def WatershedwithMask3D(Image, Label,mask, grid, extent = 0):
     Binarybbox = [prop.bbox for prop in binaryproperties]
     Coordinates = sorted(Coordinates , key=lambda k: [k[0], k[1], k[2]]) 
     
-    if len(Binarybbox) > 0:    
+    if seedpool:
+      if len(Binarybbox) > 0:    
             for i in range(0, len(Binarybbox)):
                 
                 box = Binarybbox[i]
