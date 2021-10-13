@@ -20,7 +20,7 @@ from skimage.filters import gaussian
 from six.moves import reduce
 from matplotlib import cm
 from scipy import spatial
-from skimage.filters import threshold_local, threshold_otsu
+from skimage.filters import threshold_local, threshold_otsu, threshold_mean
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 from scipy.ndimage.morphology import binary_fill_holes
@@ -669,7 +669,7 @@ def UNETPrediction3D(image, model, n_tiles, axis):
     Segmented = model.predict(image, axis, n_tiles = n_tiles)
     
     try:
-       thresh = threshold_otsu(Segmented)
+       thresh = threshold_mean(Segmented)
        Binary = Segmented > thresh
     except:
         Binary = Segmented > 0
