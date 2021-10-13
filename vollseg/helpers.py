@@ -473,7 +473,7 @@ def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel =
     imwrite((UNETResults + Name+ '.tif' ) , BinaryTime.astype('uint8'))   
     
     
-def SmartSeedPrediction3D( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 100, 
+def SmartSeedPrediction3D( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 100, max_size = 100000,
 n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5, extent = 0, seedpool = True):
     
     
@@ -517,6 +517,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     print('Stardist segmentation on Image')  
     SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold, min_size = min_size, extent = extent, seedpool = seedpool)
     SmartSeeds= remove_small_objects(SmartSeeds.astype('uint16'), min_size = min_size)
+    SmartSeeds= remove_big_objects(SmartSeeds.astype('uint16'), max_size = max_size)
     SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
     SmartSeeds = RemoveLabels(SmartSeeds) 
     SizedSmartSeeds[:, :SmartSeeds.shape[1], :SmartSeeds.shape[2]] = SmartSeeds
