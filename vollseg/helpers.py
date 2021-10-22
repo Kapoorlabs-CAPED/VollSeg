@@ -853,7 +853,7 @@ def WatershedwithMask3D(Image, Label,mask, grid, extent = 0, seedpool = True):
     markers_raw = np.zeros_like(Image) 
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates)) 
     markers = morphology.dilation(markers_raw.astype('uint16'), morphology.ball(2))
-    
+    mask = np.logical_or(mask, Label > 0)
     watershedImage = watershed(-Image, markers, mask = mask.copy() )
     
     
