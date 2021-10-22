@@ -41,9 +41,9 @@ filesRaw.sort
 min_size = 100
 
 n_tiles = (2,8,8)
-seedpool = False
+dounet = False
 otsu = False
-startZ = 3
+
 #fname = filesRaw[0]
 #test_image_dimensions = imread(fname)
 #if len(test_image_dimensions) > 3:
@@ -76,5 +76,5 @@ filesRaw.sort
 
 for fname in filesRaw:
      
-     SmartSeedPrediction3D(SaveDir, fname, UnetModel, StarModel,NoiseModel, min_size = min_size, startZ = startZ,  n_tiles = n_tiles, UseProbability = True, otsu = otsu, filtersize = 0, seedpool = seedpool)
+     SmartSeedPrediction3D(SaveDir, fname, UnetModel, StarModel,NoiseModel, min_size = min_size,  n_tiles = n_tiles, UseProbability = True, otsu = otsu, filtersize = 0, dounet = dounet)
 

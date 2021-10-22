@@ -474,7 +474,7 @@ def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel =
     
     
 def SmartSeedPrediction3D( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 100, max_size = 100000,
-n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5, extent = 0, seedpool = True, otsu = False, startZ = 0):
+n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5, extent = 0, dounet = True, seedpool = True, otsu = False, startZ = 0):
     
     
     
@@ -517,7 +517,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
              image = newimage  
          imwrite((DenoiseResults + Name+ '.tif' ) , image.astype('float32'))   
     
-    if seedpool:
+    if dounet:
         print('UNET segmentation on Image')     
 
         Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
@@ -529,11 +529,12 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
 
                  thresh = threshold_otsu(image[i,:])
                  Mask[i,:] = image[i,:] > thresh  
+                 Mask[i,:] = label(Mask[i,:]) 
+    
+                 Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
+                 Mask[i,:] = remove_big_objects(Mask[i,:].astype('uint16'), max_size = max_size)
+    
        
-    for i in range(0, Mask.shape[0]):
-        Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
-    Mask = label(Mask) 
-    Mask = remove_big_objects(Mask.astype('uint16'), max_size = max_size)   
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
     print('Stardist segmentation on Image')  
