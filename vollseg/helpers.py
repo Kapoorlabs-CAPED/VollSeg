@@ -529,9 +529,12 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
        SmartSeeds[i,:] = remove_small_objects(SmartSeeds[i,:].astype('uint16'), min_size = min_size)
        SmartSeeds[i,:] = remove_big_objects(SmartSeeds[i,:].astype('uint16'), max_size = max_size)
     SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
+    if startZ > 0:
+         SmartSeeds[0:startZ,:,:] = 0
     SmartSeeds = RemoveLabels(SmartSeeds) 
     SizedSmartSeeds[:, :SmartSeeds.shape[1], :SmartSeeds.shape[2]] = SmartSeeds
-    SizedProbabilityMap[:, :ProbabilityMap.shape[1], :ProbabilityMap.shape[2]] = ProbabilityMap        
+    SizedProbabilityMap[:, :ProbabilityMap.shape[1], :ProbabilityMap.shape[2]] = ProbabilityMap           
+    
     imwrite((StarDistResults + Name+ '.tif' ) , StarImage.astype('uint16'))
     imwrite((SmartSeedsResults + Name+ '.tif' ) , SizedSmartSeeds.astype('uint16'))
     imwrite((ProbabilityResults + Name+ '.tif' ) , ProbabilityMap.astype('float32'))
