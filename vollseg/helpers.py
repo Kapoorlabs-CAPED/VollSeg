@@ -506,6 +506,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     Name = os.path.basename(os.path.splitext(fname)[0])
     if NoiseModel is not None:
          print('Denoising Image')
+        
          image = NoiseModel.predict(image, axes='ZYX', n_tiles=n_tiles)
          newimage = np.zeros(image.shape, dtype = 'float32')
          if otsu:
@@ -515,19 +516,32 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
                  newimage[i,:] = image[i,:]
              image = newimage  
          imwrite((DenoiseResults + Name+ '.tif' ) , image.astype('float32'))   
-    print('UNET segmentation on Image')     
-    Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
+    
+    if seedpool:
+        print('UNET segmentation on Image')     
+
+        Mask = UNETPrediction3D(gaussian_filter(image, filtersize), UnetModel, n_tiles, 'ZYX')
+    else:
+      
+      Mask = np.zeros(image.shape)
+      
+      for i in range(0, Mask.shape[0]):
+
+                 thresh = threshold_otsu(image[i,:])
+                 Mask[i,:] = image[i,:] > thresh  
+       
     for i in range(0, Mask.shape[0]):
         Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
-        Mask[i,:] = remove_big_objects(Mask[i,:].astype('uint16'), max_size = max_size)
+    Mask = label(Mask) 
+    Mask = remove_big_objects(Mask.astype('uint16'), max_size = max_size)   
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
     print('Stardist segmentation on Image')  
     SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold, min_size = min_size, extent = extent, seedpool = seedpool)
-    for i in range(0, SmartSeeds.shape[0]):
+   
 
-       SmartSeeds[i,:] = remove_small_objects(SmartSeeds[i,:].astype('uint16'), min_size = min_size)
-       SmartSeeds[i,:] = remove_big_objects(SmartSeeds[i,:].astype('uint16'), max_size = max_size)
+    SmartSeeds = remove_small_objects(SmartSeeds.astype('uint16'), min_size = min_size)
+    SmartSeeds = remove_big_objects(SmartSeeds.astype('uint16'), max_size = max_size)
     SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
     if startZ > 0:
          SmartSeeds[0:startZ,:,:] = 0

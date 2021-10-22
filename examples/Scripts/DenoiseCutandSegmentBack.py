@@ -39,7 +39,7 @@ Raw_path = os.path.join(ImageDir, '*.tif')
 filesRaw = glob.glob(Raw_path)
 filesRaw.sort
 min_size = 100
-max_size = 5000
+
 n_tiles = (2,8,8)
 seedpool = False
 otsu = False
@@ -76,5 +76,5 @@ filesRaw.sort
 
 for fname in filesRaw:
      
-     SmartSeedPrediction3D(SaveDir, fname, UnetModel, StarModel,NoiseModel, min_size = min_size, max_size = max_size, startZ = startZ,  n_tiles = n_tiles, UseProbability = True, otsu = otsu, filtersize = 0, seedpool = seedpool)
+     SmartSeedPrediction3D(SaveDir, fname, UnetModel, StarModel,NoiseModel, min_size = min_size, startZ = startZ,  n_tiles = n_tiles, UseProbability = True, otsu = otsu, filtersize = 0, seedpool = seedpool)
 
