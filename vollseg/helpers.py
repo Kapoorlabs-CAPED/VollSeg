@@ -540,9 +540,9 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     print('Stardist segmentation on Image')  
     SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold, min_size = min_size, extent = extent, seedpool = seedpool)
    
-
-    SmartSeeds = remove_small_objects(SmartSeeds.astype('uint16'), min_size = min_size)
-    SmartSeeds = remove_big_objects(SmartSeeds.astype('uint16'), max_size = max_size)
+    for i in range(0, SmartSeeds.shape[0]):
+       SmartSeeds[i,:] = remove_small_objects(SmartSeeds[i,:].astype('uint16'), min_size = min_size)
+       SmartSeeds[i,:] = remove_big_objects(SmartSeeds[i,:].astype('uint16'), max_size = max_size)
     SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
     if startZ > 0:
          SmartSeeds[0:startZ,:,:] = 0
