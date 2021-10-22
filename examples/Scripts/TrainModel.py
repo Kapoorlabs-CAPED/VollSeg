@@ -5,7 +5,7 @@
 
 
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]="1"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 import glob
 import glob
 from vollseg import SmartSeeds3D
@@ -28,10 +28,10 @@ os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 # In[ ]:
 
 
-Data_dir = '/data/u934/service_imagerie/v_kapoor/Twitter/'
-NPZ_filename = 'Arabidopsisp64'
-Model_dir = '/data/u934/service_imagerie/v_kapoor/Twitter/'
-Model_Name = 'p64BUArabidopsisVollSeg'
+Data_dir = '/data/u934/service_imagerie/v_kapoor/CurieTrainingDatasets/Drosophila_fake_3D/'
+NPZ_filename = 'drosophila_fake_3D'
+Model_dir = '/data/u934/service_imagerie/v_kapoor/CurieDeepLearningModels/'
+Model_Name = 'drosophila_fake_3D'
 
 
 # # In this cell choose the network training parameters for the Neural Network
@@ -62,15 +62,15 @@ Model_Name = 'p64BUArabidopsisVollSeg'
 
 #Network training parameters
 NetworkDepth = 3
-Epochs = 100
+Epochs = 200
 LearningRate = 1.0E-4
 batch_size = 1
 PatchX = 128
 PatchY = 128
 PatchZ = 64
 Kernel = 3
-n_patches_per_image = 40
-Rays = 32
+n_patches_per_image = 400
+Rays = 192
 startfilter = 32
 use_gpu_opencl = False
 GenerateNPZ = False
@@ -84,7 +84,7 @@ TrainSTAR = True
 
 
 
-SmartSeeds3D(BaseDir = Data_dir, backbone = 'unet', NPZfilename = NPZ_filename, model_name = Model_Name, model_dir = Model_dir, n_patches_per_image = n_patches_per_image,GenerateNPZ = GenerateNPZ, CroppedLoad = True, TrainUNET = TrainUNET, TrainSTAR = TrainSTAR, PatchX= PatchX, PatchY= PatchY, PatchZ = PatchZ,  use_gpu = use_gpu_opencl,  batch_size = batch_size, depth = NetworkDepth, kern_size = Kernel, startfilter = startfilter, n_rays = Rays, epochs = Epochs, learning_rate = LearningRate)
+SmartSeeds3D(BaseDir = Data_dir, backbone = 'unet', NPZfilename = NPZ_filename, model_name = Model_Name, model_dir = Model_dir, n_patches_per_image = n_patches_per_image,GenerateNPZ = GenerateNPZ, CroppedLoad = False, TrainUNET = TrainUNET, TrainSTAR = TrainSTAR, PatchX= PatchX, PatchY= PatchY, PatchZ = PatchZ,  use_gpu = use_gpu_opencl,  batch_size = batch_size, depth = NetworkDepth, kern_size = Kernel, startfilter = startfilter, n_rays = Rays, epochs = Epochs, learning_rate = LearningRate)
 
 
 # In[ ]:
