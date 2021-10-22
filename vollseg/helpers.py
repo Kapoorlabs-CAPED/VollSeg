@@ -534,7 +534,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
                  Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
                  Mask[i,:] = remove_big_objects(Mask[i,:].astype('uint16'), max_size = max_size)
     
-       
+    Mask = label(Mask)       
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
     print('Stardist segmentation on Image')  
