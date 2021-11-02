@@ -283,6 +283,67 @@ def NotumQueen(save_dir, fname, denoising_model, projection_model, mask_model, s
     
     NotumSegmentation2D(save_dir,image,fname, mask_model, star_model, min_size = min_size, n_tiles = (n_tiles[1], n_tiles[2]), UseProbability = UseProbability)
     
+    
+
+def CreateTrackMate_CSV( LabelName,   savedir):
+
+
+    Label = imread(LabelName)
+    Name = os.path.basename(os.path.splitext(LabelName)[0])
+
+
+    TimeList = []
+
+    XList = []
+    YList = []
+    TrackIDList = []
+    QualityList = []
+    print('Image has shape:', Label.shape)
+    print('Image Dimensions:', len(Label.shape))
+
+    CurrentSegimage = Label.astype('uint16')
+    properties = measure.regionprops(CurrentSegimage)
+    for prop in properties:
+
+            T = prop.centroid[0]
+            Y = prop.centroid[1]
+            X = prop.centroid[2]
+            regionlabel = prop.label
+            sizeZ = abs(prop.bbox[0] - prop.bbox[3])
+            sizeY = abs(prop.bbox[1] - prop.bbox[4])
+            sizeX = abs(prop.bbox[2] - prop.bbox[5])
+            volume = sizeZ * sizeX * sizeY
+            radius = math.pow(3 * volume / (4 * math.pi), 1.0 / 3.0)
+            perimeter = 2 * math.pi * radius
+            TimeList.append(int(T))
+            XList.append(int(X))
+            YList.append(int(Y))
+            TrackIDList.append(regionlabel)
+            QualityList.append(radius)
+
+    df = pd.DataFrame(
+        list(
+            zip(
+                XList,
+                YList,
+                TimeList,
+                TrackIDList,
+                QualityList
+            )
+        ),
+        index=None,
+        columns=[
+            'POSITION_X',
+            'POSITION_Y',
+            'FRAME',
+            'TRACK_ID',
+            'QUALITY'
+        ],
+    )
+
+    df.to_csv(savedir + '/' + 'TrackMate_csv' + Name + '.csv', index=False)    
+    
+    
 def NotumKing(save_dir, filesRaw, denoising_model, projection_model, mask_model, star_model, n_tiles = (1,1,1), UseProbability = True, dounet = True, seedpool = True, min_size_mask = 100, min_size = 5, max_size = 10000000):
     
     Path(save_dir).mkdir(exist_ok = True)
@@ -649,6 +710,8 @@ n_tiles = (1,2,2), UseProbability = True, filtersize = 0, globalthreshold = 1.0E
     imwrite((ProbabilityResults + Name+ '.tif' ) , ProbabilityMap.astype('float32'))
     imwrite((MarkerResults + Name+ '.tif' ) , Markers.astype('uint16'))
         
+    CreateTrackMate_CSV( SizedSmartSeeds,   SaveDir)
+    
     return SizedSmartSeeds, SizedMask    
 
 
