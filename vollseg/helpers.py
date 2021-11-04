@@ -321,6 +321,155 @@ def CCLabels(fname, max_size = 15000):
 
 
 
+
+
+def NotumQueen(save_dir, fname, denoising_model, projection_model, mask_model, star_model, min_size = 5, n_tiles = (1,1,1), UseProbability = True):
+    
+    Path(save_dir).mkdir(exist_ok = True)
+    projection_results = save_dir + 'Projected/'
+    Path(projection_results).mkdir(exist_ok = True)
+    Name = os.path.basename(os.path.splitext(fname)[0])
+    print('Denoising Image')
+    image = imread(fname)
+    image = denoising_model.predict(image,'ZYX', n_tiles = n_tiles)
+    image = projection_model.predict(image,'YX', n_tiles = (n_tiles[1], n_tiles[2]))
+
+    imwrite((projection_results + Name+ '.tif' ) , image.astype('float32'))
+    
+    NotumSegmentation2D(save_dir,image,fname, mask_model, star_model, min_size = min_size, n_tiles = (n_tiles[1], n_tiles[2]), UseProbability = UseProbability)
+    
+    
+
+def CreateTrackMate_CSV( LabelName,   savedir):
+
+
+    Label = imread(LabelName)
+    Name = os.path.basename(os.path.splitext(LabelName)[0])
+
+
+    TimeList = []
+
+    XList = []
+    YList = []
+    TrackIDList = []
+    QualityList = []
+    print('Image has shape:', Label.shape)
+    print('Image Dimensions:', len(Label.shape))
+
+    CurrentSegimage = Label.astype('uint16')
+    properties = measure.regionprops(CurrentSegimage)
+    for prop in properties:
+
+            T = prop.centroid[0]
+            Y = prop.centroid[1]
+            X = prop.centroid[2]
+            regionlabel = prop.label
+            sizeZ = abs(prop.bbox[0] - prop.bbox[3])
+            sizeY = abs(prop.bbox[1] - prop.bbox[4])
+            sizeX = abs(prop.bbox[2] - prop.bbox[5])
+            volume = sizeZ * sizeX * sizeY
+            radius = math.pow(3 * volume / (4 * math.pi), 1.0 / 3.0)
+            perimeter = 2 * math.pi * radius
+            TimeList.append(int(T))
+            XList.append(int(X))
+            YList.append(int(Y))
+            TrackIDList.append(regionlabel)
+            QualityList.append(radius)
+
+    df = pd.DataFrame(
+        list(
+            zip(
+                XList,
+                YList,
+                TimeList,
+                TrackIDList,
+                QualityList
+            )
+        ),
+        index=None,
+        columns=[
+            'POSITION_X',
+            'POSITION_Y',
+            'FRAME',
+            'TRACK_ID',
+            'QUALITY'
+        ],
+    )
+
+    df.to_csv(savedir + '/' + 'TrackMate_csv' + Name + '.csv', index=False)    
+    
+    
+def NotumKing(save_dir, filesRaw, denoising_model, projection_model, mask_model, star_model, n_tiles = (1,1,1), UseProbability = True, dounet = True, seedpool = True, min_size_mask = 100, min_size = 5, max_size = 10000000):
+    
+    Path(save_dir).mkdir(exist_ok = True)
+    projection_results = save_dir + 'Projected/'
+    Path(projection_results).mkdir(exist_ok = True)
+    Name = os.path.basename(os.path.splitext(fname)[0])
+    print('Denoising Image')
+    time_lapse = []
+    for fname in filesRaw:
+            image = imread(fname)
+            image = denoising_model.predict(image,'ZYX', n_tiles = n_tiles)
+            image = projection_model.predict(image,'YX', n_tiles = (n_tiles[1], n_tiles[2]))
+            time_lapse.append(image)
+    time_lapse = np.asarray(time_lapse)        
+    imwrite((projection_results + Name+ '.tif' ) , time_lapse.astype('float32'))   
+    
+    Raw_path = os.path.join(projection_results, '*tif')
+    filesRaw = glob.glob(Raw_path)
+    for fname in filesRaw:
+        
+         SmartSeedPrediction3D( save_dir, fname,  mask_model, star_model,  min_size_mask = min_size_mask, min_size = min_size, max_size = max_size, n_tiles = n_tiles, UseProbability = UseProbability, dounet = dounet, seedpool = seedpool)    
+
+def NotumSegmentation2D(save_dir,image,fname, mask_model, star_model, min_size = 5, n_tiles = (2,2), UseProbability = True):
+    
+    print('Generating SmartSeed results')
+    Path(save_dir).mkdir(exist_ok = True)
+    MASKResults = save_dir + 'OverAllMask/'
+    StarImageResults = save_dir + 'StarDistMask/'
+    SmartSeedsResults = save_dir + 'SmartSeedsMask/' 
+    SmartSeedsLabelResults = save_dir + 'SmartSeedsLabels/' 
+    ProbResults = save_dir + 'Probability/' 
+    
+    Path(SmartSeedsResults).mkdir(exist_ok = True)
+    Path(StarImageResults).mkdir(exist_ok = True)
+   
+    Path(MASKResults).mkdir(exist_ok = True)
+    Path(SmartSeedsLabelResults).mkdir(exist_ok = True)
+    Path(ProbResults).mkdir(exist_ok = True)
+    #Read Image
+    Name = os.path.basename(os.path.splitext(fname)[0])
+    
+    #U-net prediction
+    
+    OverAllMask = SuperUNETPrediction(image, MaskModel, n_tiles, 'YX')
+    
+    
+    #Smart Seed prediction 
+    SmartSeeds, Markers, StarImage, ProbImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = OverAllMask, OverAllMaskImage = OverAllMask, UseProbability = UseProbability)
+    
+    
+    SmartSeedsLabels = SmartSeeds.copy()
+    
+    OverAllMask = CleanMask(StarImage, OverAllMask)    #For avoiding pixel level error 
+    SmartSeedsLabels = np.multiply(SmartSeedsLabels, OverAllMask)
+    SegimageB = find_boundaries(SmartSeedsLabels)
+    invertProbimage = 1 - ProbImage
+    image_max = np.add(invertProbimage,SegimageB)
+    indices = np.where(image_max < 1.2)
+    image_max[indices] = 0
+    SmartSeeds = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
+           
+    #Save results, we only need smart seeds finale results but hey!
+    imwrite((ProbResults + Name+ '.tif' ) , ProbImage.astype('float32'))
+    imwrite((SmartSeedsResults + Name+ '.tif' ) , SmartSeeds.astype('uint8'))
+    imwrite((SmartSeedsLabelResults + Name+ '.tif' ) , SmartSeedsLabels.astype('uint16'))
+    imwrite((StarImageResults + Name+ '.tif' ) , StarImage.astype('uint16'))
+     
+    imwrite((MASKResults + Name+ '.tif' ) , OverAllMask.astype('uint8')) 
+    
+    
+
 def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n_tiles = (2,2), UseProbability = True):
     
     print('Generating SmartSeed results')
@@ -340,7 +489,7 @@ def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n
     Mask = SuperUNETPrediction(image, UnetModel, n_tiles, 'YX')
   
     #Smart Seed prediction 
-    SmartSeeds, _, StarImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
+    SmartSeeds, Markers, StarImage, ProbImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
     labelmax = np.amax(StarImage)
     Mask[StarImage > 0] == labelmax + 1
     #For avoiding pixel level error 
@@ -492,7 +641,7 @@ def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel =
         Mask = SuperUNETPrediction(image[i,:], UnetModel, n_tiles, 'YX')
       
         #Smart Seed prediction 
-        SmartSeeds, _, StarImage = SuperSTARPrediction(image[i,:], StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
+        SmartSeeds, Markers, StarImage, ProbImage = SuperSTARPrediction(image[i,:], StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
         
         labelmax = np.amax(StarImage)
         Mask[StarImage > 0] == labelmax + 1
@@ -528,8 +677,12 @@ def SmartSeedPredictionSliced(SaveDir, fname, UnetModel, StarModel, NoiseModel =
     imwrite((UNETResults + Name+ '.tif' ) , BinaryTime.astype('uint8'))   
     
     
+    
+
+    
+    
 def SmartSeedPrediction3D( SaveDir, fname,  UnetModel, StarModel, NoiseModel = None, min_size_mask = 100, min_size = 100, max_size = 100000,
-n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projection = False, UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5, extent = 0, dounet = True, seedpool = True, otsu = False, startZ = 0):
+n_tiles = (1,2,2), UseProbability = True, filtersize = 0, globalthreshold = 1.0E-5, extent = 0, dounet = True, seedpool = True, otsu = False, startZ = 0):
     
     
     
@@ -601,6 +754,8 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SmartSeeds = fill_label_holes(SmartSeeds.astype('uint16'))
     if startZ > 0:
          SmartSeeds[0:startZ,:,:] = 0
+         
+         
     SmartSeeds = RemoveLabels(SmartSeeds) 
     SizedSmartSeeds[:, :SmartSeeds.shape[1], :SmartSeeds.shape[2]] = SmartSeeds
     SizedProbabilityMap[:, :ProbabilityMap.shape[1], :ProbabilityMap.shape[2]] = ProbabilityMap           
@@ -610,6 +765,8 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     imwrite((ProbabilityResults + Name+ '.tif' ) , ProbabilityMap.astype('float32'))
     imwrite((MarkerResults + Name+ '.tif' ) , Markers.astype('uint16'))
         
+    CreateTrackMate_CSV( SizedSmartSeeds,   SaveDir)
+    
     return SizedSmartSeeds, SizedMask    
 
 
@@ -716,7 +873,7 @@ def RelabelZ(previousImage, currentImage,threshold):
     
       return relabelimage
 
-def SuperSTARPrediction(image, model, n_tiles, MaskImage, UseProbability = True):
+def SuperSTARPrediction(image, model, n_tiles, MaskImage, OverAllMaskImage, UseProbability = True):
     
     
     image = normalize(image, 1, 99.8, axis = (0,1))
@@ -740,12 +897,22 @@ def SuperSTARPrediction(image, model, n_tiles, MaskImage, UseProbability = True)
         
         MaxProjectDistance = Distance[:shape[0],:shape[1]]
 
-          
-    Watershed, Markers = SuperWatershedwithMask(MaxProjectDistance, StarImage.astype('uint16'), MaskImage.astype('uint16'), grid)
+    
+    
+    OverAllMaskImage = CleanMask( StarImage, OverAllMaskImage)
+    Watershed, Markers = SuperWatershedwithMask(MaxProjectDistance, StarImage.astype('uint16'), MaskImage.astype('uint16'), OverAllMaskImage.astype('uint16'), grid)
     Watershed = fill_label_holes(Watershed.astype('uint16'))
     
 
-    return Watershed, Markers, StarImage 
+    return Watershed, Markers, StarImage, MaxProjectDistance  
+
+def CleanMask( StarImage, OverAllMaskImage):
+    OverAllMaskImage = np.logical_or(OverAllMaskImage > 0, StarImage > 0)
+    OverAllMaskImage = binary_erosion(OverAllMaskImage)
+    OverAllMaskImage = label(OverAllMaskImage)
+    OverAllMaskImage = fill_label_holes(OverAllMaskImage.astype('uint16'))
+    
+    return  OverAllMaskImage
 
 def UNETPrediction3D(image, model, n_tiles, axis):
     
