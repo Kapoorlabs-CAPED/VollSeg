@@ -32,7 +32,8 @@ from tifffile import imread
 from six.moves import range, zip
 from tensorflow.keras.utils import Sequence
 from csbdeep.data import RawData, create_patches
-from skimage.measure import label
+from skimage.measure import label, regionprops
+from scipy import ndimage
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pathlib import Path
@@ -76,13 +77,32 @@ def dilate_label_holes(lbl_img, iterations):
         lbl_img_filled[mask_filled] = l
     return lbl_img_filled     
     
+def erode_labels(segmentation, erosion_iterations= 2):
+    # create empty list where the eroded masks can be saved to
+    list_of_eroded_masks = list()
+    regions = regionprops(segmentation)
+    erode = np.zeros(segmentation.shape)
+    def erode_mask(segmentation_labels, label_id, erosion_iterations):
+        
+        only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
+        eroded = ndimage.binary_erosion(only_current_label_id, iterations = erosion_iterations)
+        relabeled_eroded = np.where(eroded == 1, label_id, 0)
+        return(relabeled_eroded)
+
+    for i in range(len(regions)):
+        label_id = regions[i].label
+        erode = erode + erode_mask(segmentation, label_id, erosion_iterations)
+
+    # convert list of numpy arrays to stacked numpy array
+    return erode
+
 class SmartSeeds3D(object):
 
 
 
 
 
-     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, backbone = 'resnet', CroppedLoad = False, TrainUNET = True, TrainSTAR = True, GenerateNPZ = True,  copy_model_dir = None, PatchX=256, PatchY=256, PatchZ = 16, gridX = 1, gridY = 1, annisotropy = (1,1,1),  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
+     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, backbone = 'resnet', CroppedLoad = False, TrainUNET = True, TrainSTAR = True, GenerateNPZ = True, validation_split = 0.01, erosion_iterations = 0, copy_model_dir = None, PatchX=256, PatchY=256, PatchZ = 16, gridX = 1, gridY = 1, annisotropy = (1,1,1),  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
 
          
          
@@ -103,12 +123,14 @@ class SmartSeeds3D(object):
          self.learning_rate = learning_rate
          self.depth = depth
          self.n_rays = n_rays
+         self.erosion_iterations = erosion_iterations
          self.kern_size = kern_size
          self.PatchX = PatchX
          self.PatchY = PatchY
          self.PatchZ = PatchZ
          self.gridX = gridX
          self.gridY = gridY
+         self.validation_split = validation_split
          self.batch_size = batch_size
          self.use_gpu = use_gpu
          self.startfilter = startfilter
@@ -194,7 +216,7 @@ class SmartSeeds3D(object):
                         for fname in RealfilesMask:
                     
                             image = imread(fname)
-                    
+                            image = erode_labels(image, self.erosion_iterations)
                             Name = os.path.basename(os.path.splitext(fname)[0])
                     
                             Binaryimage = image > 0
@@ -223,7 +245,7 @@ class SmartSeeds3D(object):
                             print('Training UNET model')
                             load_path = self.BaseDir + self.NPZfilename + '.npz'
         
-                            (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split=0.1, verbose=True)
+                            (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split=0.01, verbose=True)
                             c = axes_dict(axes)['C']
                             n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
                             

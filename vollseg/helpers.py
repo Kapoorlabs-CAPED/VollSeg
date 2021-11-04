@@ -39,6 +39,61 @@ from tqdm import tqdm
 from skimage.util import random_noise
 from scipy.ndimage import distance_transform_edt
 from skimage.morphology import skeletonize
+from stardist.models.base import StarDistBase
+
+
+
+class StarDistBaseLite(StarDistBase):
+     def __init__(self, config, name=None, basedir='.'):
+        super().__init__(config=config, name=name, basedir=basedir)
+
+
+def predict_prob(self, img, axes=None, normalizer=None, n_tiles=None, show_tile_progress=True, **predict_kwargs):
+       
+
+        x, axes, axes_net, axes_net_div_by, _permute_axes, resizer, n_tiles, grid, grid_dict, channel, predict_direct, tiling_setup = \
+            self._predict_setup(img, axes, normalizer, n_tiles, show_tile_progress, predict_kwargs)
+
+        if np.prod(n_tiles) > 1:
+            tile_generator, output_shape, create_empty_output = tiling_setup()
+
+            prob = create_empty_output(1)
+           
+            if self._is_multiclass():
+                prob_class = create_empty_output(self.config.n_classes+1)
+                result = (prob, prob_class)
+            else:
+                result = (prob)
+
+            for tile, s_src, s_dst in tile_generator:
+                # predict_direct -> prob, dist, [prob_class if multi_class]
+                result_tile = predict_direct(tile)
+                # account for grid
+                s_src = [slice(s.start//grid_dict.get(a,1),s.stop//grid_dict.get(a,1)) for s,a in zip(s_src,axes_net)]
+                s_dst = s_src
+                # prob and dist have different channel dimensionality than image x
+                s_src[channel] = slice(None)
+                s_dst[channel] = slice(None)
+                s_src, s_dst = tuple(s_src), tuple(s_dst)
+                # print(s_src,s_dst)
+                for part, part_tile in zip(result, result_tile):
+                    part[s_dst] = part_tile[s_src]
+        else:
+            # predict_direct -> prob, dist, [prob_class if multi_class]
+            result = predict_direct(x)
+
+        result = [resizer.after(part, axes_net) for part in result]
+
+     
+
+        # prob
+        result[0] = np.take(result[0],0,axis=channel)
+
+        if self._is_multiclass():
+            # prob_class
+            result[1] = np.moveaxis(result[1],channel,-1)
+
+        return tuple(result)
 
 
 def BinaryLabel(BinaryImageOriginal, max_size = 15000):
@@ -538,7 +593,7 @@ n_tiles = (1,2,2), doMask = True, smartcorrection = None, threshold = 20, projec
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     imwrite((UNETResults + Name+ '.tif' ) , SizedMask.astype('uint16')) 
     print('Stardist segmentation on Image')  
-    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold, min_size = min_size, extent = extent, seedpool = seedpool)
+    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(gaussian_filter(image,filtersize), StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, smartcorrection = smartcorrection, globalthreshold = globalthreshold, extent = extent, seedpool = seedpool)
    
     for i in range(0, SmartSeeds.shape[0]):
        SmartSeeds[i,:] = remove_small_objects(SmartSeeds[i,:].astype('uint16'), min_size = min_size)
@@ -721,7 +776,7 @@ def RemoveLabels(LabelImage, minZ = 2):
                     LabelImage[LabelImage == regionlabel] = 0
     return LabelImage                
 
-def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, min_size = 100, extent = 0, seedpool = True):
+def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, extent = 0, seedpool = True):
     
     copymodel = model
     image = normalize(image, 1, 99.8, axis = (0,1,2))
@@ -732,14 +787,15 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     print('Predicting Instances')
     MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
     print('Predicting Probabilities')
-    SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
+    if UseProbability:
+      SmallProbability = model.predict_prob(image, n_tiles = n_tiles)
+    else:
+      SmallProbability, SmallDistance  = model.predict(image, n_tiles = n_tiles)
 
 
     print('Predictions Done')
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
-    for i in range(0, StarImage.shape[0]):
-        StarImage[i,:] = remove_small_objects(StarImage[i,:].astype('uint16'), min_size = min_size)
-        
+         
     StarImage = RemoveLabels(StarImage)    
     if UseProbability == False:
         

@@ -38,7 +38,7 @@ NoiseModel = N2V(config=None, name=NoiseModelName, basedir=Model_Dir)
 Raw_path = os.path.join(ImageDir, '*.tif')
 filesRaw = glob.glob(Raw_path)
 filesRaw.sort
-min_size = 100
+min_size = 150
 
 n_tiles = (2,8,8)
 dounet = False
