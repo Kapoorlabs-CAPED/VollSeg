@@ -75,6 +75,11 @@ class StarDistBaseLite(StarDist3D):
                 s_dst[channel] = slice(None)
                 s_src, s_dst = tuple(s_src), tuple(s_dst)
                 # print(s_src,s_dst)
+                for part, part_tile in zip(result, result_tile):
+                    try:
+                       part[s_dst] = part_tile[s_src]
+                    except:
+                        pass
                 
         else:
             # predict_direct -> prob, dist, [prob_class if multi_class]
