@@ -344,11 +344,11 @@ def NotumQueen(save_dir, fname, denoising_model, projection_model, mask_model, s
     
     
 
-def CreateTrackMate_CSV( Label,   savedir):
+def CreateTrackMate_CSV( Label,Name,savedir):
 
 
     
-    Name = os.path.basename(os.path.splitext(LabelName)[0])
+    
 
 
     TimeList = []
@@ -769,7 +769,7 @@ n_tiles = (1,2,2), UseProbability = True, filtersize = 0, globalthreshold = 1.0E
     imwrite((ProbabilityResults + Name+ '.tif' ) , ProbabilityMap.astype('float32'))
     imwrite((MarkerResults + Name+ '.tif' ) , Markers.astype('uint16'))
         
-    CreateTrackMate_CSV( SizedSmartSeeds,   SaveDir)
+    CreateTrackMate_CSV( SizedSmartSeeds,Name, SaveDir)
     
     return SizedSmartSeeds, SizedMask    
 
@@ -958,10 +958,7 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     print('Predicting Instances')
     MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
     print('Predicting Probabilities')
-    if UseProbability:
-      SmallProbability, _ = model.predict_prob(image, n_tiles = n_tiles)
-    else:
-      SmallProbability, SmallDistance  = model.predict(image, n_tiles = n_tiles)
+    SmallProbability, SmallDistance  = model.predict(image, n_tiles = n_tiles)
 
 
     print('Predictions Done')
