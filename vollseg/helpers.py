@@ -69,14 +69,13 @@ class StarDistBaseLite(StarDist3D):
                 result_tile = predict_direct(tile)
                 # account for grid
                 s_src = [slice(s.start//grid_dict.get(a,1),s.stop//grid_dict.get(a,1)) for s,a in zip(s_src,axes_net)]
-                s_dst = [slice(s.start//grid_dict.get(a,1),s.stop//grid_dict.get(a,1)) for s,a in zip(s_dst,axes_net)]
+                s_dst = s_src
                 # prob and dist have different channel dimensionality than image x
                 s_src[channel] = slice(None)
                 s_dst[channel] = slice(None)
                 s_src, s_dst = tuple(s_src), tuple(s_dst)
                 # print(s_src,s_dst)
-                for part, part_tile in zip(result, result_tile):
-                    part[s_dst] = part_tile[s_src]
+                
         else:
             # predict_direct -> prob, dist, [prob_class if multi_class]
             result = predict_direct(x)
@@ -340,10 +339,10 @@ def NotumQueen(save_dir, fname, denoising_model, projection_model, mask_model, s
     
     
 
-def CreateTrackMate_CSV( LabelName,   savedir):
+def CreateTrackMate_CSV( Label,   savedir):
 
 
-    Label = imread(LabelName)
+    
     Name = os.path.basename(os.path.splitext(LabelName)[0])
 
 
