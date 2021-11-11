@@ -58,8 +58,11 @@ class StarDistBaseLite(StarDist3D):
             tile_generator, output_shape, create_empty_output = tiling_setup()
 
             prob = create_empty_output(1)
-           
-            result = (prob)
+            if self._is_multiclass():
+                prob_class = create_empty_output(self.config.n_classes+1)
+                result = (prob, prob, prob_class)
+            else:
+                result = (prob, prob)
 
             for tile, s_src, s_dst in tile_generator:
                 # predict_direct -> prob, dist, [prob_class if multi_class]
@@ -72,18 +75,23 @@ class StarDistBaseLite(StarDist3D):
                 s_dst[channel] = slice(None)
                 s_src, s_dst = tuple(s_src), tuple(s_dst)
                 # print(s_src,s_dst)
-                
+                for part, part_tile in zip(result, result_tile):
+                    part[s_dst] = part_tile[s_src]
         else:
             # predict_direct -> prob, dist, [prob_class if multi_class]
             result = predict_direct(x)
-        for part in result[0]: 
-            result = resizer.after(part, axes_net) 
 
-     
+        result = [resizer.after(part, axes_net) for part in result]
+
+        # result = (prob, dist) for legacy or (prob, dist, prob_class) for multiclass
 
         # prob
         result[0] = np.take(result[0],0,axis=channel)
-
+        # dist
+        result[1] = result[0]
+        if self._is_multiclass():
+            # prob_class
+            result[2] = np.moveaxis(result[2],channel,-1)
 
         return tuple(result)
 
@@ -947,7 +955,7 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
     print('Predicting Probabilities')
     if UseProbability:
-      SmallProbability = model.predict_prob(image, n_tiles = n_tiles)
+      SmallProbability, _ = model.predict_prob(image, n_tiles = n_tiles)
     else:
       SmallProbability, SmallDistance  = model.predict(image, n_tiles = n_tiles)
 
