@@ -44,6 +44,100 @@ import math
 import pandas as pd
 
 
+
+class SegCorrect(object):
+
+     def __init__(self, imagedir, savedir, fileextension = '*tif'):
+         
+         self.imagedir = imagedir
+         self.fileextension = fileextension
+         self.segmentationdir = segmentationdir
+         
+     def showNapari(self):
+                 
+                 self.viewer = napari.Viewer()
+                 Raw_path = os.path.join(self.imagedir, self.fileextension)
+                 X = glob.glob(Raw_path)
+                 Imageids = []
+                 Seg_path = os.path.join(self.segmentationdir, self.fileextension)
+                 Y = glob.glob(Seg_path)
+                 SegImageids = []
+                 for imagename in X:
+                     Imageids.append(imagename)
+                 for imagename in Y:
+                     SegImageids.append(imagename)   
+                     
+                 imageidbox = QComboBox()   
+                 imageidbox.addItem(Boxname)   
+                 savebutton = QPushButton(' Save Corrections')
+                    
+                 for i in range(0, len(Imageids)):
+                     
+                     
+                     imageidbox.addItem(str(Imageids[i]))
+                     
+                     
+                 
+                 imageidbox.currentIndexChanged.connect(
+                 lambda trackid = imageidbox: self.image_add(
+                         
+                         imageidbox.currentText(),
+                         self.segmentationdir + "/" + os.path.basename(os.path.splitext(imageidbox.currentText())[0]),
+                         os.path.basename(os.path.splitext(imageidbox.currentText())[0]),
+                         False
+                    
+                )
+            )            
+                 
+                 savebutton.clicked.connect(
+                 lambda trackid = imageidbox: self.image_add(
+                         
+                         imageidbox.currentText(),
+                         self.segmentationdir + "/" + os.path.basename(os.path.splitext(imageidbox.currentText())[0]),
+                         os.path.basename(os.path.splitext(imageidbox.currentText())[0]),
+                         True
+                    
+                )
+            )   
+                    
+                  
+                 
+                 self.viewer.window.add_dock_widget(imageidbox, name="Image", area='bottom') 
+                 self.viewer.window.add_dock_widget(savebutton, name="Save Segmentations", area='bottom') 
+                 
+                 
+                 
+    def image_add(self, image_toread, seg_image_toread imagename,  save = False):
+                
+                if not save:
+                        for layer in list(self.viewer.layers):
+
+                            if 'Image' in layer.name or layer.name in 'Image':
+
+                                                            self.viewer.layers.remove(layer)
+
+
+                        self.image = daskread(image_toread)
+                        if len(self.image.shape) > 3:
+                            self.image = self.image[0,:]
+
+                        self.image = imread(image_to_read)
+                        self.segimage =  imread(seg_image_toread)
+                        
+                        self.viewer.add_image(self.image, name='Image'+imagename)
+                        self.viewer.add_labels(self.segimage, name ='Image'+'Integer_Labels'+imagename)
+
+                
+               
+
+                if save:
+
+
+                        ModifiedArraySeg = self.viewer.layers['Image'+'Integer_Labels' + imagename].data 
+                        ModifiedArraySeg = ModifiedArraySeg.astype('uint16')
+                        imwrite((self.segmentationdir  +   imagename + '.tif' ) , ModifiedArraySeg)
+
+
 class StarDistBaseLite(StarDist3D):
      def __init__(self, config, name=None, basedir='.'):
         super().__init__(config=config, name=name, basedir=basedir)
