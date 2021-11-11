@@ -43,7 +43,7 @@ from stardist.models.base import StarDistBase
 
 
 
-class StarDistBaseLite(StarDistBase):
+class StarDistBaseLite(StarDist3D):
      def __init__(self, config, name=None, basedir='.'):
         super().__init__(config=config, name=name, basedir=basedir)
 
