@@ -41,6 +41,7 @@ from scipy.ndimage import distance_transform_edt
 from skimage.morphology import skeletonize
 from stardist.models.base import StarDistBase
 import math
+import pandas as pd
 
 
 class StarDistBaseLite(StarDist3D):
