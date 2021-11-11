@@ -40,7 +40,7 @@ from skimage.util import random_noise
 from scipy.ndimage import distance_transform_edt
 from skimage.morphology import skeletonize
 from stardist.models.base import StarDistBase
-
+import math
 
 
 class StarDistBaseLite(StarDist3D):
