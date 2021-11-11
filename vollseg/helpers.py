@@ -59,37 +59,31 @@ class StarDistBaseLite(StarDist3D):
 
             prob = create_empty_output(1)
            
-            if self._is_multiclass():
-                prob_class = create_empty_output(self.config.n_classes+1)
-                result = (prob, prob_class)
-            else:
-                result = (prob)
+            result = (prob)
 
             for tile, s_src, s_dst in tile_generator:
                 # predict_direct -> prob, dist, [prob_class if multi_class]
                 result_tile = predict_direct(tile)
                 # account for grid
                 s_src = [slice(s.start//grid_dict.get(a,1),s.stop//grid_dict.get(a,1)) for s,a in zip(s_src,axes_net)]
-                s_dst = s_src
+                s_dst = [slice(s.start//grid_dict.get(a,1),s.stop//grid_dict.get(a,1)) for s,a in zip(s_dst,axes_net)]
                 # prob and dist have different channel dimensionality than image x
                 s_src[channel] = slice(None)
                 s_dst[channel] = slice(None)
                 s_src, s_dst = tuple(s_src), tuple(s_dst)
-              
+                # print(s_src,s_dst)
+                
         else:
             # predict_direct -> prob, dist, [prob_class if multi_class]
             result = predict_direct(x)
-
-        result = [resizer.after(part, axes_net) for part in result]
+        for part in result[0]: 
+            result = resizer.after(part, axes_net) 
 
      
 
         # prob
         result[0] = np.take(result[0],0,axis=channel)
 
-        if self._is_multiclass():
-            # prob_class
-            result[1] = np.moveaxis(result[1],channel,-1)
 
         return tuple(result)
 
