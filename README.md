@@ -55,9 +55,8 @@ Schematic representation showing the segmentation approach used in VollSeg. Firs
      
 ## Example
 
-To try the provided notebooks we provide an example dataset of Arabidopsis [stardist]([![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5227304.svg)](https://doi.org/10.5281/zenodo.5227304)) [Denoising]([![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5227316.svg)](https://doi.org/10.5281/zenodo.5227316)
-) [U-Net]([![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5227301.svg)](https://doi.org/10.5281/zenodo.5227301)
-) . For training the networks use this notebook in [Colab](https://github.com/kapoorlab/VollSeg/blob/main/examples/Train/ColabTrainModel.ipynb). To train a denoising model using noise to void use this [notebook](https://github.com/kapoorlab/VollSeg/blob/main/examples/Train/ColabN2VTrain.ipynb) 
+To try the provided notebooks we provide an example dataset of Arabidopsis [stardist](https://doi.org/10.5281/zenodo.5227304) [Denoising](https://doi.org/10.5281/zenodo.5227316)
+ [U-Net](https://doi.org/10.5281/zenodo.5227301). For training the networks use this notebook in [Colab](https://github.com/kapoorlab/VollSeg/blob/main/examples/Train/ColabTrainModel.ipynb). To train a denoising model using noise to void use this [notebook](https://github.com/kapoorlab/VollSeg/blob/main/examples/Train/ColabN2VTrain.ipynb) 
 
 
 
