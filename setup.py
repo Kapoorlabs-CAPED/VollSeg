@@ -8,7 +8,7 @@ with open('README.md') as f:
 setup(
     name="vollseg",
 
-    version='1.8.6',
+    version='2.0.0',
 
     author='Varun Kapoor,Claudia Carabana Garcia,Mari Tolonen',
     author_email='randomaccessiblekapoor@gmail.com',
@@ -27,6 +27,8 @@ setup(
         "matplotlib",
         "imagecodecs",
         "n2v",
+        "napari",
+        "diplib"
         
     ],
     packages=setuptools.find_packages(),

@@ -42,24 +42,29 @@ from skimage.morphology import skeletonize
 from stardist.models.base import StarDistBase
 import math
 import pandas as pd
+import napari
+import glob
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QComboBox, QPushButton, QSlider
 
+
+Boxname = 'ImageIDBox'
 
 
 class SegCorrect(object):
 
-     def __init__(self, imagedir, savedir, fileextension = '*tif'):
+     def __init__(self, imagedir, segmentationdir):
          
          self.imagedir = imagedir
-         self.fileextension = fileextension
          self.segmentationdir = segmentationdir
          
      def showNapari(self):
                  
                  self.viewer = napari.Viewer()
-                 Raw_path = os.path.join(self.imagedir, self.fileextension)
+                 Raw_path = os.path.join(self.imagedir, '*tif')
                  X = glob.glob(Raw_path)
                  Imageids = []
-                 Seg_path = os.path.join(self.segmentationdir, self.fileextension)
+                 Seg_path = os.path.join(self.segmentationdir, '*tif')
                  Y = glob.glob(Seg_path)
                  SegImageids = []
                  for imagename in X:
@@ -82,7 +87,7 @@ class SegCorrect(object):
                  lambda trackid = imageidbox: self.image_add(
                          
                          imageidbox.currentText(),
-                         self.segmentationdir + "/" + os.path.basename(os.path.splitext(imageidbox.currentText())[0]),
+                         self.segmentationdir + "/" + os.path.basename(os.path.splitext(imageidbox.currentText())[0]) + '.tif',
                          os.path.basename(os.path.splitext(imageidbox.currentText())[0]),
                          False
                     
@@ -93,7 +98,7 @@ class SegCorrect(object):
                  lambda trackid = imageidbox: self.image_add(
                          
                          imageidbox.currentText(),
-                         self.segmentationdir + "/" + os.path.basename(os.path.splitext(imageidbox.currentText())[0]),
+                         self.segmentationdir + "/" + os.path.basename(os.path.splitext(imageidbox.currentText())[0]) + '.tif',
                          os.path.basename(os.path.splitext(imageidbox.currentText())[0]),
                          True
                     
@@ -107,7 +112,7 @@ class SegCorrect(object):
                  
                  
                  
-    def image_add(self, image_toread, seg_image_toread imagename,  save = False):
+     def image_add(self, image_toread, seg_image_toread, imagename,  save = False):
                 
                 if not save:
                         for layer in list(self.viewer.layers):
@@ -117,11 +122,7 @@ class SegCorrect(object):
                                                             self.viewer.layers.remove(layer)
 
 
-                        self.image = daskread(image_toread)
-                        if len(self.image.shape) > 3:
-                            self.image = self.image[0,:]
-
-                        self.image = imread(image_to_read)
+                        self.image = imread(image_toread)
                         self.segimage =  imread(seg_image_toread)
                         
                         self.viewer.add_image(self.image, name='Image'+imagename)
