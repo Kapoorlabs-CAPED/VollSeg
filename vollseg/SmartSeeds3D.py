@@ -245,7 +245,7 @@ class SmartSeeds3D(object):
                             print('Training UNET model')
                             load_path = self.BaseDir + self.NPZfilename + '.npz'
         
-                            (X,Y), (X_val,Y_val), axes = load_training_data(load_path, self.validation_split=0.01, verbose=True)
+                            (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split=self.validation_split, verbose=True)
                             c = axes_dict(axes)['C']
                             n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
                             
