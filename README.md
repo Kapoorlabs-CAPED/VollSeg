@@ -55,7 +55,9 @@ Schematic representation showing the segmentation approach used in VollSeg. Firs
      
 ## Example
 
-To try the provided notebooks we provide an example dataset of MDA231 human breast carcinoma cells infected with a pMSCV vector including the GFP sequence, embedded in a collagen matrix from Dr. R. Kamm. Dept. of Biological Engineering, Massachusetts Institute of Technology, Cambridge MA (USA)[tracking challenge](http://celltrackingchallenge.net/3d-datasets/), download the hyperstacks of the Raw, instance and semantic segmentation masks from [here](https://drive.google.com/drive/folders/1ze8KsrFI0-UTrsMnAPomiyf4sN8aCm__?usp=sharing). Pretrained model weights for denoising done via noise to void, segmentation done via U-Net and Stardist are also in the directory. For training the networks use this notebook in [Colab](https://github.com/kapoorlab/VollSeg/blob/main/examples/Train/ColabTrainModel.ipynb). To train a denoising model using noise to void use this [notebook](https://github.com/kapoorlab/VollSeg/blob/main/examples/Train/ColabN2VTrain.ipynb) 
+To try the provided notebooks we provide an example dataset of Arabidopsis [stardist]([![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5227304.svg)](https://doi.org/10.5281/zenodo.5227304)) [Denoising]([![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5227316.svg)](https://doi.org/10.5281/zenodo.5227316)
+) [U-Net]([![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.5227301.svg)](https://doi.org/10.5281/zenodo.5227301)
+) . For training the networks use this notebook in [Colab](https://github.com/kapoorlab/VollSeg/blob/main/examples/Train/ColabTrainModel.ipynb). To train a denoising model using noise to void use this [notebook](https://github.com/kapoorlab/VollSeg/blob/main/examples/Train/ColabN2VTrain.ipynb) 
 
 
 
