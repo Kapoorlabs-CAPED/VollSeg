@@ -73,7 +73,7 @@ class SmartSeeds2D(object):
 
 
 
-     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, TrainUNET = True, TrainSTAR = True, CroppedLoad = False, grid = (1,1),  GenerateNPZ = True,copy_model_dir = None, PatchX=256, PatchY=256,  use_gpu = True,unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
+     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, TrainSeedUNET = True, TrainUNET = True, TrainSTAR = True, CroppedLoad = False, grid = (1,1),  GenerateNPZ = True,copy_model_dir = None, PatchX=256, PatchY=256,  use_gpu = True,unet_n_first = 64, erode_iterations = 2,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
          
          
          
@@ -82,6 +82,7 @@ class SmartSeeds2D(object):
          self.BaseDir = BaseDir
          self.DownsampleFactor = DownsampleFactor
          self.TrainUNET = TrainUNET
+         self.TrainSeedUNET = TrainSeedUNET
          self.TrainSTAR = TrainSTAR
          self.CroppedLoad = CroppedLoad
          self.model_dir = model_dir
@@ -100,7 +101,7 @@ class SmartSeeds2D(object):
          self.grid = grid
          self.unet_n_first = unet_n_first 
          self.n_patches_per_image =  n_patches_per_image
-        
+         self.erode_iterations = erode_iterations
          
          
          #Load training and validation data
@@ -140,9 +141,11 @@ class SmartSeeds2D(object):
      def Train(self):
          
                     BinaryName = 'BinaryMask/' 
+                    ErodeBinaryName = 'ErodeBinaryMask/' 
                     RealName = 'RealMask/'
                     Raw = sorted(glob.glob(self.BaseDir + '/Raw/' + '*.tif'))
                     Path(self.BaseDir + '/' + BinaryName).mkdir(exist_ok=True)
+                    Path(self.BaseDir + '/' + ErodeBinaryName).mkdir(exist_ok=True)
                     Path(self.BaseDir + '/' + RealName).mkdir(exist_ok=True)
                     RealMask = sorted(glob.glob(self.BaseDir + '/' + RealName + '*.tif'))
                     ValRaw = sorted(glob.glob(self.BaseDir + '/ValRaw/' + '*.tif'))        
@@ -171,7 +174,27 @@ class SmartSeeds2D(object):
                            
                 
                     Mask = sorted(glob.glob(self.BaseDir + '/' + BinaryName + '*.tif'))
+                    ErodeMask = sorted(glob.glob(self.BaseDir + '/' + ErodeBinaryName + '*.tif'))
                     print('Semantic segmentation masks:', len(Mask))
+                    
+                    if len(ErodeMask) == 0:
+                        print('Generating Binary images')
+               
+                               
+                        RealfilesMask = sorted(glob.glob(self.BaseDir + '/' + RealName + '*tif'))  
+                
+                
+                        for fname in RealfilesMask:
+                    
+                            image = imread(fname)
+                            image = erode_label_holes(image, iterations = self.erode_iterations)
+                            Name = os.path.basename(os.path.splitext(fname)[0])
+                    
+                            Binaryimage = image > 0
+                    
+                            imwrite((self.BaseDir + '/' + ErodeBinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
+                    
+                    
                     if len(Mask) == 0:
                         print('Generating Binary images')
                
@@ -207,6 +230,21 @@ class SmartSeeds2D(object):
                       n_patches_per_image = self.n_patches_per_image,
                       patch_filter = None,
                       save_file           = self.BaseDir + self.NPZfilename + '.npz',
+                      )
+                      
+                      raw_data = RawData.from_folder (
+                      basepath    = self.BaseDir,
+                      source_dirs = ['Raw/'],
+                      target_dir  = ErodeBinaryName,
+                      axes        = 'YX',
+                       )
+                    
+                      X, Y, XY_axes = create_patches (
+                      raw_data            = raw_data,
+                      patch_size          = (self.PatchY,self.PatchX),
+                      n_patches_per_image = self.n_patches_per_image,
+                      patch_filter = None,
+                      save_file           = self.BaseDir + self.NPZfilename + "Erode" + '.npz',
                       )
                     
                   
@@ -337,6 +375,43 @@ class SmartSeeds2D(object):
                                     
                                         
                                     history = model.train(X,Y, validation_data=(X_val,Y_val))
+                                    
+                                    
+                     # Training UNET model
+                    if self.TrainSeedUNET:
+                                    print('Training Seed UNET model')
+                                    load_path = self.BaseDir + self.NPZfilename + "Erode" + '.npz'
+                
+                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split=0.1, verbose=True)
+                                    c = axes_dict(axes)['C']
+                                    n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
+                                    
+                                    config = Config(axes, n_channel_in, n_channel_out, unet_n_depth= self.depth,train_epochs= self.epochs, train_batch_size = self.batch_size, unet_kern_size = self.kern_size,unet_n_first = self.unet_n_first, train_learning_rate = self.learning_rate, train_reduce_lr={'patience': 5, 'factor': 0.5})
+                                    print(config)
+                                    vars(config)
+                                    
+                                    model = CARE(config , name = 'SeedUNET' + self.model_name, basedir = self.model_dir)
+                                    
+                                    if self.copy_model_dir is not None:   
+                                      if os.path.exists(self.copy_model_dir + 'SeedUNET' + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_now.h5') == False:
+                                         print('Loading copy model')
+                                         model.load_weights(self.copy_model_dir + 'SeedUNET' + self.copy_model_name + '/' + 'weights_now.h5')   
+                                    
+                                    if os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_now.h5'):
+                                        print('Loading checkpoint model')
+                                        model.load_weights(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_now.h5')
+                                        
+                                    if os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_last.h5'):
+                                        print('Loading checkpoint model')
+                                        model.load_weights(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_last.h5')
+                                        
+                                    if os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_best.h5'):
+                                        print('Loading checkpoint model')
+                                        model.load_weights(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_best.h5')    
+                               
+                                    
+                                        
+                                    history = model.train(X,Y, validation_data=(X_val,Y_val))                
                  
                  
 def ReadFloat(fname):
@@ -363,5 +438,3 @@ def DownsampleData(image, DownsampleFactor):
          
                     return image
                   
-         
-         

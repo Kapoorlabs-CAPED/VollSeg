@@ -439,6 +439,73 @@ def NotumQueen(save_dir, fname, denoising_model, projection_model, mask_model, s
     NotumSegmentation2D(save_dir,image,fname, mask_model, star_model, min_size = min_size, n_tiles = (n_tiles[1], n_tiles[2]), UseProbability = UseProbability)
     
     
+def NotumSeededQueen(save_dir, fname, denoising_model, projection_model, unet_model, mask_model, star_model, min_size = 5, n_tiles = (1,1,1), UseProbability = True):
+    
+    Path(save_dir).mkdir(exist_ok = True)
+    projection_results = save_dir + 'Projected/'
+    Path(projection_results).mkdir(exist_ok = True)
+    Name = os.path.basename(os.path.splitext(fname)[0])
+    print('Denoising Image')
+    image = imread(fname)
+    image = denoising_model.predict(image,'ZYX', n_tiles = n_tiles)
+    image = projection_model.predict(image,'YX', n_tiles = (n_tiles[1], n_tiles[2]))
+
+    imwrite((projection_results + Name+ '.tif' ) , image.astype('float32'))
+    
+    SeededNotumSegmentation2D(save_dir,image,fname, unet_model, mask_model, star_model, min_size = min_size, n_tiles = (n_tiles[1], n_tiles[2]), UseProbability = UseProbability)
+
+def SeededNotumSegmentation2D(SaveDir,image, fname, UnetModel, MaskModel, StarModel, min_size = 5, n_tiles = (2,2), UseProbability = True):
+    
+    print('Generating SmartSeed results')
+    
+    MASKResults = SaveDir + 'OverAllMask/'
+    UNETResults = SaveDir + 'UnetMask/'
+    StarImageResults = SaveDir + 'StarDistMask/'
+    SmartSeedsResults = SaveDir + 'SmartSeedsMask/' 
+    SmartSeedsLabelResults = SaveDir + 'SmartSeedsLabels/' 
+    ProbResults = SaveDir + 'Probability/' 
+    
+    Path(SaveDir).mkdir(exist_ok = True)
+    Path(SmartSeedsResults).mkdir(exist_ok = True)
+    Path(StarImageResults).mkdir(exist_ok = True)
+    Path(UNETResults).mkdir(exist_ok = True)
+    Path(MASKResults).mkdir(exist_ok = True)
+    Path(SmartSeedsLabelResults).mkdir(exist_ok = True)
+    Path(ProbResults).mkdir(exist_ok = True)
+    #Read Image
+    Name = os.path.basename(os.path.splitext(fname)[0])
+    
+    #U-net prediction
+    
+    OverAllMask = SuperUNETPrediction(image, MaskModel, n_tiles, 'YX')
+    Mask = SuperUNETPrediction(image, UnetModel, n_tiles, 'YX')
+    
+    #Smart Seed prediction 
+    SmartSeeds, Markers, StarImage, ProbImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = Mask, OverAllMaskImage = OverAllMask, UseProbability = UseProbability)
+    
+    
+    SmartSeedsLabels = SmartSeeds.copy()
+    
+    OverAllMask = CleanMask(StarImage, OverAllMask)    #For avoiding pixel level error 
+    SmartSeedsLabels = np.multiply(SmartSeedsLabels, OverAllMask)
+    SegimageB = find_boundaries(SmartSeedsLabels)
+    invertProbimage = 1 - ProbImage
+    image_max = np.add(invertProbimage,SegimageB)
+    indices = np.where(image_max < 1.2)
+    image_max[indices] = 0
+    SmartSeeds = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
+           
+    #Save results, we only need smart seeds finale results but hey!
+    imwrite((ProbResults + Name+ '.tif' ) , ProbImage.astype('float32'))
+    imwrite((SmartSeedsResults + Name+ '.tif' ) , SmartSeeds.astype('uint8'))
+    imwrite((SmartSeedsLabelResults + Name+ '.tif' ) , SmartSeedsLabels.astype('uint16'))
+    imwrite((StarImageResults + Name+ '.tif' ) , StarImage.astype('uint16'))
+    imwrite((UNETResults + Name+ '.tif' ) , Mask.astype('uint8'))  
+    imwrite((MASKResults + Name+ '.tif' ) , OverAllMask.astype('uint8'))  
+ 
+      
+
+
 
 def CreateTrackMate_CSV( Label,Name,savedir):
 
@@ -865,7 +932,6 @@ n_tiles = (1,2,2), UseProbability = True, filtersize = 0, globalthreshold = 1.0E
     imwrite((ProbabilityResults + Name+ '.tif' ) , ProbabilityMap.astype('float32'))
     imwrite((MarkerResults + Name+ '.tif' ) , Markers.astype('uint16'))
         
-    CreateTrackMate_CSV( SizedSmartSeeds,Name, SaveDir)
     
     return SizedSmartSeeds, SizedMask    
 
