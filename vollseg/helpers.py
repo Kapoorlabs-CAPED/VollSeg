@@ -46,7 +46,7 @@ import napari
 import glob
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QComboBox, QPushButton, QSlider
-
+import diplib as dip
 
 Boxname = 'ImageIDBox'
 

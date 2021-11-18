@@ -11,7 +11,7 @@ import os
 import glob
 from tifffile import imread, imwrite
 from csbdeep.utils import axes_dict
-from scipy.ndimage.morphology import  binary_dilation
+from scipy.ndimage.morphology import  binary_dilation, binary_erosion
 from scipy.ndimage.morphology import binary_fill_holes
 from scipy.ndimage.measurements import find_objects
 from csbdeep.data import RawData, create_patches
@@ -63,6 +63,14 @@ def dilate_label_holes(lbl_img, iterations):
     for l in (range(np.min(lbl_img), np.max(lbl_img) + 1)):
         mask = lbl_img==l
         mask_filled = binary_dilation(mask,iterations = iterations)
+        lbl_img_filled[mask_filled] = l
+    return lbl_img_filled    
+
+def erode_label_holes(lbl_img, iterations):
+    lbl_img_filled = np.zeros_like(lbl_img)
+    for l in (range(np.min(lbl_img), np.max(lbl_img) + 1)):
+        mask = lbl_img==l
+        mask_filled = binary_erosion(mask,iterations = iterations)
         lbl_img_filled[mask_filled] = l
     return lbl_img_filled    
     
@@ -187,7 +195,7 @@ class SmartSeeds2D(object):
                         for fname in RealfilesMask:
                     
                             image = imread(fname)
-                            image = erode_label_holes(image, iterations = self.erode_iterations)
+                            image = erode_label_holes(image.astype('uint16'), iterations = self.erode_iterations)
                             Name = os.path.basename(os.path.splitext(fname)[0])
                     
                             Binaryimage = image > 0
