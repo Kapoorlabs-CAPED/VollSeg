@@ -154,18 +154,15 @@ class StarDistBaseLite(StarDist3D):
             tile_generator, output_shape, create_empty_output = tiling_setup()
 
             prob = create_empty_output(1)
-            if self._is_multiclass():
-                prob_class = create_empty_output(self.config.n_classes+1)
-                result = (prob, prob, prob_class)
-            else:
-                result = (prob, prob)
+           
+            result = (prob,prob)
 
             for tile, s_src, s_dst in tile_generator:
                 # predict_direct -> prob, dist, [prob_class if multi_class]
                 result_tile = predict_direct(tile)
                 # account for grid
                 s_src = [slice(s.start//grid_dict.get(a,1),s.stop//grid_dict.get(a,1)) for s,a in zip(s_src,axes_net)]
-                s_dst = s_src
+                s_dst = [slice(s.start//grid_dict.get(a,1),s.stop//grid_dict.get(a,1)) for s,a in zip(s_dst,axes_net)]
                 # prob and dist have different channel dimensionality than image x
                 s_src[channel] = slice(None)
                 s_dst[channel] = slice(None)
@@ -183,17 +180,11 @@ class StarDistBaseLite(StarDist3D):
 
         result = [resizer.after(part, axes_net) for part in result]
 
-        # result = (prob, dist) for legacy or (prob, dist, prob_class) for multiclass
-
         # prob
         result[0] = np.take(result[0],0,axis=channel)
-        # dist
-        result[1] = result[0]
-        if self._is_multiclass():
-            # prob_class
-            result[2] = np.moveaxis(result[2],channel,-1)
+        
 
-        return tuple(result)
+        return result[0]
 
 
 def BinaryLabel(BinaryImageOriginal, max_size = 15000):
@@ -1120,8 +1111,10 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     print('Predicting Instances')
     MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
     print('Predicting Probabilities')
-    SmallProbability, SmallDistance  = model.predict(image, n_tiles = n_tiles)
-
+    if UseProbability:
+       SmallProbability  = model.predict_prob(image, n_tiles = n_tiles)
+    else:
+       SmallProbability, SmallDistance  = model.predict(image, n_tiles = n_tiles) 
 
     print('Predictions Done')
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
