@@ -8,7 +8,7 @@ with open('README.md') as f:
 setup(
     name="vollseg",
 
-    version='2.0.7',
+    version='2.0.8',
 
     author='Varun Kapoor,Claudia Carabana Garcia,Mari Tolonen',
     author_email='randomaccessiblekapoor@gmail.com',
@@ -31,6 +31,7 @@ setup(
         "diplib"
         
     ],
+    dependeny_links = ['https://github.com/bhoeckendorf/pyklb.git@skbuild'],
     packages=setuptools.find_packages(),
     classifiers=[
         'Development Status :: 3 - Alpha',
