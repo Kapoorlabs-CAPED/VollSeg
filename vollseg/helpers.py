@@ -15,7 +15,7 @@ from skimage import morphology
 from skimage.morphology import dilation, square
 import cv2
 from skimage.morphology import remove_small_objects, remove_small_holes, thin
-from stardist.models import StarDist3D
+from stardist.models import StarDist3D,StarDist2D
 from skimage.filters import gaussian
 from six.moves import reduce
 from matplotlib import cm
@@ -562,7 +562,7 @@ def NotumKing(save_dir, filesRaw, denoising_model, projection_model, mask_model,
     Path(save_dir).mkdir(exist_ok = True)
     projection_results = save_dir + 'Projected/'
     Path(projection_results).mkdir(exist_ok = True)
-    Name = os.path.basename(os.path.splitext(fname)[0])
+    
     print('Denoising Image')
     time_lapse = []
     for fname in filesRaw:
@@ -570,6 +570,7 @@ def NotumKing(save_dir, filesRaw, denoising_model, projection_model, mask_model,
             image = denoising_model.predict(image,'ZYX', n_tiles = n_tiles)
             image = projection_model.predict(image,'YX', n_tiles = (n_tiles[1], n_tiles[2]))
             time_lapse.append(image)
+    Name = os.path.basename(os.path.splitext(fname)[0])
     time_lapse = np.asarray(time_lapse)        
     imwrite((projection_results + Name+ '.tif' ) , time_lapse.astype('float32'))   
     
@@ -600,11 +601,11 @@ def NotumSegmentation2D(save_dir,image,fname, mask_model, star_model, min_size =
     
     #U-net prediction
     
-    OverAllMask = SuperUNETPrediction(image, MaskModel, n_tiles, 'YX')
+    OverAllMask = SuperUNETPrediction(image, mask_model, n_tiles, 'YX')
     
     
     #Smart Seed prediction 
-    SmartSeeds, Markers, StarImage, ProbImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = OverAllMask, OverAllMaskImage = OverAllMask, UseProbability = UseProbability)
+    SmartSeeds, Markers, StarImage, ProbImage = SuperSTARPrediction(image, star_model, n_tiles, MaskImage = OverAllMask, OverAllMaskImage = OverAllMask, UseProbability = UseProbability)
     
     
     SmartSeedsLabels = SmartSeeds.copy()
