@@ -6,31 +6,114 @@
 #
 
 -i https://pypi.org/simple
--e .
+-e file:///Users/aimachine/VollSeg
+alabaster==0.7.12
+appdirs==1.4.4
+appnope==0.1.2; sys_platform == 'darwin' and platform_system == 'Darwin'
+argcomplete==1.12.3; python_version < '3.8'
+attrs==21.2.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'
+babel==2.9.1; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
+backcall==0.2.0
+cachey==0.2.1; python_version >= '3.6'
+certifi==2021.10.8
+charset-normalizer==2.0.7; python_version >= '3'
+cloudpickle==2.0.0; python_version >= '3.6'
 csbdeep==0.6.1
 cycler==0.10.0
+dask[array]==2021.11.1; python_version >= '3.7'
+debugpy==1.5.1; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'
 decorator==4.4.2
+diplib==3.1.0; python_version >= '3.6'
+docstring-parser==0.12; python_version >= '3.6'
+docutils==0.17.1; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'
+entrypoints==0.3; python_version >= '2.7'
+freetype-py==2.2.0; python_version >= '3.6'
+fsspec==2021.11.0; python_version >= '3.6'
 h5py==2.10.0
+heapdict==1.0.1
+hsluv==5.0.2; python_version >= '3.6'
+idna==3.3; python_version >= '3'
+imagecodecs==2021.11.11; python_version >= '3.7'
 imageio==2.9.0
+imagesize==1.3.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
+importlib-metadata==4.8.2; python_version == '3.7' and python_version < '3.8'
+importlib-resources==5.4.0; python_version < '3.9'
+ipykernel==6.5.0; python_version >= '3.7'
+ipython-genutils==0.2.0
+ipython==7.29.0; python_version >= '3.7'
+jedi==0.18.0; python_version >= '3.6'
+jinja2==3.0.3; python_version >= '3.6'
+jsonschema==4.2.1; python_version >= '3.7'
+jupyter-client==7.0.6; python_full_version >= '3.6.1'
+jupyter-core==4.9.1; python_version >= '3.6'
 keras-applications==1.0.8
 keras-preprocessing==1.1.2
 keras==2.3.1
-kiwisolver==1.3.1; python_version >= '3.6'
-llvmlite==0.36.0; python_version < '3.10' and python_version >= '3.6'
+kiwisolver==1.3.1
+llvmlite==0.36.0
+locket==0.2.1
+magicgui==0.3.3; python_version >= '3.7'
+markupsafe==2.0.1; python_version >= '3.6'
+matplotlib-inline==0.1.3; python_version >= '3.5'
 matplotlib==3.4.2
-networkx==2.5.1; python_version >= '3.6'
-numba==0.53.1; python_version < '3.10' and python_version >= '3.6'
+n2v==0.3.1
+napari-console==0.0.4; python_version >= '3.7'
+napari-plugin-engine==0.2.0; python_version >= '3.6'
+napari-svg==0.1.5; python_version >= '3.7'
+napari==0.4.12; python_version >= '3.7'
+nest-asyncio==1.5.1; python_version >= '3.5'
+networkx==2.5.1
+numba==0.53.1
 numpy==1.20.3
+numpydoc==1.1.0; python_version >= '3.5'
+packaging==21.2; python_version >= '3.6'
 pandas==1.2.4
-pillow==8.2.0; python_version >= '3.6'
-pyparsing==2.4.7; python_version >= '2.6' and python_version not in '3.0, 3.1, 3.2, 3.3'
-python-dateutil==2.8.1; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
+parso==0.8.2; python_version >= '3.6'
+partd==1.2.0; python_version >= '3.5'
+pexpect==4.8.0; sys_platform != 'win32'
+pickleshare==0.7.5
+pillow==8.2.0
+pint==0.18; python_version >= '3.7'
+prompt-toolkit==3.0.22; python_full_version >= '3.6.2'
+psutil==5.8.0; python_version >= '2.6' and python_version not in '3.0, 3.1, 3.2, 3.3'
+psygnal==0.2.0; python_version >= '3.7'
+ptyprocess==0.7.0
+pydantic==1.8.2; python_full_version >= '3.6.1'
+pygments==2.10.0; python_version >= '3.5'
+pyopengl==3.1.5
+pyparsing==2.4.7
+pyrsistent==0.18.0; python_version >= '3.6'
+python-dateutil==2.8.1
 pytz==2021.1
-pywavelets==1.1.1; python_version >= '3.5'
-pyyaml==5.4.1; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5'
+pywavelets==1.1.1
+pyyaml==5.4.1
+pyzmq==22.3.0; python_version >= '3.6'
+qtconsole==5.2.0; python_version >= '3.6'
+qtpy==1.11.2; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5'
+requests==2.26.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5'
+ruamel.yaml.clib==0.2.6; python_version < '3.10' and platform_python_implementation == 'CPython'
+ruamel.yaml==0.17.17; python_version >= '3'
 scikit-image==0.18.1
 scipy==1.6.3
-six==1.16.0; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'
+six==1.16.0
+snowballstemmer==2.1.0
+sphinx==4.3.0; python_version >= '3.6'
+sphinxcontrib-applehelp==1.0.2; python_version >= '3.5'
+sphinxcontrib-devhelp==1.0.2; python_version >= '3.5'
+sphinxcontrib-htmlhelp==2.0.0; python_version >= '3.6'
+sphinxcontrib-jsmath==1.0.1; python_version >= '3.5'
+sphinxcontrib-qthelp==1.0.3; python_version >= '3.5'
+sphinxcontrib-serializinghtml==1.1.5; python_version >= '3.5'
 stardist==0.6.2
+superqt==0.2.4; python_version >= '3.7'
 tifffile==2021.4.8
+toolz==0.11.2; python_version >= '3.5'
+tornado==6.1; python_version >= '3.5'
 tqdm==4.60.0
+traitlets==5.1.1; python_version >= '3.7'
+typing-extensions==3.10.0.2; python_version < '3.8'
+urllib3==1.26.7; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4' and python_version < '4'
+vispy==0.9.3; python_version >= '3.6'
+wcwidth==0.2.5
+wrapt==1.13.3; python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'
+zipp==3.6.0; python_version < '3.10'
