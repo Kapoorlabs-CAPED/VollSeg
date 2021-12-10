@@ -927,18 +927,18 @@ n_tiles = (1,2,2), UseProbability = True,  globalthreshold = 1.0E-5, extent = 0,
     imwrite((ProbabilityResults + Name+ '.tif' ) , ProbabilityMap.astype('float32'))
     imwrite((MarkerResults + Name+ '.tif' ) , Markers.astype('uint16'))
         
-def VollSeg2D(image, UnetModel, StarModel, NoiseModel = None, axes = 'YX', min_size = 5,max_size = 10000000, dounet = True, n_tiles = (2,2), UseProbability = True):
+def VollSeg2D(image, unet_model, star_model, noise_model = None, axes = 'YX', min_size = 5,max_size = 10000000, dounet = True, n_tiles = (2,2), UseProbability = True):
     
     print('Generating SmartSeed results')
     
-    if NoiseModel is not None:
+    if noise_model is not None:
          print('Denoising Image')
         
-         image = NoiseModel.predict(image, axes=axes, n_tiles=n_tiles)
+         image = noise_model.predict(image, axes=axes, n_tiles=n_tiles)
     if dounet:
         print('UNET segmentation on Image')     
 
-        Mask = UNETPrediction3D(image, UnetModel, n_tiles, )
+        Mask = UNETPrediction3D(image, unet_model, n_tiles, )
     else:
       
       Mask = np.zeros(image.shape)
@@ -952,7 +952,7 @@ def VollSeg2D(image, UnetModel, StarModel, NoiseModel = None, axes = 'YX', min_s
       Mask = label(Mask > 0)       
   
     #Smart Seed prediction 
-    SmartSeeds, Markers, StarImage, ProbabilityMap = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
+    SmartSeeds, Markers, StarImage, ProbabilityMap = SuperSTARPrediction(image, star_model, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
     labelmax = np.amax(StarImage)
     Mask[StarImage > 0] == labelmax + 1
     #For avoiding pixel level error 
@@ -974,13 +974,13 @@ def VollSeg2D(image, UnetModel, StarModel, NoiseModel = None, axes = 'YX', min_s
     SmartSeeds = Integer_to_border(SmartSeeds.astype('uint16'))
     SmartSeeds = remove_small_holes(SmartSeeds, min_size)
     SmartSeeds = skeletonize(SmartSeeds)
-    if NoiseModel == None:
+    if noise_model == None:
         return SmartSeeds, Mask, StarImage, ProbabilityMap, Markers 
     else:
         return SmartSeeds, Mask, StarImage, ProbabilityMap, Markers, image
 
     
-def VollSeg3D( image,  UnetModel, StarModel, axes='ZYX', NoiseModel = None, min_size_mask = 100, min_size = 100, max_size = 10000000,
+def VollSeg3D( image,  unet_model, star_model, axes='ZYX', noise_model = None, min_size_mask = 100, min_size = 100, max_size = 10000000,
 n_tiles = (1,2,2), UseProbability = True, globalthreshold = 1.0E-5, extent = 0, dounet = True, seedpool = True,  startZ = 0):
     
     print('Generating VollSeg results')
@@ -992,16 +992,16 @@ n_tiles = (1,2,2), UseProbability = True, globalthreshold = 1.0E-5, extent = 0, 
     SizedSmartSeeds = np.zeros([sizeZ, sizeY, sizeX], dtype = 'uint16')
     SizedProbabilityMap = np.zeros([sizeZ, sizeY, sizeX], dtype = 'float32')
    
-    if NoiseModel is not None:
+    if noise_model is not None:
          print('Denoising Image')
         
-         image = NoiseModel.predict(image, axes=axes, n_tiles=n_tiles)
+         image = noise_model.predict(image, axes=axes, n_tiles=n_tiles)
            
     
     if dounet:
         print('UNET segmentation on Image')     
 
-        Mask = UNETPrediction3D(image, UnetModel, n_tiles, )
+        Mask = UNETPrediction3D(image, unet_model, n_tiles, )
     else:
       
       Mask = np.zeros(image.shape)
@@ -1018,7 +1018,7 @@ n_tiles = (1,2,2), UseProbability = True, globalthreshold = 1.0E-5, extent = 0, 
     Mask = label(Mask > 0)       
     SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     print('Stardist segmentation on Image')  
-    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(image, StarModel,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, globalthreshold = globalthreshold, extent = extent, seedpool = seedpool)
+    SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(image, star_model,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, globalthreshold = globalthreshold, extent = extent, seedpool = seedpool)
    
     for i in range(0, SmartSeeds.shape[0]):
        SmartSeeds[i,:] = remove_small_objects(SmartSeeds[i,:].astype('uint16'), min_size = min_size)
@@ -1033,7 +1033,7 @@ n_tiles = (1,2,2), UseProbability = True, globalthreshold = 1.0E-5, extent = 0, 
     SizedProbabilityMap[:, :ProbabilityMap.shape[1], :ProbabilityMap.shape[2]] = ProbabilityMap           
     
         
-    if NoiseModel == None:
+    if noise_model == None:
         return SizedSmartSeeds, SizedMask, StarImage, ProbabilityMap, Markers 
     else:
         return SizedSmartSeeds, SizedMask, StarImage, ProbabilityMap, Markers, image 
@@ -1142,14 +1142,19 @@ def RelabelZ(previousImage, currentImage,threshold):
     
       return relabelimage
 
-def SuperSTARPrediction(image, model, n_tiles, MaskImage, OverAllMaskImage, UseProbability = True):
+def SuperSTARPrediction(image, model, n_tiles, MaskImage, OverAllMaskImage, UseProbability = True, prob_thresh = None, nms_thresh = None):
     
     
     image = normalize(image, 1, 99.8, axis = (0,1))
     shape = [image.shape[0], image.shape[1]]
     image = zero_pad(image, 64, 64)
     
-    MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
+    
+    if prob_thresh is not None and nms_thresh is not None:
+        
+        MidImage, details = model.predict_instances(image, n_tiles = n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+    else:
+        MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
     
     StarImage = MidImage[:shape[0],:shape[1]]
     
@@ -1212,7 +1217,7 @@ def RemoveLabels(LabelImage, minZ = 2):
                     LabelImage[LabelImage == regionlabel] = 0
     return LabelImage                
 
-def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, extent = 0, seedpool = True):
+def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = None, UseProbability = True, globalthreshold = 1.0E-5, extent = 0, seedpool = True, prob_thresh = None, nms_thresh = None):
     
     copymodel = model
     image = normalize(image, 1, 99.8, axis = (0,1,2))
@@ -1221,7 +1226,10 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
     grid = copymodel.config.grid
 
     print('Predicting Instances')
-    MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
+    if prob_thresh is not None and nms_thresh is not None:
+       MidImage, details = model.predict_instances(image, n_tiles = n_tiles , prob_thresh = prob_thresh, nms_thresh = nms_thresh)
+    else:    
+      MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
     print('Predicting Probabilities')
     if UseProbability:
        SmallProbability  = model.predict_prob(image, n_tiles = n_tiles)
