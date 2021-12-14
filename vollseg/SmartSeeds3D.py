@@ -39,7 +39,6 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from tifffile import imread, imwrite
 from csbdeep.utils import  plot_history
-
 def _raise(e):
     raise e
 
@@ -317,7 +316,8 @@ class SmartSeeds3D(object):
                           
                             print(Config3D.__doc__)
                            
-                            
+                            extents = calculate_extents(Y)
+                            self.annisotropy = tuple(np.max(extents) / extents)
                             rays = Rays_GoldenSpiral(self.n_rays, anisotropy=self.annisotropy)
                                     
                                     
