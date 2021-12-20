@@ -8,7 +8,7 @@ with open('README.md') as f:
 setup(
     name="vollseg",
 
-    version='2.1.3',
+    version='2.1.4',
 
     author='Varun Kapoor,Claudia Carabana Garcia,Mari Tolonen',
     author_email='randomaccessiblekapoor@gmail.com',
@@ -27,7 +27,8 @@ setup(
         "imagecodecs",
         "n2v>=0.3.0",
         "napari",
-        "diplib"
+        "diplib",
+        "opencv-python",
         
     ],
     dependeny_links = ['https://github.com/bhoeckendorf/pyklb.git@skbuild'],
