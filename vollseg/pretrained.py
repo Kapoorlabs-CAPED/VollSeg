@@ -10,10 +10,10 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 
 from collections import OrderedDict
 from warnings import warn
-from ..utils import _raise
-from ..utils.six import Path
+from csbdeep.utils import _raise
+from csbdeep.utils.six import Path
 
-from ..utils.tf import keras_import
+from csbdeep.utils.tf import keras_import
 get_file = keras_import('utils', 'get_file')
 
 
