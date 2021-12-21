@@ -22,7 +22,7 @@ register_model(StarDist3D,   '3D_cells',  'somemodel zoo 3D', 'somehash3d')
 register_model(Unet2D,   'Unet_2D_cells', 'Unet some model zoo 2D', 'unetsomehash')
 register_model(Unet3D,   'Unet_3D_cells',  'Unet somemodel zoo 3D', 'unetsomehash3d')
 register_model(CARE,   'Denoise_3D_cells',  'Unet somemodel zoo 3D', 'unetsomehash3d')              
-register_model(CARE,   'Denoise2D_cells',  'Unet somemodel zoo 3D', 'unetsomehash3d') 
+register_model(CARE,   'Denoise_2D_cells',  'Unet somemodel zoo 3D', 'unetsomehash3d') 
 
 
 register_aliases(StarDist2D, '2D_cells', 'Alias some model zoo 2D')
