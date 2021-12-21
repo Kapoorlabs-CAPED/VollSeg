@@ -11,6 +11,11 @@ This package can be installed by
 
 `pip install --user vollseg`
 
+with the added support for klb file reading you have to additionally do
+'pip install git+https://github.com/bhoeckendorf/pyklb.git@skbuild'
+
+additionally ensure that your installed tensorflow version is not over 2.3.4
+
 If you are building this from the source, clone the repository and install via
 
 ```bash
