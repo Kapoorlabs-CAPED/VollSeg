@@ -29,7 +29,7 @@ setup(
         "napari",
         "diplib",
         "opencv-python",
-        "package @ git+https://github.com/bhoeckendorf/pyklb.git@skbuild",
+       
     ],
     dependeny_links = ['https://github.com/bhoeckendorf/pyklb.git@skbuild'],
     packages=setuptools.find_packages(),
