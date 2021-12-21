@@ -11,6 +11,9 @@ This package can be installed by
 
 `pip install --user vollseg`
 
+with the added support for klb file reading you have to additionally do
+'pip install git+https://github.com/bhoeckendorf/pyklb.git@skbuild'
+
 If you are building this from the source, clone the repository and install via
 
 ```bash
