@@ -12,9 +12,12 @@ from .h5 import *
 from .tif import *
 from .folder import *
 from .pretrained import register_model, register_aliases, clear_models_and_aliases
-from csbdeep.models import CARE as Unet2D 
-from csbdeep.models import CARE as Unet3D
+from .UNET2D import  UNET2D 
+from .UNET3D import  UNET3D 
 from csbdeep.models import CARE
+
+
+
 clear_models_and_aliases(StarDist2D, StarDist3D, Unet2D, Unet3D, CARE)
 register_model(StarDist2D,   '2D_cells', 'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a')
 register_model(StarDist3D,   '3D_cells',  'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a')
