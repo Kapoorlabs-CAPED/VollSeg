@@ -8,7 +8,7 @@ with open('README.md') as f:
 setup(
     name="vollseg",
 
-    version='2.2.4',
+    version='2.2.5',
 
     author='Varun Kapoor,Claudia Carabana Garcia,Mari Tolonen',
     author_email='randomaccessiblekapoor@gmail.com',
@@ -20,7 +20,7 @@ setup(
         
         "pandas",
         "stardist>=0.7.0",
-       
+        "numpy==1.2.0"
         "scipy",
         "tifffile",
         "matplotlib",
