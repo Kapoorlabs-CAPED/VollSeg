@@ -11,7 +11,7 @@ from .inrimage import *
 from .h5 import *
 from .tif import *
 from .folder import *
-from .pretrained import register_model, register_aliases, clear_models_and_aliases
+from .pretrained import register_model, register_aliases, clear_models_and_aliases, register_aliases_NONE
 from .UNET2D import  UNET2D 
 from .UNET3D import  UNET3D 
 from csbdeep.models import CARE
@@ -44,5 +44,5 @@ register_aliases(UNET2D, 'Unet_2D_cells_sec',  'Alias Unet some model zoo 2D sec
 register_aliases(UNET3D, 'Unet_3D_cells_sec',  'Alias Unet some model zoo 3D sec')
 register_aliases(CARE, 'Denoise_2D_cells_sec',  'Alias Unet some model zoo 2D den sec')
 register_aliases(CARE, 'Denoise_3D_cells_sec',  'Alias Unet some model zoo 3D den sec')
-register_aliases(None, 'No Denoising',  'No Denoising to be done')
+register_aliases_NONE('NONE', 'No Denoising',  'No Denoising to be done')
 del register_model, register_aliases, clear_models_and_aliases

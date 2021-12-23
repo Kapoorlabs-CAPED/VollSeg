@@ -38,6 +38,14 @@ def register_model(cls, key, url, hash):
     models[key] = dict(url=url, hash=hash)
 
 
+def register_aliases_NONE(str, key, *names):
+    aliases = _ALIASES.setdefault(str,OrderedDict())
+    # aliases can be arbitrary strings
+    if len(names) == 0: return
+    for name in names:
+        aliases.get(name,key) == key or warn("alias '%s' was previously registered with model '%s' for '%s'" % (name, aliases[name], str))
+        aliases[name] = key
+
 def register_aliases(cls, key, *names):
     # aliases can be arbitrary strings
     if len(names) == 0: return
