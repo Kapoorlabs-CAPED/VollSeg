@@ -58,8 +58,8 @@ def register_aliases(cls, key, *names):
 
 def get_registered_models_NONE(str):
     
-    
-    return str, str
+    aliases = {str: str}
+    return str, aliases
 
 def get_registered_models(cls, return_aliases=True, verbose=False):
     models = _MODELS.get(cls,{})
