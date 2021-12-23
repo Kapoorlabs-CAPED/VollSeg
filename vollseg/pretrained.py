@@ -57,9 +57,9 @@ def register_aliases(cls, key, *names):
         aliases[name] = key
 
 def get_registered_models_NONE(str):
-    aliases = _ALIASES.get(str,{})
     
-    return str, aliases
+    
+    return str, str
 
 def get_registered_models(cls, return_aliases=True, verbose=False):
     models = _MODELS.get(cls,{})
