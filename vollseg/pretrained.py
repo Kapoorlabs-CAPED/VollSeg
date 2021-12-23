@@ -56,6 +56,10 @@ def register_aliases(cls, key, *names):
         aliases.get(name,key) == key or warn("alias '%s' was previously registered with model '%s' for '%s'" % (name, aliases[name], cls.__name__))
         aliases[name] = key
 
+def get_registered_models_NONE(str):
+    aliases = _ALIASES.get(str,{})
+    
+    return str, aliases
 
 def get_registered_models(cls, return_aliases=True, verbose=False):
     models = _MODELS.get(cls,{})
