@@ -6,8 +6,8 @@ import numpy as np
 from six import string_types
 
 from csbdeep.internals.probability import ProbabilisticPrediction
-from csbdeep.config import Config
-from csbdeep.base_model import BaseModel, suppress_without_basedir
+from csbdeep.models.config import Config
+from csbdeep.models.base_model import BaseModel, suppress_without_basedir
 
 from csbdeep.utils import _raise, axes_check_and_normalize, axes_dict, move_image_axes
 from csbdeep.utils.six import Path

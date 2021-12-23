@@ -316,7 +316,7 @@ class SmartSeeds3D(object):
                           
                             print(Config3D.__doc__)
                            
-                            extents = calculate_extents(Y)
+                            extents = calculate_extents(self.Y_trn)
                             self.annisotropy = tuple(np.max(extents) / extents)
                             rays = Rays_GoldenSpiral(self.n_rays, anisotropy=self.annisotropy)
                                     
