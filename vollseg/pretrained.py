@@ -36,7 +36,11 @@ def register_model(cls, key, url, hash):
     models = _MODELS.setdefault(cls,OrderedDict())
     key not in models or warn("re-registering model '%s' (was already registered for '%s')" % (key, cls.__name__))
     models[key] = dict(url=url, hash=hash)
-
+    
+def register_model_NONE(str):
+    # key must be a valid file/folder name in the file system
+    models = _MODELS.setdefault(str,OrderedDict())
+    models[str] = dict(str, str)
 
 def register_aliases_NONE(str, key, *names):
     aliases = _ALIASES.setdefault(str,OrderedDict())
@@ -58,7 +62,7 @@ def register_aliases(cls, key, *names):
 
 def get_registered_models_NONE(str):
     
-    aliases = {str: str}
+    aliases = {str: (str,)}
     return str, aliases
 
 def get_registered_models(cls, return_aliases=True, verbose=False):
