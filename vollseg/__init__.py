@@ -44,5 +44,5 @@ register_aliases(UNET2D, 'Unet_2D_cells_sec',  'Alias Unet some model zoo 2D sec
 register_aliases(UNET3D, 'Unet_3D_cells_sec',  'Alias Unet some model zoo 3D sec')
 register_aliases(CARE, 'Denoise_2D_cells_sec',  'Alias Unet some model zoo 2D den sec')
 register_aliases(CARE, 'Denoise_3D_cells_sec',  'Alias Unet some model zoo 3D den sec')
-register_aliases('NONE', 'No Denoising',  'No Denoising to be done')
+register_aliases(None, 'No Denoising',  'No Denoising to be done')
 del register_model, register_aliases, clear_models_and_aliases
