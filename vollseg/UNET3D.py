@@ -26,7 +26,7 @@ import tensorflow as tf
 #     # tf.disable_v2_behavior()
 
 
-class UNET3D(BaseModel):
+class UNET(BaseModel):
     """Standard CARE network for image restoration and enhancement.
 
     Uses a convolutional neural network created by :func:`csbdeep.internals.nets.common_unet`.
