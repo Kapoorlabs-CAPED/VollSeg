@@ -42,7 +42,21 @@ def register_model_NONE(str):
     models = _MODELS.setdefault(str,OrderedDict())
     models[str] = dict(str, str)
 
+def register_model_NOUNET(str):
+    # key must be a valid file/folder name in the file system
+    models = _MODELS.setdefault(str,OrderedDict())
+    models[str] = dict(str, str)
+
 def register_aliases_NONE(str, key, *names):
+    aliases = _ALIASES.setdefault(str,OrderedDict())
+    # aliases can be arbitrary strings
+    if len(names) == 0: return
+    for name in names:
+        aliases.get(name,key) == key or warn("alias '%s' was previously registered with model '%s' for '%s'" % (name, aliases[name], str))
+        aliases[name] = key
+
+
+def register_aliases_NOUNET(str, key, *names):
     aliases = _ALIASES.setdefault(str,OrderedDict())
     # aliases can be arbitrary strings
     if len(names) == 0: return
