@@ -12,7 +12,7 @@ from .h5 import *
 from .tif import *
 from .folder import *
 from .pretrained import register_model, register_aliases, clear_models_and_aliases
-from .UNET3D import  UNET 
+from .UNET import  UNET 
 from csbdeep.models import CARE
 
 
