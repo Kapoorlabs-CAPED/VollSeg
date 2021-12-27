@@ -11,7 +11,7 @@ from .inrimage import *
 from .h5 import *
 from .tif import *
 from .folder import *
-from .pretrained import register_model, register_aliases, clear_models_and_aliases, register_aliases_NONE, register_model_NONE, register_aliases_NOUNET, register_model_NOUNET
+from .pretrained import register_model, register_aliases, clear_models_and_aliases
 from .UNET3D import  UNET 
 from csbdeep.models import CARE
 
@@ -30,8 +30,7 @@ register_model(UNET,   'Unet_2D_cells_sec', 'https://github.com/stardist/stardis
 register_model(UNET,   'Unet_3D_cells_sec',  'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a')
 register_model(CARE,   'Denoise_3D_cells_sec',  'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a')              
 register_model(CARE,   'Denoise_2D_cells_sec',  'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a') 
-register_model_NONE('NONE')
-register_model_NOUNET('NOUNET')
+
 
  
 register_aliases(StarDist2D, '2D_cells', 'Alias some model zoo 2D')
@@ -46,7 +45,7 @@ register_aliases(UNET, 'Unet_2D_cells_sec',  'Alias Unet some model zoo 2D sec')
 register_aliases(UNET, 'Unet_3D_cells_sec',  'Alias Unet some model zoo 3D sec')
 register_aliases(CARE, 'Denoise_2D_cells_sec',  'Alias Unet some model zoo 2D den sec')
 register_aliases(CARE, 'Denoise_3D_cells_sec',  'Alias Unet some model zoo 3D den sec')
-register_aliases_NOUNET('NOUNET', 'No UNET',  'No UNET model')
+
 
 
 del register_model, register_aliases, clear_models_and_aliases
