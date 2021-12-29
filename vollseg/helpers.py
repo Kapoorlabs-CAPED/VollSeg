@@ -943,26 +943,25 @@ def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = N
             Mask = UNETPrediction3D(image, unet_model, n_tiles, 'YX' )
             Mask = remove_small_objects(Mask.astype('uint16'), min_size = min_size_mask)
             Mask = remove_big_objects(Mask.astype('uint16'), max_size = max_size)
-    elif noise_model is not None:
-      
-      Mask = np.zeros(image.shape)
-      
-      thresh = threshold_otsu(image)
-      Mask = image > thresh  
-      Mask = label(Mask) 
-      Mask = remove_small_objects(Mask.astype('uint16'), min_size = min_size_mask)
-      Mask = remove_big_objects(Mask.astype('uint16'), max_size = max_size)
-    
-      Mask = label(Mask > 0)       
+        else:
+          
+          Mask = np.zeros(image.shape)
+          
+          thresh = threshold_otsu(image)
+          Mask = image > thresh  
+          Mask = label(Mask) 
+          Mask = remove_small_objects(Mask.astype('uint16'), min_size = min_size_mask)
+          Mask = remove_big_objects(Mask.astype('uint16'), max_size = max_size)
+        
+          Mask = label(Mask > 0)       
   
     #Smart Seed prediction 
+
+        
     SmartSeeds, Markers, StarImage, ProbabilityMap = SuperSTARPrediction(image, star_model, n_tiles, MaskImage = Mask, UseProbability = UseProbability, prob_thresh = prob_thresh, nms_thresh = nms_thresh)
-    if unet_model is None:
-         Mask = SmartSeeds > 0
-         Mask = remove_small_objects(Mask.astype('uint16'), min_size = min_size_mask)
-         Mask = remove_big_objects(Mask.astype('uint16'), max_size = max_size)
-    labelmax = np.amax(StarImage)
-    Mask[StarImage > 0] == labelmax + 1
+    
+        
+         
     #For avoiding pixel level error 
     Mask = expand_labels(Mask, distance = 1)
     SmartSeeds = expand_labels(SmartSeeds, distance = 1)
@@ -1016,29 +1015,26 @@ n_tiles = (1,2,2), UseProbability = True, globalthreshold = 1.0E-5, extent = 0, 
                     Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size_mask)
                     Mask[i,:] = remove_big_objects(Mask[i,:].astype('uint16'), max_size = max_size)
             SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
-    elif noise_model is not None:
-      
-      Mask = np.zeros(image.shape)
-      
-      for i in range(0, Mask.shape[0]):
-
-                 thresh = threshold_otsu(image[i,:])
-                 Mask[i,:] = image[i,:] > thresh  
-                 Mask[i,:] = label(Mask[i,:]) 
+        else:
+          
+          Mask = np.zeros(image.shape)
+          
+          for i in range(0, Mask.shape[0]):
     
-                 Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size_mask)
-                 Mask[i,:] = remove_big_objects(Mask[i,:].astype('uint16'), max_size = max_size)
-    
-      Mask = label(Mask > 0)  
-      for i in range(0, Mask.shape[0]):
-              Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size_mask)
-              Mask[i,:] = remove_big_objects(Mask[i,:].astype('uint16'), max_size = max_size)
-      SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
+                     thresh = threshold_otsu(image[i,:])
+                     Mask[i,:] = image[i,:] > thresh  
+                     Mask[i,:] = label(Mask[i,:]) 
+        
+                     Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size_mask)
+                     Mask[i,:] = remove_big_objects(Mask[i,:].astype('uint16'), max_size = max_size)
+        
+          Mask = label(Mask > 0)  
+      
+          SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     print('Stardist segmentation on Image')  
+    
     SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(image, star_model,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, globalthreshold = globalthreshold, extent = extent, seedpool = seedpool, prob_thresh= prob_thresh, nms_thresh = nms_thresh)
-    if unet_model is None:
-        Mask = SmartSeeds > 0
-        SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
+    
     for i in range(0, SmartSeeds.shape[0]):
        SmartSeeds[i,:] = remove_small_objects(SmartSeeds[i,:].astype('uint16'), min_size = min_size)
        SmartSeeds[i,:] = remove_big_objects(SmartSeeds[i,:].astype('uint16'), max_size = max_size)
@@ -1161,7 +1157,7 @@ def RelabelZ(previousImage, currentImage,threshold):
     
       return relabelimage
 
-def SuperSTARPrediction(image, model, n_tiles, MaskImage, OverAllMaskImage, UseProbability = True, prob_thresh = None, nms_thresh = None):
+def SuperSTARPrediction(image, model, n_tiles, MaskImage, OverAllMaskImage = None, UseProbability = True, prob_thresh = None, nms_thresh = None):
     
     
     image = normalize(image, 1, 99.8, axis = (0,1))
@@ -1190,10 +1186,15 @@ def SuperSTARPrediction(image, model, n_tiles, MaskImage, OverAllMaskImage, UseP
         
         MaxProjectDistance = Distance[:shape[0],:shape[1]]
 
-    
-    
+
+
+
+    if OverAllMaskImage is None:
+        OverAllMaskImage = MaskImage
     OverAllMaskImage = CleanMask( StarImage, OverAllMaskImage)
-    Watershed, Markers = SuperWatershedwithMask(MaxProjectDistance, StarImage.astype('uint16'), MaskImage.astype('uint16'), OverAllMaskImage.astype('uint16'), grid)
+    
+    
+    Watershed, Markers = SuperWatershedwithMask(MaxProjectDistance, StarImage.astype('uint16'), MaskImage.astype('uint16'),grid)
     Watershed = fill_label_holes(Watershed.astype('uint16'))
     
 
