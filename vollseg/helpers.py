@@ -927,7 +927,7 @@ n_tiles = (1,2,2), UseProbability = True,  globalthreshold = 1.0E-5, extent = 0,
     imwrite((ProbabilityResults + Name+ '.tif' ) , ProbabilityMap.astype('float32'))
     imwrite((MarkerResults + Name+ '.tif' ) , Markers.astype('uint16'))
         
-def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = None, nms_thresh = None, axes = 'YX', min_size = 5,max_size = 10000000, dounet = True, n_tiles = (2,2), UseProbability = True):
+def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = None, nms_thresh = None, axes = 'YX',min_size_mask = 5, min_size = 5,max_size = 10000000, dounet = True, n_tiles = (2,2), UseProbability = True):
     
     print('Generating SmartSeed results')
     
@@ -941,7 +941,8 @@ def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = N
             print('UNET segmentation on Image')     
 
             Mask = UNETPrediction3D(image, unet_model, n_tiles, 'YX' )
-            
+            Mask = remove_small_objects(Mask.astype('uint16'), min_size = min_size_mask)
+            Mask = remove_big_objects(Mask.astype('uint16'), max_size = max_size)
     elif noise_model is not None:
       
       Mask = np.zeros(image.shape)
@@ -949,7 +950,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = N
       thresh = threshold_otsu(image)
       Mask = image > thresh  
       Mask = label(Mask) 
-      Mask = remove_small_objects(Mask.astype('uint16'), min_size = min_size)
+      Mask = remove_small_objects(Mask.astype('uint16'), min_size = min_size_mask)
       Mask = remove_big_objects(Mask.astype('uint16'), max_size = max_size)
     
       Mask = label(Mask > 0)       
@@ -958,6 +959,8 @@ def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = N
     SmartSeeds, Markers, StarImage, ProbabilityMap = SuperSTARPrediction(image, star_model, n_tiles, MaskImage = Mask, UseProbability = UseProbability, prob_thresh = prob_thresh, nms_thresh = nms_thresh)
     if unet_model is None:
          Mask = SmartSeeds > 0
+         Mask = remove_small_objects(Mask.astype('uint16'), min_size = min_size_mask)
+         Mask = remove_big_objects(Mask.astype('uint16'), max_size = max_size)
     labelmax = np.amax(StarImage)
     Mask[StarImage > 0] == labelmax + 1
     #For avoiding pixel level error 
@@ -1009,6 +1012,9 @@ n_tiles = (1,2,2), UseProbability = True, globalthreshold = 1.0E-5, extent = 0, 
             print('UNET segmentation on Image')     
 
             Mask = UNETPrediction3D(image, unet_model, n_tiles, 'ZYX')
+            for i in range(0, Mask.shape[0]):
+                    Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size_mask)
+                    Mask[i,:] = remove_big_objects(Mask[i,:].astype('uint16'), max_size = max_size)
             SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     elif noise_model is not None:
       
@@ -1020,10 +1026,13 @@ n_tiles = (1,2,2), UseProbability = True, globalthreshold = 1.0E-5, extent = 0, 
                  Mask[i,:] = image[i,:] > thresh  
                  Mask[i,:] = label(Mask[i,:]) 
     
-                 Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size)
+                 Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size_mask)
                  Mask[i,:] = remove_big_objects(Mask[i,:].astype('uint16'), max_size = max_size)
     
-      Mask = label(Mask > 0)       
+      Mask = label(Mask > 0)  
+      for i in range(0, Mask.shape[0]):
+              Mask[i,:] = remove_small_objects(Mask[i,:].astype('uint16'), min_size = min_size_mask)
+              Mask[i,:] = remove_big_objects(Mask[i,:].astype('uint16'), max_size = max_size)
       SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     print('Stardist segmentation on Image')  
     SmartSeeds, ProbabilityMap, StarImage, Markers = STARPrediction3D(image, star_model,  n_tiles, MaskImage = Mask, UseProbability = UseProbability, globalthreshold = globalthreshold, extent = extent, seedpool = seedpool, prob_thresh= prob_thresh, nms_thresh = nms_thresh)
