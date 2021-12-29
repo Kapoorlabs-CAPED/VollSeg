@@ -967,20 +967,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = N
     SmartSeeds = expand_labels(SmartSeeds, distance = 1)
     
         
-    BinaryMask = Integer_to_border(Mask.astype('uint16'))  
-    SmartSeeds = Integer_to_border(SmartSeeds.astype('uint16'))
-    #Missing edges of one network prevented by others
-    SmartSeeds = skeletonize(SmartSeeds)
-    BinaryMask = skeletonize(BinaryMask)
-    SmartSeeds = np.logical_or(SmartSeeds, BinaryMask)
-    SmartSeeds = skeletonize(SmartSeeds)
-    
-    #Could create double pixels and new pockets, use watershed and skeletonize to remove again
-    SmartSeeds = BinaryLabel(SmartSeeds)
    
-    SmartSeeds = Integer_to_border(SmartSeeds.astype('uint16'))
-    SmartSeeds = remove_small_holes(SmartSeeds, min_size)
-    SmartSeeds = skeletonize(SmartSeeds)
     if noise_model == None:
         return SmartSeeds, Mask, StarImage, ProbabilityMap, Markers 
     else:
