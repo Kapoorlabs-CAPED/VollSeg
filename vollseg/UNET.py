@@ -17,7 +17,7 @@ from csbdeep.data import Normalizer, NoNormalizer, PercentileNormalizer
 from csbdeep.data import Resizer, NoResizer, PadAndCropResizer
 from csbdeep.internals.predict import predict_tiled, tile_overlap, Progress, total_n_tiles
 from csbdeep.internals import nets, train
-
+from csbdeep import CARE
 import tensorflow as tf
 # if IS_TF_1:
 #     import tensorflow as tf
