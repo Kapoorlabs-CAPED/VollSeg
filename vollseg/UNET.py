@@ -17,7 +17,7 @@ from csbdeep.data import Normalizer, NoNormalizer, PercentileNormalizer
 from csbdeep.data import Resizer, NoResizer, PadAndCropResizer
 from csbdeep.internals.predict import predict_tiled, tile_overlap, Progress, total_n_tiles
 from csbdeep.internals import nets, train
-from csbdeep.models import CARE
+
 import tensorflow as tf
 # if IS_TF_1:
 #     import tensorflow as tf
@@ -70,7 +70,7 @@ class UNET(BaseModel):
 
     def __init__(self, config, name=None, basedir='.'):
         """See class docstring."""
-        super(CARE, self).__init__(config=config, name=name, basedir=basedir)
+        super(UNET, self).__init__(config=config, name=name, basedir=basedir)
 
 
     def _build(self):
