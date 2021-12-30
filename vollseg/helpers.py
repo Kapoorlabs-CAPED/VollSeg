@@ -1239,7 +1239,7 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
       MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
     print('Predicting Probabilities')
     if UseProbability:
-       SmallProbability  = model.predict_prob(image, n_tiles = n_tiles)
+       SmallProbability  = model.predict(image, n_tiles = n_tiles)
     else:
        SmallProbability, SmallDistance  = model.predict(image, n_tiles = n_tiles) 
 
