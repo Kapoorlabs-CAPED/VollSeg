@@ -25,9 +25,9 @@ register_model(UNET,   'Unet_3D_cells',  'https://github.com/stardist/stardist-m
 register_model(CARE,   'Denoise_3D_cells',  'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a')              
 register_model(CARE,   'Denoise_2D_cells',  'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a') 
 register_model(StarDist2D,   '2D_cells_sec', 'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a')
-register_model(StarDist3D,   '3D_cells_sec',  'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a')
+register_model(StarDist3D,   'Ascadian Embryo Model A',  'https://zenodo.org/deposit/5812802', '568b3233a74d029ba0eda4c8a551313f')
 register_model(UNET,   'Unet_2D_cells_sec', 'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a')
-register_model(UNET,   'Unet_3D_cells_sec',  'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a')
+register_model(UNET,   'Unet Ascadian Embryo Model A',  'https://zenodo.org/deposit/5812808', '272edd65fe2ddf6540695c679fb05100')
 register_model(CARE,   'Denoise_3D_cells_sec',  'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a')              
 register_model(CARE,   'Denoise_2D_cells_sec',  'https://github.com/stardist/stardist-models/releases/download/v0.1/python_2D_versatile_fluo.zip', '8db40dacb5a1311b8d2c447ad934fb8a') 
 
