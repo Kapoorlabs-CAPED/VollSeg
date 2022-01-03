@@ -632,9 +632,14 @@ def NotumSegmentation2D(save_dir,image,fname, mask_model, star_model, min_size =
     
     
 
-def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n_tiles = (2,2), UseProbability = True):
+def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n_tiles = (2,2), UseProbability = True, RGB = False):
     
     print('Generating SmartSeed results')
+    
+    if RGB == False:
+        axes = 'YX'
+    else:
+        axes = 'YXC'
     UNETResults = SaveDir + 'BinaryMask/'
     StarImageResults = SaveDir + 'StarDist/'
     SmartSeedsResults = SaveDir + 'SmartSeedsMask/' 
@@ -648,8 +653,9 @@ def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, min_size = 5, n
     image = imread(fname)
     Name = os.path.basename(os.path.splitext(fname)[0])
     #U-net prediction
-    Mask = SuperUNETPrediction(image, UnetModel, n_tiles, 'YX')
-  
+    Mask = SuperUNETPrediction(image, UnetModel, n_tiles, axes)
+    if RGB:
+        Mask = Mask[:,:,0]
     #Smart Seed prediction 
     SmartSeeds, Markers, StarImage, ProbImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
     labelmax = np.amax(StarImage)
@@ -1075,18 +1081,17 @@ def SuperUNETPrediction(image, model, n_tiles, axis, threshold = 20):
     
     
     Segmented = model.predict(image, axis, n_tiles = n_tiles)
+    
     try:
        thresh = threshold_otsu(Segmented)
        Binary = Segmented > thresh
     except:
         Binary = Segmented > 0
-        
-    Binary= binary_erosion(Binary)    
-    #Postprocessing steps
     
     
     Finalimage = label(Binary)
-    Finalimage = fill_label_holes(Finalimage)
+   
+    
     Finalimage = relabel_sequential(Finalimage)[0]
     
     return  Finalimage

@@ -14,7 +14,7 @@ from csbdeep.utils import axes_dict
 from scipy.ndimage.morphology import  binary_dilation, binary_erosion
 from scipy.ndimage.morphology import binary_fill_holes
 from scipy.ndimage.measurements import find_objects
-from csbdeep.data import RawData, create_patches
+from csbdeep.data import RawData, create_patches, create_patches_reduced_target 
 from csbdeep.io import load_training_data
 from csbdeep.models import Config, CARE
 from skimage.measure import label
@@ -24,7 +24,7 @@ from stardist.models import Config2D, StarDist2D
 from tensorflow.keras.utils import Sequence
 from tqdm import tqdm
 from pathlib import Path
-
+import cv2
     
     
 def _raise(e):
@@ -81,7 +81,7 @@ class SmartSeeds2D(object):
 
 
 
-     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, TrainSeedUNET = True, TrainUNET = True, TrainSTAR = True, CroppedLoad = False, grid = (1,1),  GenerateNPZ = True,copy_model_dir = None, PatchX=256, PatchY=256,  use_gpu = True,unet_n_first = 64, erode_iterations = 2,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
+     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, startfilter = 48, RGB = False, TrainSeedUNET = True, TrainUNET = True, TrainSTAR = True, CroppedLoad = False, grid = (1,1),  GenerateNPZ = True,copy_model_dir = None, PatchX=256, PatchY=256,  use_gpu = True,unet_n_first = 64, erode_iterations = 2,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
          
          
          
@@ -104,6 +104,8 @@ class SmartSeeds2D(object):
          self.kern_size = kern_size
          self.PatchX = PatchX
          self.PatchY = PatchY
+         self.RGB = RGB
+         self.startfilter = startfilter
          self.batch_size = batch_size
          self.use_gpu = use_gpu
          self.grid = grid
@@ -224,36 +226,75 @@ class SmartSeeds2D(object):
                     
                     
                     if self.GenerateNPZ:
-                        
-                      raw_data = RawData.from_folder (
-                      basepath    = self.BaseDir,
-                      source_dirs = ['Raw/'],
-                      target_dir  = BinaryName,
-                      axes        = 'YX',
-                       )
-                    
-                      X, Y, XY_axes = create_patches (
-                      raw_data            = raw_data,
-                      patch_size          = (self.PatchY,self.PatchX),
-                      n_patches_per_image = self.n_patches_per_image,
-                      patch_filter = None,
-                      save_file           = self.BaseDir + self.NPZfilename + '.npz',
-                      )
-                      
-                      raw_data = RawData.from_folder (
-                      basepath    = self.BaseDir,
-                      source_dirs = ['Raw/'],
-                      target_dir  = ErodeBinaryName,
-                      axes        = 'YX',
-                       )
-                    
-                      X, Y, XY_axes = create_patches (
-                      raw_data            = raw_data,
-                      patch_size          = (self.PatchY,self.PatchX),
-                      n_patches_per_image = self.n_patches_per_image,
-                      patch_filter = None,
-                      save_file           = self.BaseDir + self.NPZfilename + "Erode" + '.npz',
-                      )
+                      if self.RGB:
+                          
+                             raw_data = RawData.from_folder (
+                             basepath    = self.BaseDir,
+                             source_dirs = ['Raw/'],
+                             target_dir  = BinaryName,
+                             axes        = 'YXC',
+                              )
+                           
+                             X, Y, XY_axes = create_patches_reduced_target (
+                             raw_data            = raw_data,
+                             patch_size          = (self.PatchY,self.PatchX, None),
+                             n_patches_per_image = self.n_patches_per_image,
+                             patch_filter = None,
+                             target_axes         = 'YX',
+                             reduction_axes      = 'C',
+                             save_file           = self.BaseDir + self.NPZfilename + '.npz',
+                             
+                             )
+                             
+                             raw_data = RawData.from_folder (
+                             basepath    = self.BaseDir,
+                             source_dirs = ['Raw/'],
+                             target_dir  = ErodeBinaryName,
+                             axes        = 'YX',
+                              )
+                           
+                             X, Y, XY_axes = create_patches (
+                             raw_data            = raw_data,
+                             patch_size          = (self.PatchY,self.PatchX, None),
+                             n_patches_per_image = self.n_patches_per_image,
+                             patch_filter = None,
+                             target_axes         = 'YX',
+                             reduction_axes      = 'C',
+                             save_file           = self.BaseDir + self.NPZfilename + "Erode" + '.npz',
+                             )
+                          
+                          
+                          
+                      else:
+                              raw_data = RawData.from_folder (
+                              basepath    = self.BaseDir,
+                              source_dirs = ['Raw/'],
+                              target_dir  = BinaryName,
+                              axes        = 'YX',
+                               )
+                            
+                              X, Y, XY_axes = create_patches (
+                              raw_data            = raw_data,
+                              patch_size          = (self.PatchY,self.PatchX),
+                              n_patches_per_image = self.n_patches_per_image,
+                              patch_filter = None,
+                              save_file           = self.BaseDir + self.NPZfilename + '.npz',
+                              )
+                              
+                              raw_data = RawData.from_folder (
+                              basepath    = self.BaseDir,
+                              source_dirs = ['Raw/'],
+                              target_dir  = ErodeBinaryName,
+                              axes        = 'YX',
+                               )
+                            
+                              X, Y, XY_axes = create_patches (
+                              raw_data            = raw_data,
+                              patch_size          = (self.PatchY,self.PatchX),
+                              n_patches_per_image = self.n_patches_per_image,
+                              patch_filter = None,
+                              save_file           = self.BaseDir + self.NPZfilename + "Erode" + '.npz',
+                              )
                     
                   
 
@@ -351,7 +392,7 @@ class SmartSeeds2D(object):
                    # Training UNET model
                     if self.TrainUNET:
                                     print('Training UNET model')
-                                    load_path = self.BaseDir + self.NPZfilename + '.npz'
+                                    load_path = self.BaseDir + self.NPZfilename  + '.npz'
                 
                                     (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split=0.1, verbose=True)
                                     c = axes_dict(axes)['C']
