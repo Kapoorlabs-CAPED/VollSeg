@@ -253,7 +253,7 @@ class SmartSeeds2D(object):
                              axes        = 'YX',
                               )
                            
-                             X, Y, XY_axes = create_patches (
+                             X, Y, XY_axes = create_patches_reduced_target (
                              raw_data            = raw_data,
                              patch_size          = (self.PatchY,self.PatchX, None),
                              n_patches_per_image = self.n_patches_per_image,

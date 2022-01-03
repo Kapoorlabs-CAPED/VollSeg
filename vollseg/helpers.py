@@ -44,8 +44,7 @@ import math
 import pandas as pd
 import napari
 import glob
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QComboBox, QPushButton, QSlider
+from qtpy.QtWidgets import QComboBox, QPushButton
 import diplib as dip
 
 Boxname = 'ImageIDBox'
