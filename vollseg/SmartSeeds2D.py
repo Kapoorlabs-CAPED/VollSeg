@@ -11,7 +11,7 @@ import os
 import glob
 from tifffile import imread, imwrite
 from csbdeep.utils import axes_dict
-from scipy.ndimage.morphology import  binary_dilation, binary_erosion
+from skimage.morphology import binary_dilation, binary_erosion
 from scipy.ndimage.morphology import binary_fill_holes
 from scipy.ndimage.measurements import find_objects
 from csbdeep.data import RawData, create_patches, create_patches_reduced_target 
@@ -81,7 +81,7 @@ class SmartSeeds2D(object):
 
 
 
-     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, startfilter = 48, RGB = False, TrainSeedUNET = True, TrainUNET = True, TrainSTAR = True, CroppedLoad = False, grid = (1,1),  GenerateNPZ = True,copy_model_dir = None, PatchX=256, PatchY=256,  use_gpu = True,unet_n_first = 64, erode_iterations = 2,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
+     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, startfilter = 48, RGB = False, TrainSeedUNET = True, TrainUNET = True, TrainSTAR = True, CroppedLoad = False, grid = (1,1),  GenerateNPZ = True,copy_model_dir = None, PatchX=256, PatchY=256,  use_gpu = True,unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
          
          
          
@@ -111,7 +111,6 @@ class SmartSeeds2D(object):
          self.grid = grid
          self.unet_n_first = unet_n_first 
          self.n_patches_per_image =  n_patches_per_image
-         self.erode_iterations = erode_iterations
          
          
          #Load training and validation data
@@ -187,22 +186,7 @@ class SmartSeeds2D(object):
                     ErodeMask = sorted(glob.glob(self.BaseDir + '/' + ErodeBinaryName + '*.tif'))
                     print('Semantic segmentation masks:', len(Mask))
                     
-                    if len(ErodeMask) == 0:
-                        print('Generating Binary images')
-               
-                               
-                        RealfilesMask = sorted(glob.glob(self.BaseDir + '/' + RealName + '*tif'))  
-                
-                
-                        for fname in RealfilesMask:
                     
-                            image = imread(fname)
-                            image = erode_label_holes(image.astype('uint16'), iterations = self.erode_iterations)
-                            Name = os.path.basename(os.path.splitext(fname)[0])
-                    
-                            Binaryimage = image > 0
-                    
-                            imwrite((self.BaseDir + '/' + ErodeBinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
                     
                     
                     if len(Mask) == 0:
@@ -222,7 +206,10 @@ class SmartSeeds2D(object):
                     
                             imwrite((self.BaseDir + '/' + BinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
                     
+                        
+                            Binaryimage = binary_erosion(Binaryimage)
                     
+                            imwrite((self.BaseDir + '/' + ErodeBinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
                     
                     
                     if self.GenerateNPZ:
@@ -250,7 +237,7 @@ class SmartSeeds2D(object):
                              basepath    = self.BaseDir,
                              source_dirs = ['Raw/'],
                              target_dir  = ErodeBinaryName,
-                             axes        = 'YX',
+                             axes        = 'YXC',
                               )
                            
                              X, Y, XY_axes = create_patches_reduced_target (
