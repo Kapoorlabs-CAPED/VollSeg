@@ -25,11 +25,11 @@ register_model(StarDist3D,   'Ascadian_Embryo_Model_A',  'https://zenodo.org/rec
 
 register_model(UNET,   'Unet_Ascadian_Embryo_Model_A',  'https://zenodo.org/record/5812808/files/Unet3D.zip', '272edd65fe2ddf6540695c679fb05100')
 
-register_model(StarDist2D,   'White_Blood_Cells',  'https://zenodo.org/record/5814399/files/WBCSeg-20220103T071553Z-001.zip', 'beb5a7e4b5a2d5cc4b075509dc403e1e')
+register_model(StarDist2D,   'White_Blood_Cells',  'https://zenodo.org/record/5815521/files/WBCSeg.zip', '7889f5902d8562766a4dee2726c90d49')
 
-register_model(UNET,   'Unet_White_Blood_Cells',  'https://zenodo.org/record/5814407/files/UNETWBCSeg-20220103T071942Z-001.zip', '2838231e0df69970b0fd6600f5e773f1')
+register_model(UNET,   'Unet_White_Blood_Cells',  'https://zenodo.org/record/5815588/files/UNETWBC.zip', '9645f004db478f661811d6da615ccc0b')
 
-register_model(UNET,   'Unet_Cyto_White_Blood_Cells',  'https://zenodo.org/record/5814443/files/UNETWBCCytoSeg-20220103T072243Z-001.zip', 'cece0298c6405a1a38d7958d1c5aea0a') 
+register_model(UNET,   'Unet_Cyto_White_Blood_Cells',  'https://zenodo.org/record/5815603/files/UNETcytoWBC.zip', 'dd3bf8b8e2a04536144954e882445a5e') 
 
 
 register_aliases(StarDist3D, 'Ascadian_Embryo_Model_A',   'Ascadian_Embryo_Model_A')
