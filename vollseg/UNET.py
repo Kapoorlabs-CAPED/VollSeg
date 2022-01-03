@@ -17,7 +17,8 @@ from csbdeep.data import Normalizer, NoNormalizer, PercentileNormalizer
 from csbdeep.data import Resizer, NoResizer, PadAndCropResizer
 from csbdeep.internals.predict import predict_tiled, tile_overlap, Progress, total_n_tiles
 from csbdeep.internals import nets, train
-
+from .pretrained import get_registered_models, get_model_details, get_model_instance
+import sys
 import tensorflow as tf
 # if IS_TF_1:
 #     import tensorflow as tf
@@ -85,7 +86,16 @@ class UNET(BaseModel):
             last_activation = self.config.unet_last_activation,
         )(self.config.unet_input_shape)
 
-
+    @classmethod   
+    def local_from_pretrained(cls, name_or_alias=None):
+          try:
+              get_model_details(cls, name_or_alias, verbose=True)
+              return get_model_instance(cls, name_or_alias)
+          except ValueError:
+              if name_or_alias is not None:
+                  print("Could not find model with name or alias '%s'" % (name_or_alias), file=sys.stderr)
+                  sys.stderr.flush()
+              get_registered_models(cls, verbose=True)
     def prepare_for_training(self, optimizer=None, **kwargs):
         """Prepare for neural network training.
 

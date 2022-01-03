@@ -661,7 +661,7 @@ def SmartSeedPrediction2D( SaveDir, fname, UnetModel, StarModel, DenModel = None
     if RGB:
         Mask = Mask[:,:,0]
     #Smart Seed prediction 
-    SmartSeeds, Markers, StarImage, ProbImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability)
+    SmartSeeds, Markers, StarImage, ProbImage = SuperSTARPrediction(image, StarModel, n_tiles, MaskImage = Mask, UseProbability = UseProbability, RGB = RGB)
     labelmax = np.amax(StarImage)
     Mask[StarImage > 0] == labelmax + 1
     #For avoiding pixel level error 
@@ -727,10 +727,12 @@ def VollSeg_unet(image, model, n_tiles = (2,2), axes = 'YX', noise_model = None,
         return Finalimage
     
 def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = None, nms_thresh = None, axes = 'YX',min_size_mask = 5, min_size = 5,
-              max_size = 10000000, dounet = True, n_tiles = (2,2), UseProbability = True):
+              max_size = 10000000, dounet = True, n_tiles = (2,2), UseProbability = True, RGB = False):
     
     print('Generating SmartSeed results')
     
+    if RGB:
+        axes = 'YXC'
     if noise_model is not None:
          print('Denoising Image')
         
@@ -740,14 +742,16 @@ def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = N
         if unet_model is not None:
             print('UNET segmentation on Image')     
 
-            Mask = UNETPrediction3D(image, unet_model, n_tiles, 'YX' )
+            Mask = UNETPrediction3D(image, unet_model, n_tiles, axes )
             Mask = remove_small_objects(Mask.astype('uint16'), min_size = min_size_mask)
             Mask = remove_big_objects(Mask.astype('uint16'), max_size = max_size)
         else:
           
           Mask = np.zeros(image.shape)
-          
-          thresh = threshold_otsu(image)
+          try:
+            thresh = threshold_otsu(image)
+          except:
+            thresh = 0  
           Mask = image > thresh  
           Mask = label(Mask) 
           Mask = remove_small_objects(Mask.astype('uint16'), min_size = min_size_mask)
@@ -757,8 +761,9 @@ def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = N
   
     #Smart Seed prediction 
 
-        
-    SmartSeeds, Markers, StarImage, ProbabilityMap = SuperSTARPrediction(image, star_model, n_tiles, MaskImage = Mask, UseProbability = UseProbability, prob_thresh = prob_thresh, nms_thresh = nms_thresh)
+    if RGB:
+        Mask = Mask[:,:,0]    
+    SmartSeeds, Markers, StarImage, ProbabilityMap = SuperSTARPrediction(image, star_model, n_tiles, MaskImage = Mask, UseProbability = UseProbability, prob_thresh = prob_thresh, nms_thresh = nms_thresh, RGB = RGB)
     
         
          
@@ -1194,13 +1199,14 @@ def RelabelZ(previousImage, currentImage,threshold):
     
       return relabelimage
 
-def SuperSTARPrediction(image, model, n_tiles, MaskImage, OverAllMaskImage = None, UseProbability = True, prob_thresh = None, nms_thresh = None):
+def SuperSTARPrediction(image, model, n_tiles, MaskImage, OverAllMaskImage = None, UseProbability = True, prob_thresh = None, nms_thresh = None, RGB = False):
     
     
     image = normalize(image, 1, 99.8, axis = (0,1))
-    shape = [image.shape[0], image.shape[1]]
-    image = zero_pad(image, 64, 64)
     
+    shape = [image.shape[0], image.shape[1]]
+    
+        
     
     if prob_thresh is not None and nms_thresh is not None:
         
@@ -1209,6 +1215,7 @@ def SuperSTARPrediction(image, model, n_tiles, MaskImage, OverAllMaskImage = Non
         MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
     
     StarImage = MidImage[:shape[0],:shape[1]]
+    
     
     SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
     grid = model.config.grid
