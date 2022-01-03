@@ -34,7 +34,7 @@ register_model(UNET,   'Unet_Cyto_White_Blood_Cells',  'https://zenodo.org/recor
 
 register_aliases(StarDist3D, 'Ascadian_Embryo_Model_A',   'Ascadian_Embryo_Model_A')
 register_aliases(UNET, 'Unet_Ascadian_Embryo_Model_A',  'Unet_Ascadian_Embryo_Model_A')
-register_aliases(StarDist2D, 'Unet_White_Blood_Cells',   'Unet_White_Blood_Cells')
+register_aliases(StarDist2D, 'White_Blood_Cells',   'White_Blood_Cells')
 register_aliases(UNET, 'Unet_White_Blood_Cells',  'Unet_White_Blood_Cells')
 register_aliases(UNET, 'Unet_Cyto_White_Blood_Cells',  'Unet_Cyto_White_Blood_Cells')
 register_aliases(CARE, 'Denoise_3D_cells',  'Denoise_3D_cells')
