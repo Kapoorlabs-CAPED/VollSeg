@@ -698,7 +698,8 @@ def VollSeg_unet(image, model, n_tiles = (2,2), axes = 'YX', noise_model = None,
     
     
     if RGB:
-        n_tiles = (n_tiles[0], n_tiles[1], 1)
+        if n_tiles is not None:
+          n_tiles = (n_tiles[0], n_tiles[1], 1)
     
     if noise_model is not None:
         image = noise_model.predict(image, axes, n_tiles = n_tiles) 
