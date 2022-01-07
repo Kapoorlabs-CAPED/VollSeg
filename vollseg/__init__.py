@@ -25,7 +25,7 @@ register_model(CARE,   'Denoise_3D_cells',  'https://zenodo.org/record/5813521/f
 
 register_model(StarDist3D,   'Ascadian_Embryo_Model_A',  'https://zenodo.org/record/5825801/files/Ascadian_large_td.zip', 'f59ea5a15eebc9832aded8e4f40e7298')
 
-register_model(UNET,   'Unet_Ascadian_Embryo_Model_A',  'https://zenodo.org/record/5825808/files/UnetAscadian_large_td.zip', 'f59ea5a15eebc9832aded8e4f40e7298')
+register_model(UNET,   'Unet_Ascadian_Embryo_Model_A',  'https://zenodo.org/record/5825808/files/UnetAscadian_large_td.zip', 'bd04a44a43516dd901d6317de65a6cab')
 
 register_model(StarDist2D,   'White_Blood_Cells',  'https://zenodo.org/record/5815521/files/WBCSeg.zip', '7889f5902d8562766a4dee2726c90d49')
 
