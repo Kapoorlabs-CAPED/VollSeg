@@ -139,52 +139,6 @@ class SegCorrect(object):
                         imwrite((self.segmentationdir  +   imagename + '.tif' ) , ModifiedArraySeg)
 
 
-class StarDistBaseLite(StarDist3D):
-     def __init__(self, config, name=None, basedir='.'):
-        super().__init__(config=config, name=name, basedir=basedir)
-
-
-     def predict_prob(self, img, axes=None, normalizer=None, n_tiles=None, show_tile_progress=True, **predict_kwargs):
-       
-
-        x, axes, axes_net, axes_net_div_by, _permute_axes, resizer, n_tiles, grid, grid_dict, channel, predict_direct, tiling_setup = \
-            self._predict_setup(img, axes, normalizer, n_tiles, show_tile_progress, predict_kwargs)
-
-        if np.prod(n_tiles) > 1:
-            tile_generator, output_shape, create_empty_output = tiling_setup()
-
-            prob = create_empty_output(1)
-           
-            result = (prob,prob)
-
-            for tile, s_src, s_dst in tile_generator:
-                # predict_direct -> prob, dist, [prob_class if multi_class]
-                result_tile = predict_direct(tile)
-                # account for grid
-                s_src = [slice(s.start//grid_dict.get(a,1),s.stop//grid_dict.get(a,1)) for s,a in zip(s_src,axes_net)]
-                s_dst = [slice(s.start//grid_dict.get(a,1),s.stop//grid_dict.get(a,1)) for s,a in zip(s_dst,axes_net)]
-                # prob and dist have different channel dimensionality than image x
-                s_src[channel] = slice(None)
-                s_dst[channel] = slice(None)
-                s_src, s_dst = tuple(s_src), tuple(s_dst)
-                # print(s_src,s_dst)
-                for part, part_tile in zip(result, result_tile):
-                    try:
-                       part[s_dst] = part_tile[s_src]
-                    except:
-                        pass
-                
-        else:
-            # predict_direct -> prob, dist, [prob_class if multi_class]
-            result = predict_direct(x)
-
-        result = [resizer.after(part, axes_net) for part in result]
-
-        # prob
-        result[0] = np.take(result[0],0,axis=channel)
-        
-
-        return result[0]
 
 
 def BinaryLabel(BinaryImageOriginal, max_size = 15000):
