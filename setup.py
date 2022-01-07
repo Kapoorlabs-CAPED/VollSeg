@@ -20,7 +20,7 @@ setup(
         
         "pandas",
         "stardist>=0.7.0",
-        "numpy==1.20.0",
+        "numpy==1.21.0",
         "scipy",
         "tifffile",
         "matplotlib",
