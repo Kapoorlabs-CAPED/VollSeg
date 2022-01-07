@@ -16,6 +16,7 @@ from skimage.morphology import dilation, square
 import cv2
 from skimage.morphology import remove_small_objects, remove_small_holes, thin
 from stardist.models import StarDist3D,StarDist2D
+from vollseg import StarDist2D, StarDist3D
 from skimage.filters import gaussian
 from six.moves import reduce
 from matplotlib import cm
@@ -1211,14 +1212,13 @@ def SuperSTARPrediction(image, model, n_tiles, MaskImage, OverAllMaskImage = Non
     
     if prob_thresh is not None and nms_thresh is not None:
         
-        MidImage, details = model.predict_instances(image, n_tiles = n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+        MidImage,  SmallProbability, SmallDistance = model.predict_vollseg(image, n_tiles = n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     else:
-        MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
+        MidImage,  SmallProbability, SmallDistance = model.predict_vollseg(image, n_tiles = n_tiles)
     
     StarImage = MidImage[:shape[0],:shape[1]]
     
     
-    SmallProbability, SmallDistance = model.predict(image, n_tiles = n_tiles)
     grid = model.config.grid
     Probability = cv2.resize(SmallProbability, dsize=(SmallProbability.shape[1] * grid[1] , SmallProbability.shape[0] * grid[0] ))
     Distance = MaxProjectDist(SmallDistance, axis=-1)
@@ -1292,14 +1292,9 @@ def STARPrediction3D(image, model, n_tiles, MaskImage = None, smartcorrection = 
 
     print('Predicting Instances')
     if prob_thresh is not None and nms_thresh is not None:
-       MidImage, details = model.predict_instances(image, n_tiles = n_tiles , prob_thresh = prob_thresh, nms_thresh = nms_thresh)
+       MidImage, SmallProbability, SmallDistance = model.predict_vollseg(image, n_tiles = n_tiles , prob_thresh = prob_thresh, nms_thresh = nms_thresh)
     else:    
-      MidImage, details = model.predict_instances(image, n_tiles = n_tiles)
-    print('Predicting Probabilities')
-    if UseProbability:
-       SmallProbability  = model.predict(image, n_tiles = n_tiles)
-    else:
-       SmallProbability, SmallDistance  = model.predict(image, n_tiles = n_tiles) 
+      MidImage, SmallProbability, SmallDistance = model.predict_vollseg(image, n_tiles = n_tiles)
 
     print('Predictions Done')
     StarImage = MidImage[:image.shape[0],:shape[0],:shape[1]]
