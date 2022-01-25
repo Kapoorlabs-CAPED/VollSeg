@@ -1,8 +1,41 @@
+Skip to content
+Search or jump to…
+Pull requests
+Issues
+Marketplace
+Explore
+ 
+@kapoorlab 
+Kapoorlabs-paris
+/
+VollSeg
+Public
+Code
+Issues
+Pull requests
+1
+Actions
+Projects
+Wiki
+Security
+1
+Insights
+Settings
+We found potential security vulnerabilities in your dependencies.
+You can see this message because you have been granted access to Dependabot alerts for this repository.
+
+VollSeg/vollseg/StarDist3D.py /
+@kapoorlab
+kapoorlab predict
+Latest commit d96ebd0 17 minutes ago
+ History
+ 1 contributor
+115 lines (100 sloc)  5.2 KB
+   
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 Created on Mon Jan  3 19:34:47 2022
-
 @author: varunkapoor
 """
 from stardist.models import StarDist3D
@@ -34,7 +67,6 @@ class StarDist3D(StarDist3D):
                           predict_kwargs=None, nms_kwargs=None,
                           overlap_label=None, return_predict=False):
         """Predict instance segmentation from input image.
-
         Parameters
         ----------
         img : :class:`numpy.ndarray`
@@ -75,13 +107,11 @@ class StarDist3D(StarDist3D):
         return_predict: bool
             Also return the outputs of :func:`predict` (in a separate tuple)
             If True, implies sparse = False
-
         Returns
         -------
         (:class:`numpy.ndarray`, dict), (optional: return tuple of :func:`predict`)
             Returns a tuple of the label instances image and also
             a dictionary with the details (coordinates, etc.) of all remaining polygons/polyhedra.
-
         """
         if predict_kwargs is None:
             predict_kwargs = {}
