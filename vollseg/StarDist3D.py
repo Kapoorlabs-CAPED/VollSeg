@@ -99,7 +99,7 @@ class StarDist3D(StarDist3D):
         res = self.predict(img, axes=axes, normalizer=normalizer, n_tiles=n_tiles,
                                        show_tile_progress=show_tile_progress, **predict_kwargs)
        
-
+        res = tuple(res) + (None,)
         prob, dist, points = res
         prob_class = None
 
