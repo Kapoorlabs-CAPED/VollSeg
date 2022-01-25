@@ -96,8 +96,8 @@ class StarDist3D(StarDist3D):
         _permute_axes = self._make_permute_axes(_axes, _axes_net)
         _shape_inst   = tuple(s for s,a in zip(_permute_axes(img).shape, _axes_net) if a != 'C')
 
-        res = self.predict_sparse(img, axes=axes, normalizer=normalizer, n_tiles=n_tiles,
-                                      prob_thresh=prob_thresh, show_tile_progress=show_tile_progress, **predict_kwargs)
+        res = self.predict(img, axes=axes, normalizer=normalizer, n_tiles=n_tiles,
+                                       show_tile_progress=show_tile_progress, **predict_kwargs)
        
 
         prob, dist, points = res
