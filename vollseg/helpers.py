@@ -869,7 +869,65 @@ def VollSeg2D(image, unet_model, star_model, noise_model = None, prob_thresh = N
     else:
         return smart_seeds, Mask, star_labels, proabability_map, Markers, Skeleton, image
 
+def VollSeg3Dt( image,  unet_model, star_model, axes='ZYX', noise_model = None, prob_thresh = None, nms_thresh = None, min_size_mask = 100, min_size = 100, max_size = 10000000,
+n_tiles = (1,2,2), UseProbability = True, globalthreshold = 1.0E-5, extent = 0, dounet = True, seedpool = True, save_dir = None, Name = 'Result',  startZ = 0, slice_merge = False, iou_threshold = 0):
+      
     
+     if len(image.shape) == 2:
+         
+         raise(ValueError(f"Expected an image with shape > 2, for instead {image.shape}, please use a 3D or a 3D+ time image in this function"))
+    
+     if len(image.shape) == 3:
+         
+          res = VollSeg3D( image,  unet_model, star_model, axes='ZYX', noise_model = noise_model, prob_thresh = prob_thresh, nms_thresh = nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+          n_tiles = n_tiles, UseProbability = UseProbability, globalthreshold = globalthreshold, extent = extent, dounet = dounet, seedpool = seedpool, save_dir = None, Name = Name,  startZ = startZ, slice_merge = slice_merge, iou_threshold = iou_threshold)
+    
+     if len(image.shape) == 4:
+         
+           res = tuple(
+               zip(
+                   *tuple( VollSeg3D( _x,  unet_model, star_model, axes='ZYX', noise_model = noise_model, prob_thresh = prob_thresh, nms_thresh = nms_thresh, min_size_mask = min_size_mask, min_size = min_size, max_size = max_size,
+                   n_tiles = n_tiles, UseProbability = UseProbability, globalthreshold = globalthreshold, extent = extent, dounet = dounet, seedpool = seedpool, save_dir = None, Name = Name,  startZ = startZ, slice_merge = slice_merge, iou_threshold = iou_threshold) for _x in image)))
+
+           if noise_model == None:
+                Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton = res
+           else:
+                Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image = res 
+           if save_dir is not None:
+               
+               unet_results = save_dir + 'BinaryMask/'
+               vollseg_results = save_dir + 'VollSeg/' 
+               stardist_results = save_dir + 'StarDist/'
+               denoised_results = save_dir + 'Denoised/'
+               probability_results = save_dir + 'Probability/'
+               marker_results = save_dir + 'Markers/'
+               skel_results = save_dir + 'Skeleton/'
+               Path(save_dir).mkdir(exist_ok = True)
+               Path(skel_results).mkdir(exist_ok = True)
+               Path(denoised_results).mkdir(exist_ok = True)
+               Path(vollseg_results).mkdir(exist_ok = True)
+               Path(stardist_results).mkdir(exist_ok = True)
+               Path(unet_results).mkdir(exist_ok = True)
+               Path(probability_results).mkdir(exist_ok = True)
+               Path(marker_results).mkdir(exist_ok = True)
+               print('Saving Results and Done')
+               imwrite((unet_results + Name+ '.tif' ) , SizedMask.astype('uint16'))
+               imwrite((stardist_results + Name+ '.tif' ) , star_labels.astype('uint16'))
+               imwrite((vollseg_results + Name+ '.tif' ) , Sizedsmart_seeds.astype('uint16'))
+               imwrite((probability_results + Name+ '.tif' ) , proabability_map.astype('float32'))
+               imwrite((marker_results + Name+ '.tif' ) , Markers.astype('uint16'))
+               imwrite((skel_results + Name+ '.tif' ) , Skeleton)
+               if noise_model is not None:
+                   imwrite((denoised_results + Name+ '.tif' ) , image.astype('float32'))
+               
+           
+           
+           if noise_model == None:    
+                
+               return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton 
+           else:
+               return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image        
+               
 def VollSeg3D( image,  unet_model, star_model, axes='ZYX', noise_model = None, prob_thresh = None, nms_thresh = None, min_size_mask = 100, min_size = 100, max_size = 10000000,
 n_tiles = (1,2,2), UseProbability = True, globalthreshold = 1.0E-5, extent = 0, dounet = True, seedpool = True, save_dir = None, Name = 'Result',  startZ = 0, slice_merge = False, iou_threshold = 0):
     
@@ -913,7 +971,7 @@ n_tiles = (1,2,2), UseProbability = True, globalthreshold = 1.0E-5, extent = 0, 
    
     if noise_model is not None:
          print('Denoising Image')
-        
+         
          image = noise_model.predict(image, axes=axes, n_tiles=n_tiles)
          if save_dir is not None:
              imwrite((denoised_results + Name+ '.tif' ) , image.astype('float32')) 
