@@ -100,7 +100,7 @@ class StarDist3D(StarDist3D):
         prob, dist, points = res
         prob_class = None
 
-        res_instances = self._instances_from_prediction(_shape_inst, prob, dist,
+        res_instances, polys = self._instances_from_prediction(_shape_inst, prob, dist,
                                                         points=points,
                                                         prob_class=prob_class,
                                                         prob_thresh=prob_thresh,
