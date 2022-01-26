@@ -827,7 +827,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
     else:
         return smart_seeds, Mask, star_labels, proabability_map, Markers, Skeleton, image
 
-def VollSeg_unet(image, model, n_tiles=(2, 2), axes='YX', noise_model=None, RGB=False, iou_threshold=0, slice_merge=False, dounet = True):
+def VollSeg_unet(image, unet_model, n_tiles=(2, 2), axes='YX', noise_model=None, RGB=False, iou_threshold=0, slice_merge=False, dounet = True):
 
     if RGB:
         if n_tiles is not None:
@@ -837,7 +837,7 @@ def VollSeg_unet(image, model, n_tiles=(2, 2), axes='YX', noise_model=None, RGB=
         image = noise_model.predict(image, axes, n_tiles=n_tiles)
         
     if dounet:
-        Segmented = model.predict(image, axes, n_tiles=n_tiles)
+        Segmented = unet_model.predict(image, axes, n_tiles=n_tiles)
     else:
         Segmented = image
     if RGB:
@@ -878,7 +878,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
          # If there is no stardist model we use unet model or denoising model or both to get the semantic segmentation    
          if star_model is None:
              
-               res = VollSeg_unet(image, unet_model, n_tiles=n_tiles, axes=axes, noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
+               res = VollSeg_unet(image, unet_model = unet_model, n_tiles=n_tiles, axes=axes, noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
      if len(image.shape) == 3 and 'T' not in axes:
           # this is a 3D image and if stardist model is supplied we use this method
           if star_model is not None:   
