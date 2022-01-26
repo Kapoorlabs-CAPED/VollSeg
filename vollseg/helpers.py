@@ -969,7 +969,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
          return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton
      
      #If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps   
-     elif noise_model is None and star_model is not None:
+     elif noise_model is not None and star_model is not None:
          return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image
      
      #If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map 
