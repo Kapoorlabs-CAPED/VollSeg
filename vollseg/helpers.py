@@ -879,7 +879,8 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
          if star_model is None:
              
                res = VollSeg_unet(image, unet_model, n_tiles=n_tiles, axes=axes, noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
-             
+               print(res)
+               print(res[0].shape, res[1].shape)
      if len(image.shape) == 3 and 'T' not in axes:
           # this is a 3D image and if stardist model is supplied we use this method
           if star_model is not None:   
@@ -902,7 +903,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
                                         max_size=max_size, dounet=dounet, n_tiles=n_tiles, UseProbability=UseProbability, RGB=RGB, save_dir=None, Name=Name) for _x in tqdm(image))))
               if star_model is None:
                   
-                   res = tuple(zip(*tuple(VollSeg_unet(image, unet_model, n_tiles=n_tiles, axes=axes, noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
+                   res = tuple(zip(*tuple(VollSeg_unet(_x, unet_model, n_tiles=n_tiles, axes=axes, noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
                   for _x in tqdm(image))))
                    
                       
@@ -965,7 +966,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
         
      print('Done')
      #If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
-     if noise_model == None and star_model is not None:
+     if noise_model is None and star_model is not None:
          
          return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton
      
