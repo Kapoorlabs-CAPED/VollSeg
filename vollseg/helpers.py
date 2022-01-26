@@ -39,7 +39,7 @@ import math
 import pandas as pd
 import napari
 import glob
-from stardist.matching import matching
+from vollseg.matching import matching
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
 import diplib as dip
@@ -861,7 +861,7 @@ def VollSeg_unet(image, model, n_tiles=(2, 2), axes='YX', noise_model=None, RGB=
 
 
 def VollSeg(image,  unet_model = None, star_model = None, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, RGB = False):
+n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, RGB = False):
 
      if len(image.shape) == 2:
          
@@ -974,14 +974,10 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
          return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image
      
      #If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map 
-     elif star_model is None and noise_model is not None:
+     elif star_model is None:
          
           return SizedMask, image
-     #For tissue segmentation there is only UNET model so we only retrun the semantic segmentation mask 
-     elif star_model is None and noise_model is  None:
-         
-          return SizedMask
-
+     
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
 n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0):
 
