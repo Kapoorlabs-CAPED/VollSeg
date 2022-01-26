@@ -963,11 +963,19 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
                     image.astype('float32'))
         
      print('Done')
-     
+     #If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
+     if noise_model is None and star_model is not None:
          
-     return res
+         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton
      
-    
+     #If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps   
+     elif noise_model is None and star_model is not None:
+         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image
+     
+     #If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map 
+     elif star_model is None:
+         
+          return SizedMask, image
      
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
 n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0):
