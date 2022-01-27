@@ -916,10 +916,10 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
                    n_tiles=n_tiles, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, 
                    dounet=dounet, seedpool=seedpool, save_dir=None, Name=Name,  startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for _x in tqdm(image))))
 
-     if noise_model == None and star_model is not None:
+     if noise_model is None and star_model is not None:
          Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton=res
      
-     elif noise_model is None and star_model is not None:
+     elif noise_model is not None and star_model is not None:
          Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image=res
          
      elif star_model is None:
