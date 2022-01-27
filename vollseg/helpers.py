@@ -962,7 +962,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
             imwrite((denoised_results + Name + '.tif'),
                     image.astype('float32'))
         
-     print('Done')
+        print('Done')
      #If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
      if noise_model is None and star_model is not None:
          
