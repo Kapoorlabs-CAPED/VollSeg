@@ -13,9 +13,10 @@ from .tif import *
 from .folder import *
 from .pretrained import register_model, register_aliases, clear_models_and_aliases
 from .UNET import  UNET 
+
 from .StarDist2D import StarDist2D
 from .StarDist3D import StarDist3D
-from csbdeep.models import CARE
+from .CARE import CARE
 
 
 
