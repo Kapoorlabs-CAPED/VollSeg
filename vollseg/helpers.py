@@ -827,7 +827,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
     else:
         return smart_seeds, Mask, star_labels, proabability_map, Markers, Skeleton, image
 
-def VollSeg_unet(image, unet_model, n_tiles=(2, 2), axes='YX', noise_model=None, RGB=False, iou_threshold=0, slice_merge=False, dounet = True):
+def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_model=None, RGB=False, iou_threshold=0, slice_merge=False, dounet = True):
 
     if RGB:
         if n_tiles is not None:
@@ -836,7 +836,7 @@ def VollSeg_unet(image, unet_model, n_tiles=(2, 2), axes='YX', noise_model=None,
     if noise_model is not None:
         image = noise_model.predict(image, axes, n_tiles=n_tiles)
         
-    if dounet:
+    if dounet and unet_model is not None:
         Segmented = unet_model.predict(image, axes, n_tiles=n_tiles)
     else:
         Segmented = image
