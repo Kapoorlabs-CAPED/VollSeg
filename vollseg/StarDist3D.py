@@ -9,6 +9,7 @@ from stardist.models import StarDist3D
 import warnings
 from .pretrained import get_registered_models, get_model_details, get_model_instance
 import sys
+import numpy as np
 
 class StarDist3D(StarDist3D):
      def __init__(self, config, name=None, basedir='.'):
