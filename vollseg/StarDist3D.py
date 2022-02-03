@@ -148,7 +148,7 @@ class StarDist3D(StarDist3D):
         """
 
         x, axes, axes_net, axes_net_div_by, _permute_axes, resizer, n_tiles, grid, grid_dict, channel, predict_direct, tiling_setup = \
-            _predict_setup(img, axes, normalizer, n_tiles, show_tile_progress, predict_kwargs)
+            self._predict_setup(img, axes, normalizer, n_tiles, show_tile_progress, predict_kwargs)
 
         if np.prod(n_tiles) > 1:
             tile_generator, output_shape, create_empty_output = tiling_setup()
