@@ -112,7 +112,7 @@ class StarDist3D(StarDist3D):
         return res_instances, prob, dist
 
 
-        def predict(self, img, axes=None, normalizer=None, n_tiles=None, show_tile_progress=True, **predict_kwargs):
+     def predict(self, img, axes=None, normalizer=None, n_tiles=None, show_tile_progress=True, **predict_kwargs):
         """Predict.
 
         Parameters
@@ -196,7 +196,7 @@ class StarDist3D(StarDist3D):
 
 
 
-        def _predict_setup(self, img, axes, normalizer, n_tiles, show_tile_progress, predict_kwargs):
+     def _predict_setup(self, img, axes, normalizer, n_tiles, show_tile_progress, predict_kwargs):
         """ Shared setup code between `predict` and `predict_sparse` """
         if n_tiles is None:
             n_tiles = [1]*img.ndim
