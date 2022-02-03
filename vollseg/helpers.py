@@ -982,12 +982,7 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
 
 
 
-    if star_model is not None:
-        nms_thresh=star_model.thresholds[1]
-    elif nms_thresh is not None:
-        nms_thresh=nms_thresh
-    else:
-        nms_thresh=0
+
 
 
     if save_dir is not None:
