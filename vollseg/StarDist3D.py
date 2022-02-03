@@ -10,6 +10,9 @@ import warnings
 from .pretrained import get_registered_models, get_model_details, get_model_instance
 import sys
 import numpy as np
+from csbdeep.utils import _raise, backend_channels_last, axes_check_and_normalize, axes_dict, load_json, save_json
+from csbdeep.internals.predict import tile_iterator, total_n_tiles
+
 
 class StarDist3D(StarDist3D):
      def __init__(self, config, name=None, basedir='.'):
