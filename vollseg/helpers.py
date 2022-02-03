@@ -784,6 +784,19 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
             Mask = remove_small_objects(
                 Mask.astype('uint16'), min_size=min_size_mask)
             Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
+
+        else:
+
+                Mask = np.zeros(image.shape)
+                try:
+                    thresh = threshold_otsu(image)
+                except:
+                    thresh = 0
+                Mask = image > thresh
+                Mask = label(Mask)
+                Mask = remove_small_objects(
+                    Mask.astype('uint16'), min_size=min_size_mask)
+                Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
     else:
 
           Mask = np.zeros(image.shape)

@@ -17,7 +17,8 @@ from .UNET import  UNET
 from .StarDist2D import StarDist2D
 from .StarDist3D import StarDist3D
 from .CARE import CARE
-
+from csbdeep.utils.tf import keras_import
+get_file = keras_import('utils', 'get_file')
 
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE)
@@ -47,3 +48,25 @@ register_aliases(CARE, 'Denoise_3D_cells',  'Denoise_3D_cells')
 
 
 del register_model, register_aliases, clear_models_and_aliases
+
+
+def abspath(path):
+    import os
+    base_path = os.path.abspath(os.path.dirname(__file__))
+    return os.path.join(base_path, path)
+
+
+def test_image_ascadian_3d():
+    from tifffile import imread
+    url = "https://zenodo.org/record/5965906/files/Astec-Pm2_fuse_t001.tif"
+    hash = "fdf1b78bc4ce4817000d1846db226118"
+    
+    img = imread(abspath(get_file(fname='Ascadian', origin=url, file_hash=hash)))
+    return img
+
+def test_image_carcinoma_3dt():
+    from tifffile import imread
+    url = "https://zenodo.org/record/5965906/files/carcinoma_xyzt.tif"
+    hash = "053ca6410593c01ca0cb655958b5a0b9"
+    img = imread(abspath(get_file(fname='Carcinoma', origin=url, file_hash=hash)))
+    return img
