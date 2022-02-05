@@ -1208,10 +1208,10 @@ def RelabelZ(previousImage, currentImage, threshold):
                                  currentImage == currentlabel)]=previouslabel
     return relabelimage
 
-def SuperSTARPrediction(image, model, n_tiles, unet_mask, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None, RGB=False):
+def SuperSTARPrediction(image, model, n_tiles, unet_mask, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None, RGB=False, normalize = False, lower_perc = 1, upper_perc = 99.8):
 
-
-    image=normalize(image, 1, 99.8, axis=(0, 1))
+    if normalize:
+       image=normalize(image, lower_perc, upper_perc , axis=(0, 1))
 
     shape=[image.shape[0], image.shape[1]]
 
@@ -1301,10 +1301,11 @@ def RemoveLabels(LabelImage, minZ=2):
                     LabelImage[LabelImage == regionlabel]=0
     return LabelImage
 
-def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=1.0E-5, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None):
+def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=1.0E-5, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None,, normalize = False, lower_perc = 1, upper_perc = 99.8):
 
     copymodel=model
-    image=normalize(image, 1, 99.8, axis=(0, 1, 2))
+    if normalize: 
+        image=normalize(image, lower_perc, upper_perc, axis=(0, 1, 2))
     shape=[image.shape[1], image.shape[2]]
     image=zero_pad_time(image, 64, 64)
     grid=copymodel.config.grid
