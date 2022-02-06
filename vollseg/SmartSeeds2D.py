@@ -83,7 +83,8 @@ class SmartSeeds2D(object):
 
 
 
-     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, startfilter = 48, RGB = False, TrainSeedUNET = True, TrainUNET = True, TrainSTAR = True, CroppedLoad = False, grid = (1,1),  GenerateNPZ = True,copy_model_dir = None, PatchX=256, PatchY=256,  use_gpu = True,unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
+     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, startfilter = 48, RGB = False, validation_split = 0.01,
+     TrainSeedUNET = True, TrainUNET = True, TrainSTAR = True, CroppedLoad = False, grid = (1,1),  GenerateNPZ = True,copy_model_dir = None, PatchX=256, PatchY=256,  use_gpu = True,unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
          
          
          
@@ -107,6 +108,7 @@ class SmartSeeds2D(object):
          self.PatchX = PatchX
          self.PatchY = PatchY
          self.RGB = RGB
+         self.validation_split = validation_split
          self.startfilter = startfilter
          self.batch_size = batch_size
          self.use_gpu = use_gpu
@@ -396,7 +398,7 @@ class SmartSeeds2D(object):
                                     print('Training UNET model')
                                     load_path = self.BaseDir + self.NPZfilename  + '.npz'
                 
-                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split=0.1, verbose=True)
+                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split= self.validation_split, verbose=True)
                                     c = axes_dict(axes)['C']
                                     n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
                                     
@@ -433,7 +435,7 @@ class SmartSeeds2D(object):
                                     print('Training Seed UNET model')
                                     load_path = self.BaseDir + self.NPZfilename + "Erode" + '.npz'
                 
-                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split=0.1, verbose=True)
+                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split= self.validation_split, verbose=True)
                                     c = axes_dict(axes)['C']
                                     n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
                                     
