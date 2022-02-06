@@ -774,6 +774,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
          if save_dir is not None:
              imwrite((denoised_results + Name + '.tif'),
                      image.astype('float32'))
+    Mask = None                 
     if dounet:
 
         if unet_model is not None:
@@ -785,19 +786,8 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
                 Mask.astype('uint16'), min_size=min_size_mask)
             Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
 
-        else:
-
-                Mask = np.zeros(image.shape)
-                try:
-                    thresh = threshold_otsu(image)
-                except:
-                    thresh = 0
-                Mask = image > thresh
-                Mask = label(Mask)
-                Mask = remove_small_objects(
-                    Mask.astype('uint16'), min_size=min_size_mask)
-                Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
-    else:
+        
+    elif noise_model is not None and dounet == False:
 
           Mask = np.zeros(image.shape)
           try:
@@ -1025,7 +1015,7 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
     SizedMask=np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Sizedsmart_seeds=np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Sizedproabability_map=np.zeros([sizeZ, sizeY, sizeX], dtype='float32')
-
+    Mask = None
     if noise_model is not None:
          print('Denoising Image')
 
@@ -1053,7 +1043,7 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
             else:
                 Mask=label(Mask > 0)
             SizedMask[:, :Mask.shape[1], :Mask.shape[2]]=Mask
-    else:
+    elif noise_model is not None and dounet == False:
 
           Mask=np.zeros(image.shape)
 
@@ -1208,7 +1198,7 @@ def RelabelZ(previousImage, currentImage, threshold):
                                  currentImage == currentlabel)]=previouslabel
     return relabelimage
 
-def SuperSTARPrediction(image, model, n_tiles, unet_mask, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None, RGB=False, normalize = False, lower_perc = 1, upper_perc = 99.8):
+def SuperSTARPrediction(image, model, n_tiles, unet_mask = None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None, RGB=False, normalize = False, lower_perc = 1, upper_perc = 99.8):
 
     if normalize:
        image=normalize(image, lower_perc, upper_perc , axis=(0, 1))
@@ -1249,7 +1239,8 @@ def SuperSTARPrediction(image, model, n_tiles, unet_mask, OverAllunet_mask=None,
         OverAllunet_mask=unet_mask
     OverAllunet_mask=CleanMask(star_labels, OverAllunet_mask)
 
-
+    if unet_mask is None:
+        unet_mask = star_labels > 0
     Watershed, Markers=SuperWatershedwithMask(
         MaxProjectDistance, star_labels.astype('uint16'), unet_mask.astype('uint16'), grid)
     Watershed=fill_label_holes(Watershed.astype('uint16'))
@@ -1352,6 +1343,8 @@ def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None
 
 
     print('Doing Watershedding')
+    if unet_mask is None:
+        unet_mask = star_labels > 0
     Watershed, Markers=WatershedwithMask3D(MaxProjectDistance.astype(
         'uint16'), star_labels.astype('uint16'), unet_mask.astype('uint16'), grid, extent, seedpool)
     Watershed=fill_label_holes(Watershed.astype('uint16'))

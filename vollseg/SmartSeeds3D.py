@@ -197,7 +197,8 @@ class SmartSeeds3D(object):
                            image = imread(fname)
                     
                            Name = os.path.basename(os.path.splitext(fname)[0])
-                    
+                           if np.max(image) == 1:
+                               image = image * 255
                            Binaryimage = label(image) 
                     
                            imwrite((self.BaseDir + '/' + RealName + Name + '.tif'), Binaryimage.astype('uint16'))

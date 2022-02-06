@@ -6,6 +6,7 @@ Created on Mon Sep 30 14:38:04 2019
 @author: aimachine
 """
 
+from csbdeep.utils.utils import normalize_mi_ma
 import numpy as np
 import os
 import glob
@@ -19,6 +20,7 @@ from csbdeep.io import load_training_data
 from csbdeep.models import Config, CARE
 from skimage.measure import label
 from csbdeep.utils import Path, normalize
+from vollseg.helpers import normalizeZero255
 #from IPython.display import clear_output
 from stardist.models import Config2D, StarDist2D
 from tensorflow.keras.utils import Sequence
@@ -176,7 +178,8 @@ class SmartSeeds2D(object):
                            image = imread(fname)
                     
                            Name = os.path.basename(os.path.splitext(fname)[0])
-                    
+                           if np.max(image) == 1:
+                               image = image * 255
                            Binaryimage = label(image) 
                     
                            imwrite((self.BaseDir + '/' + RealName + Name + '.tif'), Binaryimage)
@@ -188,7 +191,25 @@ class SmartSeeds2D(object):
                     
                     
                     
+                    if len(ErodeMask) == 0:
+                        print('Generating Binary images')
+               
+                               
+                        RealfilesMask = sorted(glob.glob(self.BaseDir + '/' + RealName + '*tif'))  
+                
+                
+                        for fname in RealfilesMask:
                     
+                            image = imread(fname)
+                    
+                            Name = os.path.basename(os.path.splitext(fname)[0])
+                    
+                            Binaryimage = image > 0
+                    
+                            Binaryimage = binary_erosion(Binaryimage)
+                    
+                            imwrite((self.BaseDir + '/' + ErodeBinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
+
                     if len(Mask) == 0:
                         print('Generating Binary images')
                
@@ -205,12 +226,6 @@ class SmartSeeds2D(object):
                             Binaryimage = image > 0
                     
                             imwrite((self.BaseDir + '/' + BinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
-                    
-                        
-                            Binaryimage = binary_erosion(Binaryimage)
-                    
-                            imwrite((self.BaseDir + '/' + ErodeBinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
-                    
                     
                     if self.GenerateNPZ:
                       if self.RGB:
