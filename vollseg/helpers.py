@@ -14,12 +14,12 @@ from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
 import cv2
-from skimage.morphology import remove_small_objects, remove_small_holes
+from skimage.morphology import remove_small_objects, remove_small_holes, disk
 from skimage.filters import gaussian
 from six.moves import reduce
 from matplotlib import cm
 from scipy import spatial
-from skimage.filters import threshold_local, threshold_otsu, threshold_mean
+from skimage.filters import threshold_local, threshold_otsu, rank
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 from scipy.ndimage.morphology import binary_fill_holes
@@ -736,7 +736,7 @@ def SuperWatershedwithoutMask(Image, Label, mask, grid):
 
 
 def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None, nms_thresh=None, axes='YX', min_size_mask=5, min_size=5,
-              max_size=10000000, dounet=True, n_tiles=(2, 2), UseProbability=True, RGB=False, save_dir=None, Name='Result'):
+              max_size=10000000, dounet=True, n_tiles=(2, 2), UseProbability=True, RGB=False, save_dir=None, Name='Result', seedpool = True, radius = 15):
 
     print('Generating SmartSeed results')
 
@@ -807,14 +807,16 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
     if RGB:
         Mask = Mask[:, :, 0]
     smart_seeds, Markers, star_labels, proabability_map = SuperSTARPrediction(
-        image, star_model, n_tiles, unet_mask=Mask, UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, RGB=RGB)
-
+        image, star_model, n_tiles, unet_mask=Mask, UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, RGB=RGB, seedpool = seedpool)
+    smart_seeds = remove_small_objects(
+              smart_seeds.astype('uint16'), min_size=min_size)
+    smart_seeds = remove_big_objects(smart_seeds.astype('uint16'), max_size=max_size)
     Skeleton = SmartSkel(smart_seeds, proabability_map)
     Skeleton = Skeleton > 0
     # For avoiding pixel level error
     Mask = expand_labels(Mask, distance=1)
     smart_seeds = expand_labels(smart_seeds, distance=1)
-
+    
     if save_dir is not None:
         print('Saving Results and Done')
         imwrite((stardist_results + Name + '.tif'),
@@ -830,7 +832,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
     else:
         return smart_seeds, Mask, star_labels, proabability_map, Markers, Skeleton, image
 
-def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_model=None, RGB=False, iou_threshold=0, slice_merge=False, dounet = True):
+def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet = True, radius = 15):
 
     if RGB:
         if n_tiles is not None:
@@ -846,18 +848,29 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
     if RGB:
         Segmented = Segmented[:, :, 0]
     try:
+       selem = disk(radius)
        thresh = threshold_otsu(Segmented)
        Binary = Segmented > thresh
     except:
         Binary = Segmented > 0
 
     ndim = len(image.shape)
+    
     Binary = label(Binary)
+    if ndim == 2:
+            Binary = remove_small_objects(
+                        Binary.astype('uint16'), min_size=min_size_mask)
+            Binary = remove_big_objects(Binary.astype('uint16'), max_size=max_size)
+            Binary = fill_label_holes(Binary)
     if ndim == 3 and slice_merge:
         for i in range(image.shape[0]):
             Binary[i, :] = label(Binary[i, :])
+            Binary[i, :] = remove_small_objects(
+                        Binary[i, :].astype('uint16'), min_size=min_size_mask)
+            Binary[i, :] = remove_big_objects(Binary[i, :].astype('uint16'), max_size=max_size)
+            
         Binary = match_labels(Binary, iou_threshold=iou_threshold)
-
+        Binary = fill_label_holes(Binary)
     Finalimage = relabel_sequential(Binary)[0]
 
     return Finalimage, image
@@ -877,11 +890,12 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
              
              res = VollSeg2D(image, unet_model, star_model, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, axes=axes, min_size_mask=min_size_mask, min_size=min_size,
                        max_size=max_size, dounet=dounet, n_tiles = n_tiles, UseProbability=UseProbability, RGB=RGB, save_dir=None, Name=Name)
-         
+             
          # If there is no stardist model we use unet model or denoising model or both to get the semantic segmentation    
          if star_model is None:
              
-               res = VollSeg_unet(image, unet_model = unet_model, n_tiles=n_tiles, axes=axes, noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
+               res = VollSeg_unet(image, unet_model = unet_model, n_tiles=n_tiles, axes=axes,min_size_mask=min_size_mask,
+                       max_size=max_size,  noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
      if len(image.shape) == 3 and 'T' not in axes:
           # this is a 3D image and if stardist model is supplied we use this method
           if star_model is not None:   
@@ -891,7 +905,8 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
           # If there is no stardist model we use unet model with or without denoising model
           if star_model is None:
               
-               res = VollSeg_unet(image, unet_model, n_tiles=n_tiles, axes=axes, noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
+               res = VollSeg_unet(image, unet_model, n_tiles=n_tiles, axes=axes ,min_size_mask=min_size_mask,
+                       max_size=max_size,  noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
              
                 
      if len(image.shape) == 3 and 'T' in axes:
@@ -973,6 +988,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
      
      #If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps   
      elif noise_model is not None and star_model is not None:
+
          return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image
      
      #If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map 
@@ -981,7 +997,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
           return SizedMask, image
      
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0):
+n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius = 15):
 
 
 
@@ -1138,12 +1154,13 @@ def DownsampleData(image, DownsampleFactor):
 
 
 
-def SuperUNETPrediction(image, model, n_tiles, axis, threshold=20):
+def SuperUNETPrediction(image, model, n_tiles, axis, threshold=20, radius = 15):
 
 
     Segmented=model.predict(image, axis, n_tiles=n_tiles)
 
     try:
+       selem = disk(radius)
        thresh=threshold_otsu(Segmented)
        Binary=Segmented > thresh
     except:
@@ -1198,7 +1215,7 @@ def RelabelZ(previousImage, currentImage, threshold):
                                  currentImage == currentlabel)]=previouslabel
     return relabelimage
 
-def SuperSTARPrediction(image, model, n_tiles, unet_mask = None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None, RGB=False, normalize = False, lower_perc = 1, upper_perc = 99.8):
+def SuperSTARPrediction(image, model, n_tiles, unet_mask = None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None, RGB=False, seedpool = True, normalize = False, lower_perc = 1, upper_perc = 99.8):
 
     if normalize:
        image=normalize(image, lower_perc, upper_perc , axis=(0, 1))
@@ -1256,7 +1273,7 @@ def CleanMask(star_labels, OverAllunet_mask):
 
     return OverAllunet_mask
 
-def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0, slice_merge=False):
+def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0, slice_merge=False, radius = 15):
 
 
     Segmented=model.predict(image, axis, n_tiles=n_tiles)
@@ -1264,7 +1281,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0, slice_merge=F
 
 
     try:
-       thresh=threshold_mean(Segmented)
+       thresh=threshold_otsu(Segmented)
        Binary=Segmented > thresh
     except:
         Binary=Segmented > 0
@@ -1273,7 +1290,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0, slice_merge=F
     if ndim == 3 and slice_merge:
         for i in range(image.shape[0]):
             Binary[i, :]=label(Binary[i, :])
-        Binary=match_labels(Binary, iou_threshold=iou_threshold)
+        Binary=match_labels(Binary.astype('uint16'), iou_threshold=iou_threshold)
 
     # Postprocessing steps
     Finalimage=fill_label_holes(Binary)
@@ -1345,6 +1362,7 @@ def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None
     print('Doing Watershedding')
     if unet_mask is None:
         unet_mask = star_labels > 0
+
     Watershed, Markers=WatershedwithMask3D(MaxProjectDistance.astype(
         'uint16'), star_labels.astype('uint16'), unet_mask.astype('uint16'), grid, extent, seedpool)
     Watershed=fill_label_holes(Watershed.astype('uint16'))
