@@ -227,7 +227,7 @@ def expand_labels(label_image, distance=1):
     return labels_out
 
 
-def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axis='ZYX', globalthreshold=1.0E-5):
+def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axis='ZYX', globalthreshold=1.0E-3):
 
                       Mask = UNETPrediction3D(x, UnetModel, n_tiles, axis)
 
@@ -490,7 +490,8 @@ def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarM
     invertProbimage = 1 - ProbImage
     image_max = np.add(invertProbimage, SegimageB)
     indices = np.where(image_max < 1.2)
-    image_max[indices] = 0
+    for y, x in indices:
+       image_max[y,x] = 0
     smart_seeds = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
 
     # Save results, we only need smart seeds finale results but hey!
@@ -771,6 +772,9 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
          print('Denoising Image')
 
          image = noise_model.predict(image, axes=axes, n_tiles=n_tiles)
+         indices=zip(*np.where(image < 0))
+         for y, x in indices:
+            image[y,x] = 0
          if save_dir is not None:
              imwrite((denoised_results + Name + '.tif'),
                      image.astype('float32'))
@@ -838,9 +842,20 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
         if n_tiles is not None:
           n_tiles = (n_tiles[0], n_tiles[1], 1)
 
+    ndim = len(image.shape)
+
     if noise_model is not None:
         image = noise_model.predict(image, axes, n_tiles=n_tiles)
-        
+        indices=zip(*np.where(image < 0))
+        if ndim == 2:
+            for y, x in indices:
+
+                 image[y,x] = 0
+        if ndim == 3:
+
+            for z, y, x in indices:
+
+                image[z,y,x] = 0
     if dounet and unet_model is not None:
         Segmented = unet_model.predict(image, axes, n_tiles=n_tiles)
     else:
@@ -854,7 +869,7 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
     except:
         Binary = Segmented > 0
 
-    ndim = len(image.shape)
+    
     
     Binary = label(Binary)
     if ndim == 2:
@@ -877,7 +892,7 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
 
 
 def VollSeg(image,  unet_model = None, star_model = None, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, RGB = False):
+n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-3, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, RGB = False):
 
      if len(image.shape) == 2:
          
@@ -997,7 +1012,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
           return SizedMask, image
      
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius = 15):
+n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-3, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius = 15):
 
 
 
@@ -1036,6 +1051,9 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-5, extent=0, dounet
          print('Denoising Image')
 
          image=noise_model.predict(image, axes=axes, n_tiles=n_tiles)
+         indices=zip(*np.where(image < 0))
+         for z,y,x in indices:
+            image[z,y,x] = 0
          if save_dir is not None:
              imwrite((denoised_results + Name + '.tif'),
                      image.astype('float32'))
@@ -1309,7 +1327,7 @@ def RemoveLabels(LabelImage, minZ=2):
                     LabelImage[LabelImage == regionlabel]=0
     return LabelImage
 
-def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=1.0E-5, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None, normalize = False, lower_perc = 1, upper_perc = 99.8):
+def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=1.0E-3, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None, normalize = False, lower_perc = 1, upper_perc = 99.8):
 
     copymodel=model
     if normalize: 
