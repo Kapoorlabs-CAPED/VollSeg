@@ -19,7 +19,6 @@ from skimage.filters import gaussian
 from six.moves import reduce
 from matplotlib import cm
 from scipy import spatial
-from skimage.filters import threshold_local, threshold_otsu, rank
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
 from scipy.ndimage.morphology import binary_fill_holes
@@ -43,6 +42,7 @@ from vollseg.matching import matching
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
 import diplib as dip
+from skimage.filters import threshold_multiotsu
 
 Boxname = 'ImageIDBox'
 
@@ -227,7 +227,7 @@ def expand_labels(label_image, distance=1):
     return labels_out
 
 
-def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axis='ZYX', globalthreshold=1.0E-1):
+def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axis='ZYX', globalthreshold=0.2):
 
                       Mask = UNETPrediction3D(x, UnetModel, n_tiles, axis)
 
@@ -795,10 +795,14 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
 
           Mask = np.zeros(image.shape)
           try:
-            thresh = threshold_otsu(image)
+                thresholds = threshold_multiotsu(image, classes = 4)
+
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(image, bins=thresholds)
           except:
-            thresh = 0
-          Mask = image > thresh
+
+                regions = image       
+          Mask = regions > 0
           Mask = label(Mask)
           Mask = remove_small_objects(
               Mask.astype('uint16'), min_size=min_size_mask)
@@ -862,14 +866,17 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
         Segmented = image
     if RGB:
         Segmented = Segmented[:, :, 0]
-    try:
-       selem = disk(radius)
-       thresh = threshold_otsu(Segmented)
-       Binary = Segmented > thresh
-    except:
-        Binary = Segmented > 0
+  
 
-    
+    try:
+                thresholds = threshold_multiotsu(Segmented, classes = 4)
+
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(Segmented, bins=thresholds)
+    except:
+
+                regions = Segmented       
+    Binary = regions > 0
     
     Binary = label(Binary)
     if ndim == 2:
@@ -892,7 +899,7 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
 
 
 def VollSeg(image,  unet_model = None, star_model = None, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-1, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, RGB = False):
+n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, RGB = False):
 
      if len(image.shape) == 2:
          
@@ -1012,7 +1019,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-1, extent=0, dounet
           return SizedMask, image
      
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-1, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius = 15):
+n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius = 15):
 
 
 
@@ -1083,8 +1090,18 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-1, extent=0, dounet
 
           for i in range(0, Mask.shape[0]):
 
-                     thresh=threshold_otsu(image[i, :])
-                     Mask[i, :]=image[i, :] > thresh
+
+                     try:
+                            thresholds = threshold_multiotsu(image[i, :], classes = 4)
+
+                            # Using the threshold values, we generate the three regions.
+                            regions = np.digitize(image[i, :], bins=thresholds)
+                            
+                     except:
+
+                                regions = image[i, :]       
+                
+                     Mask[i, :]= regions > 0
                      Mask[i, :]=label(Mask[i, :])
 
                      Mask[i, :]=remove_small_objects(
@@ -1178,13 +1195,15 @@ def SuperUNETPrediction(image, model, n_tiles, axis, threshold=20, radius = 15):
     Segmented=model.predict(image, axis, n_tiles=n_tiles)
 
     try:
-       selem = disk(radius)
-       thresh=threshold_otsu(Segmented)
-       Binary=Segmented > thresh
+                thresholds = threshold_multiotsu(Segmented, classes = 4)
+
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(Segmented, bins=thresholds)
     except:
-        Binary=Segmented > 0
 
+            regions = Segmented
 
+    Binary = regions > 0        
     Finalimage=label(Binary)
 
 
@@ -1297,12 +1316,16 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0, slice_merge=F
     Segmented=model.predict(image, axis, n_tiles=n_tiles)
 
 
-
     try:
-       thresh=threshold_otsu(Segmented)
-       Binary=Segmented > thresh
+                thresholds = threshold_multiotsu(Segmented, classes = 4)
+
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(Segmented, bins=thresholds)
     except:
-        Binary=Segmented > 0
+
+            regions = Segmented
+
+    Binary = regions > 0    
     Binary=label(Binary)
     ndim=len(image.shape)
     if ndim == 3 and slice_merge:
@@ -1327,7 +1350,7 @@ def RemoveLabels(LabelImage, minZ=2):
                     LabelImage[LabelImage == regionlabel]=0
     return LabelImage
 
-def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=1.0E-1, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None, donormalize = False, lower_perc = 1, upper_perc = 99.8):
+def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=0.2, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None, donormalize = False, lower_perc = 1, upper_perc = 99.8):
 
     copymodel=model
     if donormalize: 
