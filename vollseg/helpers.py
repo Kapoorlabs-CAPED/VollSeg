@@ -227,7 +227,7 @@ def expand_labels(label_image, distance=1):
     return labels_out
 
 
-def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axis='ZYX', globalthreshold=1.0E-3):
+def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axis='ZYX', globalthreshold=1.0E-1):
 
                       Mask = UNETPrediction3D(x, UnetModel, n_tiles, axis)
 
@@ -892,7 +892,7 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
 
 
 def VollSeg(image,  unet_model = None, star_model = None, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-3, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, RGB = False):
+n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-1, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, RGB = False):
 
      if len(image.shape) == 2:
          
@@ -1012,7 +1012,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=1.0E-3, extent=0, dounet
           return SizedMask, image
      
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-3, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius = 15):
+n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=1.0E-1, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius = 15):
 
 
 
@@ -1233,9 +1233,9 @@ def RelabelZ(previousImage, currentImage, threshold):
                                  currentImage == currentlabel)]=previouslabel
     return relabelimage
 
-def SuperSTARPrediction(image, model, n_tiles, unet_mask = None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None, RGB=False, seedpool = True, normalize = False, lower_perc = 1, upper_perc = 99.8):
+def SuperSTARPrediction(image, model, n_tiles, unet_mask = None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None, RGB=False, seedpool = True, donormalize = False, lower_perc = 1, upper_perc = 99.8):
 
-    if normalize:
+    if donormalize:
        image=normalize(image, lower_perc, upper_perc , axis=(0, 1))
 
     shape=[image.shape[0], image.shape[1]]
@@ -1327,10 +1327,10 @@ def RemoveLabels(LabelImage, minZ=2):
                     LabelImage[LabelImage == regionlabel]=0
     return LabelImage
 
-def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=1.0E-3, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None, normalize = False, lower_perc = 1, upper_perc = 99.8):
+def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=1.0E-1, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None, donormalize = False, lower_perc = 1, upper_perc = 99.8):
 
     copymodel=model
-    if normalize: 
+    if donormalize: 
         image=normalize(image, lower_perc, upper_perc, axis=(0, 1, 2))
     shape=[image.shape[1], image.shape[2]]
     image=zero_pad_time(image, 64, 64)
@@ -1367,8 +1367,11 @@ def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None
     if UseProbability:
 
         print('Using Probability maps')
-        Probability[Probability < globalthreshold]=0
+        indices=zip(*np.where(Probability < globalthreshold * (np.max(Probability) - np.min(Probability) )))
+        for z, y, x in indices:
 
+                 Probability[z, y, x]=0
+        
         MaxProjectDistance=Probability[:image.shape[0], :shape[0], :shape[1]]
 
     else:
