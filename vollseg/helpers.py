@@ -842,12 +842,12 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
 
 def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet = True, save_dir=None, Name='Result', radius = 15):
 
-
-    unet_results = save_dir + 'BinaryMask/'
-    denoised_results = save_dir + 'Denoised/'
-    Path(save_dir).mkdir(exist_ok=True)
-    Path(denoised_results).mkdir(exist_ok=True)
-    Path(unet_results).mkdir(exist_ok=True)
+    if save_dir is not None:
+            unet_results = save_dir + 'BinaryMask/'
+            denoised_results = save_dir + 'Denoised/'
+            Path(save_dir).mkdir(exist_ok=True)
+            Path(denoised_results).mkdir(exist_ok=True)
+            Path(unet_results).mkdir(exist_ok=True)
 
     if RGB:
         if n_tiles is not None:
