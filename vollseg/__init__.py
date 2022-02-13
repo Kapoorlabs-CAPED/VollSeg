@@ -34,7 +34,7 @@ register_model(UNET,   'Unet_Ascadian_Embryo_Model_A',  'https://zenodo.org/reco
 register_model(StarDist2D,   'White_Blood_Cells',  'https://zenodo.org/record/5815521/files/WBCSeg.zip', '7889f5902d8562766a4dee2726c90d49')
 
 register_model(UNET,   'Unet_White_Blood_Cells',  'https://zenodo.org/record/5815588/files/UNETWBC.zip', '9645f004db478f661811d6da615ccc0b')
-
+register_model(UNET,   'Xenopus_Tissue_Segmentation',  'https://zenodo.org/record/6060378/files/Xenopus_tissue_model.zip', '2694d8b05fa828aceb055eef8cd5ca1f')
 register_model(UNET,   'Unet_Cyto_White_Blood_Cells',  'https://zenodo.org/record/5815603/files/UNETcytoWBC.zip', 'dd3bf8b8e2a04536144954e882445a5e') 
 register_model(UNET,   'Unet_Lung_Segmentation',  'https://zenodo.org/record/6060177/files/Montgomery_county.zip', 'be41937a00693e28961358440d242417') 
 
@@ -44,6 +44,7 @@ register_aliases(StarDist2D, 'White_Blood_Cells',   'White_Blood_Cells')
 register_aliases(UNET, 'Unet_White_Blood_Cells',  'Unet_White_Blood_Cells')
 register_aliases(UNET, 'Unet_Cyto_White_Blood_Cells',  'Unet_Cyto_White_Blood_Cells')
 register_aliases(UNET, 'Unet_Lung_Segmentation',  'Unet_Lung_Segmentation')
+register_aliases(UNET, 'Xenopus_Tissue_Segmentation',  'Xenopus_Tissue_Segmentation')
 register_aliases(CARE, 'Denoise_3D_cells',  'Denoise_3D_cells')
 
 
