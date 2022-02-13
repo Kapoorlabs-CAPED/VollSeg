@@ -840,7 +840,14 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, prob_thresh=None,
     else:
         return smart_seeds, Mask, star_labels, proabability_map, Markers, Skeleton, image
 
-def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet = True, radius = 15):
+def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet = True, save_dir=None, Name='Result', radius = 15):
+
+
+    unet_results = save_dir + 'BinaryMask/'
+    denoised_results = save_dir + 'Denoised/'
+    Path(save_dir).mkdir(exist_ok=True)
+    Path(denoised_results).mkdir(exist_ok=True)
+    Path(unet_results).mkdir(exist_ok=True)
 
     if RGB:
         if n_tiles is not None:
@@ -850,6 +857,7 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
 
     if noise_model is not None:
         image = noise_model.predict(image, axes, n_tiles=n_tiles)
+
         indices=zip(*np.where(image < 0))
         if ndim == 2:
             for y, x in indices:
@@ -860,6 +868,9 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
             for z, y, x in indices:
 
                 image[z,y,x] = 0
+        if save_dir is not None:
+             imwrite((denoised_results + Name + '.tif'),
+                     image.astype('float32'))        
     if dounet and unet_model is not None:
         Segmented = unet_model.predict(image, axes, n_tiles=n_tiles)
     else:
@@ -894,6 +905,9 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
         Binary = match_labels(Binary, iou_threshold=iou_threshold)
         Binary = fill_label_holes(Binary)
     Finalimage = relabel_sequential(Binary)[0]
+    if save_dir is not None:
+             imwrite((unet_results + Name + '.tif'), Finalimage.astype('uint16'))
+
 
     return Finalimage, image
 
