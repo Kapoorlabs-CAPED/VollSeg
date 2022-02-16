@@ -127,7 +127,7 @@ n_tiles= self.n_tiles, UseProbability=self.UseProbability, dounet=self.dounet, s
                             ))
                         else:
                             progress.update()
-                            progress.set_postfix_str("VollSeg, {prob_thresh:.3f} -> {value_voll:.3f}, VollSeg, {prob_thresh:.3f} -> {value_star:.3f}".format(prob_thresh=prob_thresh, value=value_voll, value = value_star))
+                            progress.set_postfix_str("VollSeg-StarDist, {prob_thresh:.3f} -> {value_voll:.3f}, {value_star:.3f}".format(prob_thresh=prob_thresh, value_voll=value_voll, value_star = value_star))
 
                             progress.refresh()
 

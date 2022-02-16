@@ -1448,7 +1448,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0, slice_merge=F
 
 def Bbox_region(image):
 
-    props  measure.regionprops(image)
+    props = measure.regionprops(image)
     area = [prop.area for prop in props]
     largest_blob_ind = np.argmax(area)
     largest_bbox = props[largest_blob_ind].bbox
