@@ -739,7 +739,19 @@ def Region_embedding(image, region, sourceimage):
 
     returnimage = np.zeros(image.shape)
 
-    returnimage[region] = sourceimage 
+    if len(image.shape) == 2:
+        rowstart = region[0] 
+        colstart = region[1] 
+        endrow = region[2] 
+        endcol = region[3]
+        returnimage[rowstart:endrow, colstart:endcol] = sourceimage 
+    if len(image.shape) == 3:
+        rowstart = region[0] 
+        colstart = region[1] 
+        endrow = region[2] 
+        endcol = region[3]
+        returnimage[0:image.shape[0],rowstart:endrow, colstart:endcol] = sourceimage
+        print(rowstart, endrow, colstart, endcol)
 
     return returnimage
 
@@ -796,7 +808,10 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
         roi_image =  UNETPrediction3D(
                 image, roi_model, n_tiles, axes, iou_threshold=nms_thresh) 
         roi_bbox = Bbox_region(roi_image)
-        rowstart, colstart, endrow, endcol = roi_bbox
+        rowstart = roi_bbox[0] 
+        colstart = roi_bbox[1] 
+        endrow = roi_bbox[2] 
+        endcol = roi_bbox[3]
         region = (slice(rowstart, endrow),
               slice(colstart, endcol))
         # The actual pixels in that region.
@@ -806,7 +821,10 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
     elif roi_image is not None:
 
         roi_bbox = Bbox_region(roi_image)
-        rowstart, colstart, endrow, endcol = roi_bbox
+        rowstart = roi_bbox[0] 
+        colstart = roi_bbox[1] 
+        endrow = roi_bbox[2] 
+        endcol = roi_bbox[3]
         region = (slice(rowstart, endrow),
               slice(colstart, endcol))
         # The actual pixels in that region.
@@ -818,6 +836,11 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
         
         region =  (slice(0, image.shape[0]),
               slice(0, image.shape[1]))
+        rowstart = 0 
+        colstart = 0 
+        endrow = image.shape[2] 
+        endcol = image.shape[1]      
+        roi_bbox = [colstart, rowstart, endcol, endrow]
     if dounet:
 
         if unet_model is not None:
@@ -829,7 +852,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
                 Mask.astype('uint16'), min_size=min_size_mask)
             Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
             
-            Mask = Region_embedding(image, region, Mask)  
+            Mask = Region_embedding(image, roi_bbox, Mask)  
         
     elif noise_model is not None and dounet == False:
 
@@ -847,7 +870,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
           Mask = remove_small_objects(
               Mask.astype('uint16'), min_size=min_size_mask)
           Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
-          Mask = Region_embedding(image, region, Mask) 
+          Mask = Region_embedding(image, roi_bbox, Mask) 
     if save_dir is not None:
              imwrite((unet_results + Name + '.tif'), Mask.astype('uint16'))
     # Smart Seed prediction
@@ -865,11 +888,11 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
     Mask = expand_labels(Mask, distance=1)
     smart_seeds = expand_labels(smart_seeds, distance=1)
     
-    smart_seeds = Region_embedding(image, region, smart_seeds) 
-    Markers = Region_embedding(image, region, Markers) 
-    star_labels = Region_embedding(image, region, star_labels) 
-    proabability_map = Region_embedding(image, region, proabability_map) 
-    Skeleton = Region_embedding(image, region, Skeleton)
+    smart_seeds = Region_embedding(image, roi_bbox, smart_seeds) 
+    Markers = Region_embedding(image, roi_bbox, Markers) 
+    star_labels = Region_embedding(image, roi_bbox, star_labels) 
+    proabability_map = Region_embedding(image, roi_bbox, proabability_map) 
+    Skeleton = Region_embedding(image, roi_bbox, Skeleton)
 
 
     if save_dir is not None:
@@ -883,9 +906,9 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
         imwrite((marker_results + Name + '.tif'), Markers.astype('uint16'))
         imwrite((skel_results + Name + '.tif'), Skeleton.astype('uint16'))
     if noise_model == None:
-        return smart_seeds, Mask, star_labels, proabability_map, Markers, Skeleton
+        return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16')
     else:
-        return smart_seeds, Mask, star_labels, proabability_map, Markers, Skeleton, image
+        return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleto.astype('uint16'), image
 
 def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet = True, save_dir=None, Name='Result', radius = 15):
 
@@ -956,7 +979,7 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
              imwrite((unet_results + Name + '.tif'), Finalimage.astype('uint16'))
 
 
-    return Finalimage, image
+    return Finalimage.astype('uint16'), image
 
 
 def VollSeg(image,  unet_model = None, star_model = None, roi_model = None, roi_image = None, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
@@ -1114,6 +1137,8 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
     SizedMask=np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Sizedsmart_seeds=np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Sizedproabability_map=np.zeros([sizeZ, sizeY, sizeX], dtype='float32')
+    Sizedmarkers=np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
+    Sizedstardist=np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Mask = None
     if noise_model is not None:
          print('Denoising Image')
@@ -1127,6 +1152,7 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
                      image.astype('float32'))
 
     if roi_model is not None:
+        
         model_dim = roi_model.config.n_dim
         if model_dim < len(image.shape):
 
@@ -1134,7 +1160,10 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
             roi_image =  UNETPrediction3D(
                     maximage, roi_model, n_tiles, axes, iou_threshold=nms_thresh) 
             roi_bbox = Bbox_region(roi_image)
-            rowstart, colstart, endrow, endcol = roi_bbox
+            rowstart = roi_bbox[0] 
+            colstart = roi_bbox[1] 
+            endrow = roi_bbox[2] 
+            endcol = roi_bbox[3]
             region = (slice(0, image.shape[0]),slice(rowstart, endrow),
                 slice(colstart, endcol))
         else:
@@ -1147,7 +1176,10 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
     elif roi_image is not None:
 
         roi_bbox = Bbox_region(roi_image)
-        rowstart, colstart, endrow, endcol = roi_bbox
+        rowstart = roi_bbox[0] 
+        colstart = roi_bbox[1] 
+        endrow = roi_bbox[2] 
+        endcol = roi_bbox[3]
         region = (slice(0, image.shape[0]), slice(rowstart, endrow),
               slice(colstart, endcol))
         # The actual pixels in that region.
@@ -1159,7 +1191,11 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
         
         region =  (slice(0, image.shape[0]),slice(0, image.shape[1]),
               slice(0, image.shape[2]))
-
+        rowstart = 0 
+        colstart = 0 
+        endrow = image.shape[1] 
+        endcol = image.shape[2]
+        roi_bbox = [colstart, rowstart, endcol, endrow]
     if dounet:
 
         if unet_model is not None:
@@ -1173,14 +1209,14 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
                         Mask[i, :].astype('uint16'), min_size=min_size_mask)
                     Mask[i, :]=remove_big_objects(
                         Mask[i, :].astype('uint16'), max_size=max_size)
-
+            
+            Mask = Region_embedding(image, roi_bbox, Mask) 
             if slice_merge:
                 Mask=match_labels(Mask, iou_threshold=iou_threshold)
             else:
                 Mask=label(Mask > 0)
             SizedMask[:, :Mask.shape[1], :Mask.shape[2]]=Mask
 
-            SizedMask = Region_embedding(image, region, SizedMask)
     elif noise_model is not None and dounet == False:
 
           Mask=np.zeros(patch.shape)
@@ -1209,15 +1245,16 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
               Mask=match_labels(Mask, iou_threshold=iou_threshold)
           else:
               Mask=label(Mask > 0)
+          Mask = Region_embedding(image, roi_bbox, Mask)    
           SizedMask[:, :Mask.shape[1], :Mask.shape[2]]=Mask
-          SizedMask = Region_embedding(image, region, SizedMask)
+          
     if save_dir is not None:
              imwrite((unet_results + Name + '.tif'),
                      SizedMask.astype('uint16'))
     print('Stardist segmentation on Image')
 
     smart_seeds, proabability_map, star_labels, Markers=STARPrediction3D(
-        image, star_model,  n_tiles, unet_mask=Mask, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+        patch, star_model,  n_tiles, unet_mask=Mask, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     print('Removing small/large objects')
     for i in tqdm(range(0, smart_seeds.shape[0])):
        smart_seeds[i, :]=remove_small_objects(
@@ -1227,23 +1264,23 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
     smart_seeds=fill_label_holes(smart_seeds.astype('uint16'))
     if startZ > 0:
          smart_seeds[0:startZ, :, :]=0
-
+    smart_seeds = Region_embedding(image, roi_bbox, smart_seeds)
     Sizedsmart_seeds[:, :smart_seeds.shape[1],
         :smart_seeds.shape[2]]=smart_seeds
+    Markers = Region_embedding(image, roi_bbox, Markers)
+    Sizedmarkers[:, :smart_seeds.shape[1],
+        :smart_seeds.shape[2]]= Markers
+    proabability_map = Region_embedding(image, roi_bbox, proabability_map)    
     Sizedproabability_map[:, :proabability_map.shape[1],
         :proabability_map.shape[2]]=proabability_map
-
+    star_labels = Region_embedding(image, roi_bbox, star_labels)    
+    Sizedstardist[:, :star_labels.shape[1],
+        :star_labels.shape[2]]=star_labels
     Skeleton=np.zeros_like(Sizedsmart_seeds)
     for i in range(0, Sizedsmart_seeds.shape[0]):
        Skeleton[i, :]=SmartSkel(Sizedsmart_seeds[i, :],
                                 Sizedproabability_map[i, :])
     Skeleton=Skeleton > 0
-
-    smart_seeds = Region_embedding(image, region, smart_seeds) 
-    Markers = Region_embedding(image, region, Markers) 
-    star_labels = Region_embedding(image, region, star_labels) 
-    proabability_map = Region_embedding(image, region, proabability_map) 
-    Skeleton = Region_embedding(image, region, Skeleton)
 
 
     if save_dir is not None:
@@ -1257,9 +1294,9 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
         imwrite((marker_results + Name + '.tif'), Markers.astype('uint16'))
         imwrite((skel_results + Name + '.tif'), Skeleton)
     if noise_model == None:
-        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton
+        return Sizedsmart_seeds.astype('uint16'), SizedMask.astype(R'uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16')
     else:
-        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image
+        return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'),  image
 
 def Integer_to_border(Label):
 
