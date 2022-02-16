@@ -791,7 +791,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
     Mask = None         
     
     if roi_model is not None:
-        model_dim = UnetModel.config.n_dim
+        model_dim = roi_model.config.n_dim
         assert model_dim == len(image.shape), f'For 2D images the region of interest model has to be 2D, model provided had {model_dim} instead'
         roi_image =  UNETPrediction3D(
                 image, roi_model, n_tiles, axes, iou_threshold=nms_thresh) 
@@ -802,13 +802,22 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
         # The actual pixels in that region.
         patch = image[region]
 
+    
+    elif roi_image is not None:
+
+        roi_bbox = Bbox_region(roi_image)
+        rowstart, colstart, endrow, endcol = roi_bbox
+        region = (slice(rowstart, endrow),
+              slice(colstart, endcol))
+        # The actual pixels in that region.
+        patch = image[region]         
+
     else:
 
         patch = image
         
         region =  (slice(0, image.shape[0]),
               slice(0, image.shape[1]))
-
     if dounet:
 
         if unet_model is not None:
@@ -1117,12 +1126,46 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
              imwrite((denoised_results + Name + '.tif'),
                      image.astype('float32'))
 
+    if roi_model is not None:
+        model_dim = roi_model.config.n_dim
+        if model_dim < len(image.shape):
+
+            maximage = np.amax(image, axis = 0)
+            roi_image =  UNETPrediction3D(
+                    maximage, roi_model, n_tiles, axes, iou_threshold=nms_thresh) 
+            roi_bbox = Bbox_region(roi_image)
+            rowstart, colstart, endrow, endcol = roi_bbox
+            region = (slice(0, image.shape[0]),slice(rowstart, endrow),
+                slice(colstart, endcol))
+        else:
+
+            raise ValueError(f'3D mask region of interest are not currently supported')        
+        # The actual pixels in that region.
+        patch = image[region]
+
+    
+    elif roi_image is not None:
+
+        roi_bbox = Bbox_region(roi_image)
+        rowstart, colstart, endrow, endcol = roi_bbox
+        region = (slice(0, image.shape[0]), slice(rowstart, endrow),
+              slice(colstart, endcol))
+        # The actual pixels in that region.
+        patch = image[region]         
+
+    else:
+
+        patch = image
+        
+        region =  (slice(0, image.shape[0]),slice(0, image.shape[1]),
+              slice(0, image.shape[2]))
+
     if dounet:
 
         if unet_model is not None:
             print('UNET segmentation on Image')
 
-            Mask=UNETPrediction3D(image, unet_model, n_tiles, 'ZYX',
+            Mask=UNETPrediction3D(patch, unet_model, n_tiles, 'ZYX',
                                   iou_threshold=iou_threshold, slice_merge=slice_merge)
 
             for i in range(0, Mask.shape[0]):
@@ -1136,15 +1179,17 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
             else:
                 Mask=label(Mask > 0)
             SizedMask[:, :Mask.shape[1], :Mask.shape[2]]=Mask
+
+            SizedMask = Region_embedding(image, region, SizedMask)
     elif noise_model is not None and dounet == False:
 
-          Mask=np.zeros(image.shape)
+          Mask=np.zeros(patch.shape)
 
           for i in range(0, Mask.shape[0]):
 
 
                      try:
-                            thresholds = threshold_multiotsu(image[i, :], classes = 4)
+                            thresholds = threshold_multiotsu(patch[i, :], classes = 4)
 
                             # Using the threshold values, we generate the three regions.
                             regions = np.digitize(image[i, :], bins=thresholds)
@@ -1165,6 +1210,7 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
           else:
               Mask=label(Mask > 0)
           SizedMask[:, :Mask.shape[1], :Mask.shape[2]]=Mask
+          SizedMask = Region_embedding(image, region, SizedMask)
     if save_dir is not None:
              imwrite((unet_results + Name + '.tif'),
                      SizedMask.astype('uint16'))
@@ -1192,6 +1238,14 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
        Skeleton[i, :]=SmartSkel(Sizedsmart_seeds[i, :],
                                 Sizedproabability_map[i, :])
     Skeleton=Skeleton > 0
+
+    smart_seeds = Region_embedding(image, region, smart_seeds) 
+    Markers = Region_embedding(image, region, Markers) 
+    star_labels = Region_embedding(image, region, star_labels) 
+    proabability_map = Region_embedding(image, region, proabability_map) 
+    Skeleton = Region_embedding(image, region, Skeleton)
+
+
     if save_dir is not None:
         print('Saving Results and Done')
         imwrite((stardist_results + Name + '.tif'),
