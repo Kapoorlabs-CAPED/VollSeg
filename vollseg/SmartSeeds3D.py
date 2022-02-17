@@ -101,7 +101,8 @@ class SmartSeeds3D(object):
 
 
 
-     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, backbone = 'resnet', CroppedLoad = False, TrainUNET = True, TrainSTAR = True, GenerateNPZ = True,
+     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, raw_dir = '/Raw/', real_mask_dir = '/real_mask/', binary_mask_dir = '/binary_mask/',
+      val_raw_dir = '/val_raw/', val_real_mask_dir = '/val_real_mask/',  DownsampleFactor = 1, backbone = 'resnet', CroppedLoad = False, TrainUNET = True, TrainSTAR = True, GenerateNPZ = True,
       validation_split = 0.01, erosion_iterations = 1, copy_model_dir = None, PatchX=256, PatchY=256, PatchZ = 16, gridX = 1, gridY = 1, annisotropy = (1,1,1),  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
 
          
@@ -113,11 +114,15 @@ class SmartSeeds3D(object):
          self.DownsampleFactor = DownsampleFactor
          self.model_dir = model_dir
          self.backbone = backbone
+         self.raw_dir = raw_dir
+         self.val_raw_dir = val_raw_dir
+         self.real_mask_dir = real_mask_dir
+         self.val_real_mask_dir = val_real_mask_dir
+         self.binary_mask_dir = binary_mask_dir
          self.GenerateNPZ = GenerateNPZ
          self.annisotropy = annisotropy
          self.TrainUNET = TrainUNET
          self.TrainSTAR = TrainSTAR
-         self.copy_model_dir = copy_model_dir
          self.model_name = model_name
          self.epochs = epochs
          self.learning_rate = learning_rate
@@ -175,14 +180,12 @@ class SmartSeeds3D(object):
          
          
 
-                    BinaryName = 'BinaryMask/' 
-                    RealName = 'RealMask/'
-                    Raw = sorted(glob.glob(self.BaseDir + '/Raw/' + '*.tif'))
-                    Path(self.BaseDir + '/' + BinaryName).mkdir(exist_ok=True)
-                    Path(self.BaseDir + '/' + RealName).mkdir(exist_ok=True)
-                    RealMask = sorted(glob.glob(self.BaseDir + '/' + RealName + '*.tif'))
-                    ValRaw = sorted(glob.glob(self.BaseDir + '/ValRaw/' + '*.tif'))        
-                    ValRealMask = sorted(glob.glob(self.BaseDir + '/ValRealMask/' + '*.tif'))
+                    Raw = sorted(glob.glob(self.BaseDir + self.raw_dir + '*.tif'))
+                    Path(self.BaseDir + self.binary_mask_dir).mkdir(exist_ok=True)
+                    Path(self.BaseDir + self.real_mask_dir).mkdir(exist_ok=True)
+                    RealMask = sorted(glob.glob(self.BaseDir + self.real_mask_dir + '*.tif'))
+                    ValRaw = sorted(glob.glob(self.BaseDir + self.val_raw_dir + '*.tif'))        
+                    ValRealMask = sorted(glob.glob(self.BaseDir + self.val_real_mask_dir + '*.tif'))
 
                     
                       
@@ -191,7 +194,7 @@ class SmartSeeds3D(object):
                     if len(RealMask)== 0:
                         
                         print('Making labels')
-                        Mask = sorted(glob.glob(self.BaseDir + '/' + BinaryName + '*.tif'))
+                        Mask = sorted(glob.glob(self.BaseDir + self.binary_mask_dir + '*.tif'))
                         
                         for fname in Mask:
                     
@@ -202,16 +205,16 @@ class SmartSeeds3D(object):
                                image = image * 255
                            Binaryimage = label(image) 
                     
-                           imwrite((self.BaseDir + '/' + RealName + Name + '.tif'), Binaryimage.astype('uint16'))
+                           imwrite((self.BaseDir + self.real_mask_dir + Name + '.tif'), Binaryimage.astype('uint16'))
                            
                 
-                    Mask = sorted(glob.glob(self.BaseDir + '/' + BinaryName + '*.tif'))
+                    Mask = sorted(glob.glob(self.BaseDir + self.binary_mask_dir + '*.tif'))
                     print('Semantic segmentation masks:', len(Mask))
                     if len(Mask) == 0:
                         print('Generating Binary images')
                
                                
-                        RealfilesMask = sorted(glob.glob(self.BaseDir + '/' + RealName + '*tif'))  
+                        RealfilesMask = sorted(glob.glob(self.BaseDir + self.real_mask_dir + '*tif'))  
                 
                 
                         for fname in RealfilesMask:
@@ -222,14 +225,14 @@ class SmartSeeds3D(object):
                     
                             Binaryimage = image > 0
                     
-                            imwrite((self.BaseDir + '/' + BinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
+                            imwrite((self.BaseDir + self.binary_mask_dir + Name + '.tif'), Binaryimage.astype('uint16'))
                             
                     if self.GenerateNPZ:
                         
                       raw_data = RawData.from_folder (
                       basepath    = self.BaseDir,
-                      source_dirs = ['Raw/'],
-                      target_dir  = 'BinaryMask/',
+                      source_dirs = [self.raw_dir],
+                      target_dir  = self.binary_mask_dir,
                       axes        = 'ZYX',
                        )
                     
@@ -256,10 +259,7 @@ class SmartSeeds3D(object):
                             
                             model = CARE(config , name = 'UNET' + self.model_name, basedir = self.model_dir)
                                  
-                            if self.copy_model_dir is not None:   
-                              if os.path.exists(self.copy_model_dir + 'UNET' + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_now.h5') == False:
-                                 print('Loading copy model')
-                                 model.load_weights(self.copy_model_dir + 'UNET' + self.copy_model_name + '/' + 'weights_now.h5')   
+                           
                             
                             if os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_now.h5'):
                                 print('Loading checkpoint model')
@@ -377,19 +377,6 @@ class SmartSeeds3D(object):
                             print(Starmodel._axes_tile_overlap('ZYX'), os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5'))                            
                                  
                                  
-                            if self.copy_model_dir is not None:   
-                              if os.path.exists(self.copy_model_dir + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5') == False:
-                                 print('Loading copy model')
-                                 Starmodel.load_weights(self.copy_model_dir + self.copy_model_name + '/' + 'weights_now.h5')  
-                              if os.path.exists(self.copy_model_dir + self.copy_model_name + '/' + 'weights_last.h5') and os.path.exists(self.model_dir + self.model_name + '/' + 'weights_last.h5') == False:
-                                 print('Loading copy model')
-                                 Starmodel.load_weights(self.copy_model_dir + self.copy_model_name + '/' + 'weights_last.h5')
-
-                              if os.path.exists(self.copy_model_dir + self.copy_model_name + '/' + 'weights_best.h5') and os.path.exists(self.model_dir + self.model_name + '/' + 'weights_best.h5') == False:
-                                 print('Loading copy model')
-                                 Starmodel.load_weights(self.copy_model_dir + self.copy_model_name + '/' + 'weights_best.h5')
-
- 
                             
                             if os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5'):
                                 print('Loading checkpoint model')
