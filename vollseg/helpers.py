@@ -838,7 +838,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
               slice(0, image.shape[1]))
         rowstart = 0 
         colstart = 0 
-        endrow = image.shape[2] 
+        endrow = image.shape[0] 
         endcol = image.shape[1]      
         roi_bbox = [colstart, rowstart, endcol, endrow]
     if dounet:
@@ -978,8 +978,8 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
     if save_dir is not None:
              imwrite((unet_results + Name + '.tif'), Finalimage.astype('uint16'))
 
-
-    return Finalimage.astype('uint16'), image
+    Skeleton = skeletonize(Finalimage > 0)
+    return Finalimage.astype('uint16'), Skeleton, image
 
 
 def VollSeg(image,  unet_model = None, star_model = None, roi_model = None, roi_image = None, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
@@ -1048,7 +1048,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
          
      elif star_model is None:
          
-          SizedMask, image = res
+          SizedMask, Skeleton, image = res
          
      if save_dir is not None:
         print('Saving Results ...')
@@ -1100,7 +1100,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
      #If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map 
      elif star_model is None:
          
-          return SizedMask, image
+          return SizedMask, Skeleton, image
      
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model = None, roi_image = None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
 n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius = 15):
