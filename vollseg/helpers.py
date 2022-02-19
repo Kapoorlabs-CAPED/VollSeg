@@ -806,7 +806,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
         model_dim = roi_model.config.n_dim
         assert model_dim == len(image.shape), f'For 2D images the region of interest model has to be 2D, model provided had {model_dim} instead'
         roi_image =  UNETPrediction3D(
-                image, roi_model, n_tiles, axes, iou_threshold=nms_thresh) 
+                image, roi_model, n_tiles, axes) 
         roi_bbox = Bbox_region(roi_image)
         rowstart = roi_bbox[0] 
         colstart = roi_bbox[1] 
@@ -1201,7 +1201,7 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
                 tiles = n_tiles
             maximage = np.amax(image, axis = 0)
             roi_image =  UNETPrediction3D(
-                    maximage, roi_model, tiles, axes, iou_threshold=nms_thresh) 
+                    maximage, roi_model, tiles, 'YX', iou_threshold=nms_thresh) 
             roi_bbox = Bbox_region(roi_image)
             rowstart = roi_bbox[0] 
             colstart = roi_bbox[1] 
