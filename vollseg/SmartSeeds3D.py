@@ -102,7 +102,7 @@ class SmartSeeds3D(object):
 
 
      def __init__(self, base_dir, npz_filename, model_name, model_dir, n_patches_per_image, raw_dir = '/Raw/', real_mask_dir = '/real_mask/', binary_mask_dir = '/binary_mask/',
-      val_raw_dir = '/val_raw/', val_real_mask_dir = '/val_real_mask/',  downsample_factor = 1, backbone = 'resnet', load_data_sequence = False, train_unet = True, train_star = True, generate_npz = True,
+      val_raw_dir = '/val_raw/', val_real_mask_dir = '/val_real_mask/', n_channel_in = 1,  downsample_factor = 1, backbone = 'resnet', load_data_sequence = False, train_unet = True, train_star = True, generate_npz = True,
       validation_split = 0.01, erosion_iterations = 2, patch_x=256, patch_y=256, patch_z = 16, grid_x = 1, grid_y = 1, annisotropy = (1,1,1),  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
 
          
@@ -127,6 +127,7 @@ class SmartSeeds3D(object):
          self.epochs = epochs
          self.learning_rate = learning_rate
          self.depth = depth
+         self.n_channel_in = n_channel_in
          self.n_rays = n_rays
          self.erosion_iterations = erosion_iterations
          self.kern_size = kern_size
@@ -185,12 +186,13 @@ class SmartSeeds3D(object):
                     RealMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + '*.tif'))
                     ValRaw = sorted(glob.glob(self.base_dir + self.val_raw_dir + '*.tif'))        
                     ValRealMask = sorted(glob.glob(self.base_dir + self.val_real_mask_dir + '*.tif'))
-
+                    Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*.tif'))
                     
                       
                  
                     print('Instance segmentation masks:', len(RealMask))
-                    if len(RealMask)== 0:
+                    print('Semantic segmentation masks:', len(Mask))
+                    if self.train_star and  len(Mask) > 0 and len(RealMask) < len(Mask):
                         
                         print('Making labels')
                         Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*.tif'))
@@ -207,9 +209,9 @@ class SmartSeeds3D(object):
                            imwrite((self.base_dir + self.real_mask_dir + Name + '.tif'), Binaryimage.astype('uint16'))
                            
                 
-                    Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*.tif'))
-                    print('Semantic segmentation masks:', len(Mask))
-                    if len(Mask) == 0:
+                    
+                    
+                    if self.train_unet and len(RealMask) > 0  and len(Mask) < len(RealMask):
                         print('Generating Binary images')
                
                                
@@ -340,7 +342,7 @@ class SmartSeeds3D(object):
                                   train_dist_loss = 'mse',
                                   grid         = (1,self.grid_y,self.grid_x),
                                   use_gpu      = self.use_gpu,
-                                  n_channel_in = 1
+                                  n_channel_in = self.n_channel_in
                                   )
                                 
                             if self.backbone == 'unet':
@@ -360,7 +362,7 @@ class SmartSeeds3D(object):
                                   train_dist_loss = 'mse',
                                   grid         = (1,self.grid_y,self.grid_x),
                                   use_gpu      = self.use_gpu,
-                                  n_channel_in = 1,
+                                  n_channel_in = self.n_channel_in,
                                   train_sample_cache = False
                                   )
                                 

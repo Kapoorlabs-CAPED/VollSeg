@@ -28,12 +28,10 @@ import tensorflow as tf
 
 
 class UNET(BaseModel):
-    """Standard CARE network for image restoration and enhancement.
+    """Standard UNET network for image segmentation based on CARE network.
 
     Uses a convolutional neural network created by :func:`csbdeep.internals.nets.common_unet`.
-    Note that isotropic reconstruction and manifold extraction/projection are not supported here
-    (see :class:`csbdeep.models.IsotropicCARE` ).
-
+   
     Parameters
     ----------
     config : :class:`csbdeep.models.Config` or None
@@ -55,12 +53,12 @@ class UNET(BaseModel):
 
     Example
     -------
-    >>> model = CARE(config, 'my_model')
+    >>> model = UNET(config, 'my_model')
 
     Attributes
     ----------
     config : :class:`csbdeep.models.Config`
-        Configuration of CARE network, as provided during instantiation.
+        Configuration of UNET network, as provided during instantiation.
     keras_model : `Keras model <https://keras.io/getting-started/functional-api-guide/>`_
         Keras neural network model.
     name : str

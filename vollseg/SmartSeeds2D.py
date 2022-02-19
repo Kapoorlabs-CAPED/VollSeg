@@ -75,6 +75,25 @@ def erode_label_holes(lbl_img, iterations):
         mask_filled = binary_erosion(mask,iterations = iterations)
         lbl_img_filled[mask_filled] = l
     return lbl_img_filled    
+
+def erode_labels(segmentation, erosion_iterations= 2):
+    # create empty list where the eroded masks can be saved to
+    list_of_eroded_masks = list()
+    regions = regionprops(segmentation)
+    erode = np.zeros(segmentation.shape)
+    def erode_mask(segmentation_labels, label_id, erosion_iterations):
+        
+        only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
+        eroded = ndimage.binary_erosion(only_current_label_id, iterations = erosion_iterations)
+        relabeled_eroded = np.where(eroded == 1, label_id, 0)
+        return(relabeled_eroded)
+
+    for i in range(len(regions)):
+        label_id = regions[i].label
+        erode = erode + erode_mask(segmentation, label_id, erosion_iterations)
+
+    # convert list of numpy arrays to stacked numpy array
+    return erode    
     
 class SmartSeeds2D(object):
 
@@ -85,7 +104,7 @@ class SmartSeeds2D(object):
 
      def __init__(self, base_dir, npz_filename, model_name, model_dir, n_patches_per_image, raw_dir = '/Raw/', real_mask_dir = '/real_mask/', binary_mask_dir = '/binary_mask/',
      binary_erode_mask_dir = '/binary_erode_mask/',  val_raw_dir = '/val_raw/', val_real_mask_dir = '/val_real_mask/',
-     downsample_factor = 1, startfilter = 48, RGB = False, validation_split = 0.01,
+     downsample_factor = 1, startfilter = 48, RGB = False, validation_split = 0.01, n_channel_in = 1,erosion_iterations = 2,
      train_seed_unet = True, train_unet = True, train_star = True, load_data_sequence = False, grid = (1,1),  generate_npz = True, patch_x=256, patch_y=256,  use_gpu = True,unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
          
          
@@ -110,6 +129,8 @@ class SmartSeeds2D(object):
          self.epochs = epochs
          self.learning_rate = learning_rate
          self.depth = depth
+         self.n_channel_in = n_channel_in
+         self.erosion_iterations = erosion_iterations
          self.n_rays = n_rays
          self.kern_size = kern_size
          self.patch_x = patch_x
@@ -168,14 +189,16 @@ class SmartSeeds2D(object):
                     RealMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + '*.tif'))
                     ValRaw = sorted(glob.glob(self.base_dir + self.val_raw_dir + '*.tif'))        
                     ValRealMask = sorted(glob.glob(self.base_dir + self.val_real_mask_dir + '*.tif'))
-
+                    Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*.tif'))
+                    ErodeMask = sorted(glob.glob(self.base_dir + self.binary_erode_mask_dir + '*.tif'))
                     
                     
 
 
                     
                     print('Instance segmentation masks:', len(RealMask))
-                    if len(RealMask)== 0:
+                    print('Semantic segmentation masks:', len(Mask))
+                    if self.train_star and  len(Mask) > 0 and len(RealMask) < len(Mask):
                         
                         print('Making labels')
                         Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*.tif'))
@@ -190,39 +213,25 @@ class SmartSeeds2D(object):
                            Binaryimage = label(image) 
                     
                            imwrite((self.base_dir + self.real_mask_dir + Name + '.tif'), Binaryimage)
-                           
-                
-                    Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*.tif'))
-                    ErodeMask = sorted(glob.glob(self.base_dir + self.binary_erode_mask_dir + '*.tif'))
-                    print('Semantic segmentation masks:', len(Mask))
                     
                     
-                    
-                    if len(ErodeMask) == 0:
-                        print('Generating Binary images')
-               
+                    if self.train_seed_unet and len(RealMask) > 0  and len(ErodeMask) < len(RealMask):
+                        print('Generating Eroded Binary images')
                                
                         RealfilesMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + '*tif'))  
-                
                 
                         for fname in RealfilesMask:
                     
                             image = imread(fname)
-                    
+                            image = erode_labels(image, self.erosion_iterations)
                             Name = os.path.basename(os.path.splitext(fname)[0])
-                    
                             Binaryimage = image > 0
-                    
-                            Binaryimage = binary_erosion(Binaryimage)
-                    
                             imwrite((self.base_dir + self.binary_erode_mask_dir + Name + '.tif'), Binaryimage.astype('uint16'))
 
-                    if len(Mask) == 0:
+                    if self.train_unet and len(RealMask) > 0  and len(Mask) < len(RealMask):
                         print('Generating Binary images')
-               
                                
                         RealfilesMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + '*tif'))  
-                
                 
                         for fname in RealfilesMask:
                     
@@ -254,23 +263,23 @@ class SmartSeeds2D(object):
                              save_file           = self.base_dir + self.npz_filename + '.npz',
                              
                              )
-                             
-                             raw_data = RawData.from_folder (
-                             basepath    = self.base_dir,
-                             source_dirs = ['Raw/'],
-                             target_dir  = ErodeBinaryName,
-                             axes        = 'YXC',
-                              )
-                           
-                             X, Y, XY_axes = create_patches_reduced_target (
-                             raw_data            = raw_data,
-                             patch_size          = (self.patch_y,self.patch_x, None),
-                             n_patches_per_image = self.n_patches_per_image,
-                             patch_filter = None,
-                             target_axes         = 'YX',
-                             reduction_axes      = 'C',
-                             save_file           = self.base_dir + self.npz_filename + "Erode" + '.npz',
-                             )
+                             if self.train_seed_unet:
+                                    raw_data = RawData.from_folder (
+                                    basepath    = self.base_dir,
+                                    source_dirs = ['Raw/'],
+                                    target_dir  = ErodeBinaryName,
+                                    axes        = 'YXC',
+                                    )
+                                
+                                    X, Y, XY_axes = create_patches_reduced_target (
+                                    raw_data            = raw_data,
+                                    patch_size          = (self.patch_y,self.patch_x, None),
+                                    n_patches_per_image = self.n_patches_per_image,
+                                    patch_filter = None,
+                                    target_axes         = 'YX',
+                                    reduction_axes      = 'C',
+                                    save_file           = self.base_dir + self.npz_filename + "Erode" + '.npz',
+                                    )
                           
                           
                           
@@ -289,21 +298,21 @@ class SmartSeeds2D(object):
                               patch_filter = None,
                               save_file           = self.base_dir + self.npz_filename + '.npz',
                               )
-                              
-                              raw_data = RawData.from_folder (
-                              basepath    = self.base_dir,
-                              source_dirs = ['Raw/'],
-                              target_dir  = ErodeBinaryName,
-                              axes        = 'YX',
-                               )
-                            
-                              X, Y, XY_axes = create_patches (
-                              raw_data            = raw_data,
-                              patch_size          = (self.patch_y,self.patch_x),
-                              n_patches_per_image = self.n_patches_per_image,
-                              patch_filter = None,
-                              save_file           = self.base_dir + self.npz_filename + "Erode" + '.npz',
-                              )
+                              if self.train_seed_unet:
+                                    raw_data = RawData.from_folder (
+                                    basepath    = self.base_dir,
+                                    source_dirs = ['Raw/'],
+                                    target_dir  = ErodeBinaryName,
+                                    axes        = 'YX',
+                                    )
+                                    
+                                    X, Y, XY_axes = create_patches (
+                                    raw_data            = raw_data,
+                                    patch_size          = (self.patch_y,self.patch_x),
+                                    n_patches_per_image = self.n_patches_per_image,
+                                    patch_filter = None,
+                                    save_file           = self.base_dir + self.npz_filename + "Erode" + '.npz',
+                                    )
                     
                   
 
@@ -353,13 +362,12 @@ class SmartSeeds2D(object):
                                   train_learning_rate = self.learning_rate,
                                   unet_n_depth = self.depth ,
                                   train_patch_size = (self.patch_y,self.patch_x),
-                                  n_channel_in = 1,
+                                  n_channel_in = self.n_channel_in,
                                   unet_n_filter_base = self.unet_n_first,
                                   train_checkpoint= self.model_dir + self.model_name +'.h5',
                                   grid         = self.grid,
                                   train_loss_weights=(1, 0.05),
                                   use_gpu      = self.use_gpu,
-
                                   train_batch_size = self.batch_size, 
                                   train_sample_cache = self.train_sample_cache
 
@@ -370,19 +378,6 @@ class SmartSeeds2D(object):
                              
                             
                                 Starmodel = StarDist2D(conf, name=self.model_name, base_dir=self.model_dir)
-                                if self.copy_model_dir is not None:   
-                                  if os.path.exists(self.copy_model_dir + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5') == False:
-                                      print('Loading copy model')
-                                      Starmodel.load_weights(self.copy_model_dir + self.copy_model_name + '/' + 'weights_now.h5')
-                                  if os.path.exists(self.copy_model_dir + self.copy_model_name + '/' + 'weights_last.h5') and os.path.exists(self.model_dir + self.model_name + '/' + 'weights_last.h5') == False:
-                                      print('Loading copy model')
-                                      Starmodel.load_weights(self.copy_model_dir + self.copy_model_name + '/' + 'weights_last.h5')
-
-                                  if os.path.exists(self.copy_model_dir + self.copy_model_name + '/' + 'weights_best.h5') and os.path.exists(self.model_dir + self.model_name + '/' + 'weights_best.h5') == False:
-                                      print('Loading copy model')
-                                      Starmodel.load_weights(self.copy_model_dir + self.copy_model_name + '/' + 'weights_best.h5')
-
-   
                                 
                                 if os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5'):
                                     print('Loading checkpoint model')
@@ -450,10 +445,7 @@ class SmartSeeds2D(object):
                                     
                                     model = CARE(config , name = 'SeedUNET' + self.model_name, base_dir = self.model_dir)
                                     
-                                    if self.copy_model_dir is not None:   
-                                      if os.path.exists(self.copy_model_dir + 'SeedUNET' + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_now.h5') == False:
-                                         print('Loading copy model')
-                                         model.load_weights(self.copy_model_dir + 'SeedUNET' + self.copy_model_name + '/' + 'weights_now.h5')   
+                                    
                                     
                                     if os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_now.h5'):
                                         print('Loading checkpoint model')

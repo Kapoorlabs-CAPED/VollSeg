@@ -13,7 +13,7 @@ from .tif import *
 from .folder import *
 from .pretrained import register_model, register_aliases, clear_models_and_aliases
 from .UNET import  UNET 
-from .MASK import MASKUNET
+from .MASKUNET import MASKUNET
 
 from .StarDist2D import StarDist2D
 from .StarDist3D import StarDist3D
@@ -22,7 +22,7 @@ from csbdeep.utils.tf import keras_import
 get_file = keras_import('utils', 'get_file')
 
 
-clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE)
+clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
 
 register_model(CARE,   'Denoise_3D_cells',  'https://zenodo.org/record/5813521/files/GenericDenoising3D.zip', 'be8dffd239193361a9c289090425dd12')           
 
@@ -46,6 +46,7 @@ register_aliases(UNET, 'Unet_White_Blood_Cells',  'Unet_White_Blood_Cells')
 register_aliases(UNET, 'Unet_Cyto_White_Blood_Cells',  'Unet_Cyto_White_Blood_Cells')
 register_aliases(MASKUNET, 'Unet_Lung_Segmentation',  'Unet_Lung_Segmentation')
 register_aliases(MASKUNET, 'Xenopus_Tissue_Segmentation',  'Xenopus_Tissue_Segmentation')
+
 register_aliases(CARE, 'Denoise_3D_cells',  'Denoise_3D_cells')
 
 
