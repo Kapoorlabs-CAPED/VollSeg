@@ -910,7 +910,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
     else:
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleto.astype('uint16'), image
 
-def VollSeg_unet(image, unet_model = None, roi_model = roi_model, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet = True, save_dir=None, Name='Result', radius = 15):
+def VollSeg_unet(image, unet_model = None, roi_model = None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet = True, save_dir=None, Name='Result', radius = 15):
 
     if save_dir is not None:
             unet_results = save_dir + 'BinaryMask/'
@@ -921,7 +921,7 @@ def VollSeg_unet(image, unet_model = None, roi_model = roi_model, n_tiles=(2, 2)
     if roi_model is None: 
             if RGB:
                 if n_tiles is not None:
-                n_tiles = (n_tiles[0], n_tiles[1], 1)
+                   n_tiles = (n_tiles[0], n_tiles[1], 1)
 
             ndim = len(image.shape)
 
@@ -999,35 +999,26 @@ def VollSeg_unet(image, unet_model = None, roi_model = roi_model, n_tiles=(2, 2)
                     imwrite((denoised_results + Name + '.tif'),
                             image.astype('float32'))     
              model_dim = roi_model.config.n_dim
-            if model_dim < len(image.shape):
+             if model_dim < len(image.shape):
                 if len(n_tiles) == len(image.shape):
-                tiles = (n_tiles[1], n_tiles[2])
+                   tiles = (n_tiles[1], n_tiles[2])
                 else:
                     tiles = n_tiles
                 maximage = np.amax(image, axis = 0)
                 Binary =  UNETPrediction3D(
-                         maximage, roi_model, tiles, axes, iou_threshold=nms_thresh)
+                         maximage, roi_model, tiles, 'YX')
 
                 Binary = label(Binary)
-                if ndim == 2:
-                        Binary = remove_small_objects(
+                Binary = remove_small_objects(
                                     Binary.astype('uint16'), min_size=min_size_mask)
-                        Binary = remove_big_objects(Binary.astype('uint16'), max_size=max_size)
-                        Binary = fill_label_holes(Binary)
-                if ndim == 3 and slice_merge:
-                    for i in range(image.shape[0]):
-                        Binary[i, :] = label(Binary[i, :])
-                        Binary[i, :] = remove_small_objects(
-                                    Binary[i, :].astype('uint16'), min_size=min_size_mask)
-                        Binary[i, :] = remove_big_objects(Binary[i, :].astype('uint16'), max_size=max_size)
-                        
-                    Binary = match_labels(Binary, iou_threshold=iou_threshold)
-                    Binary = fill_label_holes(Binary)
+                Binary = remove_big_objects(Binary.astype('uint16'), max_size=max_size)
+                Binary = fill_label_holes(Binary)
+                
                 Finalimage = relabel_sequential(Binary)[0]
                 if save_dir is not None:
                         imwrite((unet_results + Name + '.tif'), Finalimage.astype('uint16'))
 
-                Skeleton = skeletonize(Finalimage > 0)
+                Skeleton = skeletonize(find_boundaries(Finalimage > 0))
                 return Finalimage.astype('uint16'), Skeleton, image
 
 
