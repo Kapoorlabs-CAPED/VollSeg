@@ -740,18 +740,18 @@ def Region_embedding(image, region, sourceimage):
     returnimage = np.zeros(image.shape)
 
     if len(image.shape) == 2:
-        rowstart = region[0] 
-        colstart = region[1] 
-        endrow = region[2] 
-        endcol = region[3]
+        rowstart = region[1] 
+        colstart = region[0] 
+        endrow = region[3] 
+        endcol = region[2]
         returnimage[rowstart:endrow, colstart:endcol] = sourceimage 
     if len(image.shape) == 3:
-        rowstart = region[0] 
-        colstart = region[1] 
-        endrow = region[2] 
-        endcol = region[3]
+        rowstart = region[1] 
+        colstart = region[0] 
+        endrow = region[3] 
+        endcol = region[2]
         returnimage[0:image.shape[0],rowstart:endrow, colstart:endcol] = sourceimage
-        print(rowstart, endrow, colstart, endcol)
+        
 
     return returnimage
 
@@ -910,7 +910,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model = None,
     else:
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleto.astype('uint16'), image
 
-def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet = True, save_dir=None, Name='Result', radius = 15):
+def VollSeg_unet(image, unet_model = None, roi_model = roi_model, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet = True, save_dir=None, Name='Result', radius = 15):
 
     if save_dir is not None:
             unet_results = save_dir + 'BinaryMask/'
@@ -918,68 +918,117 @@ def VollSeg_unet(image, unet_model = None, n_tiles=(2, 2), axes='YX', noise_mode
             Path(save_dir).mkdir(exist_ok=True)
             Path(denoised_results).mkdir(exist_ok=True)
             Path(unet_results).mkdir(exist_ok=True)
+    if roi_model is None: 
+            if RGB:
+                if n_tiles is not None:
+                n_tiles = (n_tiles[0], n_tiles[1], 1)
 
-    if RGB:
-        if n_tiles is not None:
-          n_tiles = (n_tiles[0], n_tiles[1], 1)
+            ndim = len(image.shape)
 
-    ndim = len(image.shape)
+            if noise_model is not None:
+                image = noise_model.predict(image, axes, n_tiles=n_tiles)
 
-    if noise_model is not None:
-        image = noise_model.predict(image, axes, n_tiles=n_tiles)
+                indices=zip(*np.where(image < 0))
+                if ndim == 2:
+                    for y, x in indices:
 
-        indices=zip(*np.where(image < 0))
-        if ndim == 2:
-            for y, x in indices:
+                        image[y,x] = 0
+                if ndim == 3:
 
-                 image[y,x] = 0
-        if ndim == 3:
+                    for z, y, x in indices:
 
-            for z, y, x in indices:
+                        image[z,y,x] = 0
+                if save_dir is not None:
+                    imwrite((denoised_results + Name + '.tif'),
+                            image.astype('float32'))        
+            if dounet and unet_model is not None:
+                Segmented = unet_model.predict(image, axes, n_tiles=n_tiles)
+            else:
+                Segmented = image
+            if RGB:
+                Segmented = Segmented[:, :, 0]
+        
 
-                image[z,y,x] = 0
-        if save_dir is not None:
-             imwrite((denoised_results + Name + '.tif'),
-                     image.astype('float32'))        
-    if dounet and unet_model is not None:
-        Segmented = unet_model.predict(image, axes, n_tiles=n_tiles)
-    else:
-        Segmented = image
-    if RGB:
-        Segmented = Segmented[:, :, 0]
-  
+            try:
+                        thresholds = threshold_multiotsu(Segmented, classes = 4)
 
-    try:
-                thresholds = threshold_multiotsu(Segmented, classes = 4)
+                        # Using the threshold values, we generate the three regions.
+                        regions = np.digitize(Segmented, bins=thresholds)
+            except:
 
-                # Using the threshold values, we generate the three regions.
-                regions = np.digitize(Segmented, bins=thresholds)
-    except:
-
-                regions = Segmented       
-    Binary = regions > 0
-    
-    Binary = label(Binary)
-    if ndim == 2:
-            Binary = remove_small_objects(
-                        Binary.astype('uint16'), min_size=min_size_mask)
-            Binary = remove_big_objects(Binary.astype('uint16'), max_size=max_size)
-            Binary = fill_label_holes(Binary)
-    if ndim == 3 and slice_merge:
-        for i in range(image.shape[0]):
-            Binary[i, :] = label(Binary[i, :])
-            Binary[i, :] = remove_small_objects(
-                        Binary[i, :].astype('uint16'), min_size=min_size_mask)
-            Binary[i, :] = remove_big_objects(Binary[i, :].astype('uint16'), max_size=max_size)
+                        regions = Segmented       
+            Binary = regions > 0
             
-        Binary = match_labels(Binary, iou_threshold=iou_threshold)
-        Binary = fill_label_holes(Binary)
-    Finalimage = relabel_sequential(Binary)[0]
-    if save_dir is not None:
-             imwrite((unet_results + Name + '.tif'), Finalimage.astype('uint16'))
+            Binary = label(Binary)
+            if ndim == 2:
+                    Binary = remove_small_objects(
+                                Binary.astype('uint16'), min_size=min_size_mask)
+                    Binary = remove_big_objects(Binary.astype('uint16'), max_size=max_size)
+                    Binary = fill_label_holes(Binary)
+            if ndim == 3 and slice_merge:
+                for i in range(image.shape[0]):
+                    Binary[i, :] = label(Binary[i, :])
+                    Binary[i, :] = remove_small_objects(
+                                Binary[i, :].astype('uint16'), min_size=min_size_mask)
+                    Binary[i, :] = remove_big_objects(Binary[i, :].astype('uint16'), max_size=max_size)
+                    
+                Binary = match_labels(Binary, iou_threshold=iou_threshold)
+                Binary = fill_label_holes(Binary)
+            Finalimage = relabel_sequential(Binary)[0]
+            if save_dir is not None:
+                    imwrite((unet_results + Name + '.tif'), Finalimage.astype('uint16'))
 
-    Skeleton = skeletonize(Finalimage > 0)
-    return Finalimage.astype('uint16'), Skeleton, image
+            Skeleton = skeletonize(Finalimage > 0)
+            return Finalimage.astype('uint16'), Skeleton, image
+    elif roi_model is not None:
+
+             if noise_model is not None:
+                image = noise_model.predict(image, axes, n_tiles=n_tiles)
+
+                indices=zip(*np.where(image < 0))
+                if ndim == 2:
+                    for y, x in indices:
+
+                        image[y,x] = 0
+                if ndim == 3:
+
+                    for z, y, x in indices:
+
+                        image[z,y,x] = 0
+                if save_dir is not None:
+                    imwrite((denoised_results + Name + '.tif'),
+                            image.astype('float32'))     
+             model_dim = roi_model.config.n_dim
+            if model_dim < len(image.shape):
+                if len(n_tiles) == len(image.shape):
+                tiles = (n_tiles[1], n_tiles[2])
+                else:
+                    tiles = n_tiles
+                maximage = np.amax(image, axis = 0)
+                Binary =  UNETPrediction3D(
+                         maximage, roi_model, tiles, axes, iou_threshold=nms_thresh)
+
+                Binary = label(Binary)
+                if ndim == 2:
+                        Binary = remove_small_objects(
+                                    Binary.astype('uint16'), min_size=min_size_mask)
+                        Binary = remove_big_objects(Binary.astype('uint16'), max_size=max_size)
+                        Binary = fill_label_holes(Binary)
+                if ndim == 3 and slice_merge:
+                    for i in range(image.shape[0]):
+                        Binary[i, :] = label(Binary[i, :])
+                        Binary[i, :] = remove_small_objects(
+                                    Binary[i, :].astype('uint16'), min_size=min_size_mask)
+                        Binary[i, :] = remove_big_objects(Binary[i, :].astype('uint16'), max_size=max_size)
+                        
+                    Binary = match_labels(Binary, iou_threshold=iou_threshold)
+                    Binary = fill_label_holes(Binary)
+                Finalimage = relabel_sequential(Binary)[0]
+                if save_dir is not None:
+                        imwrite((unet_results + Name + '.tif'), Finalimage.astype('uint16'))
+
+                Skeleton = skeletonize(Finalimage > 0)
+                return Finalimage.astype('uint16'), Skeleton, image
 
 
 def VollSeg(image,  unet_model = None, star_model = None, roi_model = None, roi_image = None, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
@@ -1000,7 +1049,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
          # If there is no stardist model we use unet model or denoising model or both to get the semantic segmentation    
          if star_model is None:
              
-               res = VollSeg_unet(image, unet_model = unet_model, n_tiles=n_tiles, axes=axes,min_size_mask=min_size_mask,
+               res = VollSeg_unet(image, unet_model = unet_model, roi_model = roi_model, n_tiles=n_tiles, axes=axes,min_size_mask=min_size_mask,
                        max_size=max_size,  noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
      if len(image.shape) == 3 and 'T' not in axes:
           # this is a 3D image and if stardist model is supplied we use this method
@@ -1011,7 +1060,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
           # If there is no stardist model we use unet model with or without denoising model
           if star_model is None:
               
-               res = VollSeg_unet(image, unet_model, n_tiles=n_tiles, axes=axes ,min_size_mask=min_size_mask,
+               res = VollSeg_unet(image, unet_model = unet_model, roi_model = roi_model, n_tiles=n_tiles, axes=axes ,min_size_mask=min_size_mask,
                        max_size=max_size,  noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
              
                 
@@ -1025,7 +1074,7 @@ n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
                                         max_size=max_size, dounet=dounet, n_tiles=n_tiles, UseProbability=UseProbability, RGB=RGB, save_dir=None, Name=Name) for _x in tqdm(image))))
               if star_model is None:
                   
-                   res = tuple(zip(*tuple(VollSeg_unet(_x, unet_model, n_tiles=n_tiles, axes=axes, noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
+                   res = tuple(zip(*tuple(VollSeg_unet(_x, unet_model = unet_model, roi_model = roi_model, n_tiles=n_tiles, axes=axes, noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet = dounet)
                   for _x in tqdm(image))))
                    
                       
@@ -1155,10 +1204,13 @@ n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=Tr
         
         model_dim = roi_model.config.n_dim
         if model_dim < len(image.shape):
-
+            if len(n_tiles) == len(image.shape):
+               tiles = (n_tiles[1], n_tiles[2])
+            else:
+                tiles = n_tiles
             maximage = np.amax(image, axis = 0)
             roi_image =  UNETPrediction3D(
-                    maximage, roi_model, n_tiles, axes, iou_threshold=nms_thresh) 
+                    maximage, roi_model, tiles, axes, iou_threshold=nms_thresh) 
             roi_bbox = Bbox_region(roi_image)
             rowstart = roi_bbox[0] 
             colstart = roi_bbox[1] 
