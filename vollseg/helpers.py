@@ -1436,18 +1436,28 @@ def image_pixel_duplicator(image, size):
 
 def image_embedding(image, size):
 
-    assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'
-    for i in range(len(size)):
-       assert image.shape[i] < size[i] , f'The image size should be smaller than the volume it is to be embedded in'
-
-    ResizeImage = np.zeros(size)
-    ndim = len(size)
-    width = []
-    for i in range(len(size)):
-        width.append(size[i] - image.shape[i])
-    width = np.asarray(width)    
-    ResizeImage = np.pad(image, width, 'constant', constant_values = 0)
-
+    
+    ndim = len(image.shape)
+    if ndim == 2:
+        assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'
+        for i in range(len(size)):
+          assert image.shape[i] < size[i] , f'The image size should be smaller than the volume it is to be embedded in'
+          width = []
+          for i in range(len(size)):
+                width.append(size[i] - image.shape[i])
+          width = np.asarray(width)
+    
+          ResizeImage = np.pad(image, width, 'constant', constant_values = 0)
+    if ndim == 3:
+        ResizeImage = []
+        width = []
+        for i in range(len(size)):
+                width.append(size[i] - image.shape[i + 1])
+        width = np.asarray(width)
+        for i in range(image.shape[0]):
+             
+           ResizeImage.append(np.pad(image[i,:], width, 'constant', constant_values = 0))   
+        ResizeImage = np.asarray(ResizeImage)
     return ResizeImage
 def Integer_to_border(Label):
 
