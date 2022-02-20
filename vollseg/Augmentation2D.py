@@ -6,6 +6,7 @@ Created on Sat Dec 19 19:09:26 2020
 @author: kapoorlab
 """
 
+from email.mime import image
 from tqdm import tqdm
 from glob import glob
 from tifffile import imread, imwrite
@@ -17,7 +18,7 @@ from scipy.ndimage.interpolation import shift, zoom
 from scipy.ndimage import rotate
 from scipy import ndimage
 from pathlib import Path
-    
+from vollseg.helpers import image_pixel_duplicator, image_embedding    
     
     
 class Augmentation2D(object):
@@ -37,7 +38,9 @@ class Augmentation2D(object):
                  zoom_axis=None,
                  zoom_range=None,
                  rotate_axis=None,
-                 rotate_angle=None
+                 rotate_angle=None, 
+                 size = None,
+                 size_zero = None,
                  ):
         """
         Arguments:
@@ -70,6 +73,8 @@ class Augmentation2D(object):
         self.zoom_range = zoom_range
         self.rotate_axis = rotate_axis
         self.rotate_angle = rotate_angle
+        self.size = size
+        self.size_zero = size_zero
 
     def build(self,
               data=None,
@@ -106,6 +111,14 @@ class Augmentation2D(object):
         parse_dict = {}
         callback = None
 
+        #pixel_duplicator
+        if self.size is not None:
+            callback = self._duplicate_data
+            parse_dict['size'] = self.size  
+        #pixel_duplicator
+        if self.size_zero is not None:
+            callback = self._embed_data
+            parse_dict['size_zero'] = self.size_zero    
         # flip
         if self.flip_axis is not None:
             callback = self._flip_data
@@ -188,9 +201,9 @@ class Augmentation2D(object):
             target_label = self.label[target_idx]
 
             # data augmentation by callback function
-            ret_data = np.array([callback(target_data[[i]], parse_dict)[0, ...] for i in range(self.batch_size)])
-            ret_label =  np.array([callback(target_label[[i]], parse_dict)[0, ...] for i in range(self.batch_size)])
-            
+            ret_data = [callback(target_data[i], parse_dict) for i in range(self.batch_size)]
+            ret_label =  [callback(target_label[i], parse_dict) for i in range(self.batch_size)]
+         
             if cnt < rp_num - 1:
                 cnt += 1
             elif cnt == rp_num - 1:
@@ -262,3 +275,13 @@ class Augmentation2D(object):
             raise ValueError('rotate axis should be 1, 2')
 
         return rotate(data, axes=ax_tup, angle=parse_dict['rotate_angle'], cval=0.0, reshape=False)
+
+    def _duplicate_data(self, data, parse_dict):
+
+        size =  parse_dict['size']    
+        return image_pixel_duplicator(data, size)
+
+    def _embed_data(self, data, parse_dict):
+
+        size_zero =  parse_dict['size_zero']    
+        return image_embedding(data, size_zero)    

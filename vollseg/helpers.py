@@ -1381,17 +1381,19 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
 def image_pixel_duplicator(image, size):
 
     assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'
-    
+    for i in range(len(size)):
+       assert image.shape[i] < size[i] , f'The image size should be smaller than the volume it is to be extended in'
+
     ResizeImage = np.zeros(size)
     ndim = len(size)
     if ndim == 3:
 
-         j = 0
+        j = 0
         for i in range(0, ResizeImage.shape[1]):
             
             if j < image.shape[1]:
-            ResizeImage[:image.shape[0],i,:image.shape[2]] = image[:image.shape[0],j,:image.shape[2]]
-            j = j + 1
+                ResizeImage[:image.shape[0],i,:image.shape[2]] = image[:image.shape[0],j,:image.shape[2]]
+                j = j + 1
             else:
                 j = 0   
             
@@ -1399,8 +1401,8 @@ def image_pixel_duplicator(image, size):
         for i in range(0, ResizeImage.shape[2]):
             
             if j < image.shape[2]:
-            ResizeImage[:,:,i] = ResizeImage[:,:,j]
-            j = j + 1
+                ResizeImage[:,:,i] = ResizeImage[:,:,j]
+                j = j + 1
             else:
                 j = 0     
 
@@ -1408,8 +1410,8 @@ def image_pixel_duplicator(image, size):
         for i in range(0, ResizeImage.shape[0]):
             
             if j < image.shape[0]:
-            ResizeImage[i,:,:] = ResizeImage[j,:,:]
-            j = j + 1
+                ResizeImage[i,:,:] = ResizeImage[j,:,:]
+                j = j + 1
             else:
                 j = 0  
 
@@ -1419,8 +1421,8 @@ def image_pixel_duplicator(image, size):
         for i in range(0, ResizeImage.shape[1]):
             
             if j < image.shape[1]:
-            ResizeImage[:image.shape[0],i] = image[:image.shape[0],j]
-            j = j + 1
+                ResizeImage[:image.shape[0],i] = image[:image.shape[0],j]
+                j = j + 1
             else:
                 j = 0   
             
@@ -1430,14 +1432,28 @@ def image_pixel_duplicator(image, size):
         for i in range(0, ResizeImage.shape[0]):
             
             if j < image.shape[0]:
-            ResizeImage[i,:] = ResizeImage[j,:]
-            j = j + 1
+                ResizeImage[i,:] = ResizeImage[j,:]
+                j = j + 1
             else:
                 j = 0  
 
     return ResizeImage
 
+def image_embedding(image, size):
 
+    assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'
+    for i in range(len(size)):
+       assert image.shape[i] < size[i] , f'The image size should be smaller than the volume it is to be embedded in'
+
+    ResizeImage = np.zeros(size)
+    ndim = len(size)
+    width = []
+    for i in range(len(size)):
+        width.append(size[i] - image.shape[i])
+    width = np.asarray(width)    
+    ResizeImage = np.pad(image, width, 'constant', constant_values = 0)
+
+    return ResizeImage
 def Integer_to_border(Label):
 
     BoundaryLabel = find_boundaries(Label, mode='outer')
