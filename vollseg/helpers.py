@@ -239,17 +239,12 @@ def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=Tru
     return smart_seeds
 
 
-def crappify_flou_G_P(x, y, lam, savedirx, savediry, name):
+def poisson_noise(x, mu):
     x = x.astype('float32')
-    gaussiannoise = np.random.poisson(lam, x.shape)
+    gaussiannoise = np.random.poisson(mu, x.shape)
     x = x + gaussiannoise
 
-    # add noise to original image
-    imwrite(savedirx + '/' + name + 'pg' +
-            str(lam) + '.tif', x.astype('float32'))
-    # keep the label the same
-    imwrite(savediry + '/' + name + 'pg' +
-            str(lam) + '.tif', y.astype('uint16'))
+    return x
 
 
 def _fill_label_holes(lbl_img, **kwargs):
