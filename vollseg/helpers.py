@@ -1377,7 +1377,7 @@ def image_pixel_duplicator(image, size):
 
     assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'
     for i in range(len(size)):
-       assert image.shape[i] < size[i] , f'The image size should be smaller than the volume it is to be extended in'
+       assert image.shape[i] <= size[i] , f'The image size should be smaller than the volume it is to be extended in'
 
     ResizeImage = np.zeros(size)
     ndim = len(size)
@@ -1441,7 +1441,7 @@ def image_embedding(image, size):
     if ndim == 2:
         assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'
         for i in range(len(size)):
-          assert image.shape[i] < size[i] , f'The image size should be smaller than the volume it is to be embedded in'
+          assert image.shape[i] <= size[i] , f'The image size should be smaller than the volume it is to be embedded in'
           width = []
           for i in range(len(size)):
                 width.append(size[i] - image.shape[i])
@@ -2047,25 +2047,13 @@ def normalizer(x, mi, ma, eps=1e-20, dtype=np.float32):
         ma = dtype(ma) if np.isscalar(ma) else ma.astype(dtype, copy=False)
         eps = dtype(eps)
 
-    try:
-        import numexpr
-        x = numexpr.evaluate("(x - mi ) / (ma - mi + eps)")
-    except ImportError:
         x = (x - mi) / (ma - mi + eps)
 
         x = normalizeZeroOne(x)
     return x
 
 
-def LocalThreshold2D(Image, boxsize, offset=0, size=10):
 
-    if boxsize % 2 == 0:
-        boxsize = boxsize + 1
-    adaptive_thresh = threshold_local(Image, boxsize, offset=offset)
-    Binary = Image > adaptive_thresh
-    # Clean =  remove_small_objects(Binary, min_size=size, connectivity=4, in_place=False)
-
-    return Binary
 
    # CARE csbdeep modification of implemented function
 
@@ -2108,11 +2096,7 @@ def normalize_mi_ma(x, mi, ma, eps=1e-20, dtype=np.float32):
         ma = dtype(ma) if np.isscalar(ma) else ma.astype(dtype, copy=False)
         eps = dtype(eps)
 
-    try:
-        import numexpr
-        x = numexpr.evaluate("(x - mi ) / (ma - mi + eps)")
-    except ImportError:
-        x = (x - mi) / (ma - mi + eps)
+    x = (x - mi) / (ma - mi + eps)
 
     return x
 

@@ -252,7 +252,7 @@ class Augmentation3D(object):
     def _flip_data(self, data, parse_dict):
         """flip array along specified axis(x, y or z)"""
         data = np.expand_dims(data,0)
-        return np.flip(data, parse_dict['flip_axis'])
+        return np.flip(data, parse_dict['flip_axis'])[0,...]
 
     def _shift_data(self, data, parse_dict):
         """shift array by specified range along specified axis(x, y or z)"""
@@ -320,7 +320,7 @@ class Augmentation3D(object):
         else:
             raise ValueError('rotate axis should be 1, 2 or 3')
         data = np.expand_dims(data,0)
-        return rotate(data, axes=ax_tup, angle=parse_dict['rotate_angle'], cval=0.0, reshape=False)
+        return rotate(data, axes=ax_tup, angle=parse_dict['rotate_angle'], cval=0.0, reshape=False)[0,...]
 
     def _duplicate_data(self, data, parse_dict):
 
