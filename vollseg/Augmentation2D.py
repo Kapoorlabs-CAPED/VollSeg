@@ -112,7 +112,7 @@ class Augmentation2D(object):
 
         parse_dict = {}
         callback = None
-        callbacl_poisson = None
+        callback_poisson = None
         #pixel_duplicator
         if self.size is not None:
             callback = self._duplicate_data

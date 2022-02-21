@@ -113,7 +113,7 @@ class Augmentation3D(object):
 
         parse_dict = {}
         callback = None
-        callbacl_poisson = None
+        callback_poisson = None
         #pixel_duplicator
         if self.size is not None:
             callback = self._duplicate_data
@@ -193,6 +193,8 @@ class Augmentation3D(object):
         # build and return generator with specified callback function
         if callback:
             return self._return_generator(callback, parse_dict)
+        if callback_poisson:
+             return self._return_generator_poisson(callback_poisson, parse_dict)       
         else:
             raise ValueError('No generator returned. Arguments are not set properly.')
 
