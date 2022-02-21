@@ -29,7 +29,6 @@ from csbdeep.io import load_training_data
 from csbdeep.utils import axes_dict
 from csbdeep.models import Config, CARE
 from tifffile import imread
-from six.moves import range, zip
 from tensorflow.keras.utils import Sequence
 from csbdeep.data import RawData, create_patches
 from skimage.measure import label, regionprops
@@ -221,7 +220,8 @@ class SmartSeeds3D(object):
                         for fname in RealfilesMask:
                     
                             image = imread(fname)
-                            image = erode_labels(image, self.erosion_iterations)
+                            if self.erosion_iterations > 0:
+                               image = erode_labels(image, self.erosion_iterations)
                             Name = os.path.basename(os.path.splitext(fname)[0])
                     
                             Binaryimage = image > 0
@@ -258,7 +258,7 @@ class SmartSeeds3D(object):
                             print(config)
                             vars(config)
                             
-                            model = CARE(config , name = 'UNET' + self.model_name, base_dir = self.model_dir)
+                            model = CARE(config , name = 'UNET' + self.model_name, basedir = self.model_dir)
                                  
                            
                             
@@ -374,7 +374,7 @@ class SmartSeeds3D(object):
                             vars(conf)
                                  
                                 
-                            Starmodel = StarDist3D(conf, name=self.model_name, base_dir=self.model_dir)
+                            Starmodel = StarDist3D(conf, name=self.model_name, basedir=self.model_dir)
                             print(Starmodel._axes_tile_overlap('ZYX'), os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5'))                            
                                  
                                  

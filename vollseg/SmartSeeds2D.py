@@ -25,6 +25,8 @@ from vollseg.helpers import normalizeZero255
 from stardist.models import Config2D, StarDist2D
 from tensorflow.keras.utils import Sequence
 from tqdm import tqdm
+from skimage.measure import label, regionprops
+from scipy import ndimage
 from pathlib import Path
 import cv2
     
@@ -223,7 +225,8 @@ class SmartSeeds2D(object):
                         for fname in RealfilesMask:
                     
                             image = imread(fname)
-                            image = erode_labels(image, self.erosion_iterations)
+                            if self.erosion_iterations > 0:
+                               image = erode_labels(image, self.erosion_iterations)
                             Name = os.path.basename(os.path.splitext(fname)[0])
                             Binaryimage = image > 0
                             imwrite((self.base_dir + self.binary_erode_mask_dir + Name + '.tif'), Binaryimage.astype('uint16'))
@@ -266,8 +269,8 @@ class SmartSeeds2D(object):
                              if self.train_seed_unet:
                                     raw_data = RawData.from_folder (
                                     basepath    = self.base_dir,
-                                    source_dirs = ['Raw/'],
-                                    target_dir  = ErodeBinaryName,
+                                    source_dirs = [self.raw_dir],
+                                    target_dir  = self.binary_erode_mask_dir,
                                     axes        = 'YXC',
                                     )
                                 
@@ -286,8 +289,8 @@ class SmartSeeds2D(object):
                       else:
                               raw_data = RawData.from_folder (
                               basepath    = self.base_dir,
-                              source_dirs = ['Raw/'],
-                              target_dir  = BinaryName,
+                              source_dirs = [self.raw_dir],
+                              target_dir  = self.binary_mask_dir,
                               axes        = 'YX',
                                )
                             
@@ -301,8 +304,8 @@ class SmartSeeds2D(object):
                               if self.train_seed_unet:
                                     raw_data = RawData.from_folder (
                                     basepath    = self.base_dir,
-                                    source_dirs = ['Raw/'],
-                                    target_dir  = ErodeBinaryName,
+                                    source_dirs = [self.raw_dir],
+                                    target_dir  = self.binary_erode_mask_dir,
                                     axes        = 'YX',
                                     )
                                     
@@ -377,7 +380,7 @@ class SmartSeeds2D(object):
                                 vars(conf)
                              
                             
-                                Starmodel = StarDist2D(conf, name=self.model_name, base_dir=self.model_dir)
+                                Starmodel = StarDist2D(conf, name=self.model_name, basedir=self.model_dir)
                                 
                                 if os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5'):
                                     print('Loading checkpoint model')
@@ -406,7 +409,7 @@ class SmartSeeds2D(object):
                                     print(config)
                                     vars(config)
                                     
-                                    model = CARE(config , name = 'UNET' + self.model_name, base_dir = self.model_dir)
+                                    model = CARE(config , name = 'UNET' + self.model_name, basedir = self.model_dir)
                                     
                                     if self.copy_model_dir is not None:   
                                       if os.path.exists(self.copy_model_dir + 'UNET' + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_now.h5') == False:
@@ -443,7 +446,7 @@ class SmartSeeds2D(object):
                                     print(config)
                                     vars(config)
                                     
-                                    model = CARE(config , name = 'SeedUNET' + self.model_name, base_dir = self.model_dir)
+                                    model = CARE(config , name = 'SeedUNET' + self.model_name, basedir = self.model_dir)
                                     
                                     
                                     
