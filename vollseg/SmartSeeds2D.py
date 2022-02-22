@@ -226,7 +226,7 @@ class SmartSeeds2D(object):
                     
                             image = imread(fname)
                             if self.erosion_iterations > 0:
-                               image = erode_labels(image, self.erosion_iterations)
+                               image = erode_labels(image.astype('uint16'), self.erosion_iterations)
                             Name = os.path.basename(os.path.splitext(fname)[0])
                             Binaryimage = image > 0
                             imwrite((self.base_dir + self.binary_erode_mask_dir + Name + '.tif'), Binaryimage.astype('uint16'))
