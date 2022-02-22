@@ -734,16 +734,16 @@ def Region_embedding(image, region, sourceimage):
     returnimage = np.zeros(image.shape)
 
     if len(image.shape) == 2:
-        rowstart = region[1]
-        colstart = region[0]
-        endrow = region[3]
-        endcol = region[2]
+        rowstart = region[0]
+        colstart = region[1]
+        endrow = region[2]
+        endcol = region[3]
         returnimage[rowstart:endrow, colstart:endcol] = sourceimage
     if len(image.shape) == 3:
-        rowstart = region[1]
-        colstart = region[0]
-        endrow = region[3]
-        endcol = region[2]
+        rowstart = region[0]
+        colstart = region[1]
+        endrow = region[2]
+        endcol = region[3]
         returnimage[0:image.shape[0], rowstart:endrow,
                     colstart:endcol] = sourceimage
 
@@ -911,12 +911,13 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
         Path(save_dir).mkdir(exist_ok=True)
         Path(denoised_results).mkdir(exist_ok=True)
         Path(unet_results).mkdir(exist_ok=True)
+    ndim = len(image.shape)    
     if roi_model is None:
         if RGB:
             if n_tiles is not None:
                 n_tiles = (n_tiles[0], n_tiles[1], 1)
 
-        ndim = len(image.shape)
+        
 
         if noise_model is not None:
             image = noise_model.predict(image, axes, n_tiles=n_tiles)
