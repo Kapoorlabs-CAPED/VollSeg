@@ -843,7 +843,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
             Mask = remove_small_objects(
                 Mask.astype('uint16'), min_size=min_size_mask)
             Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
-
+            Mask_patch = Mask.copy()
             Mask = Region_embedding(image, roi_bbox, Mask)
 
     elif noise_model is not None and dounet == False:
@@ -862,6 +862,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
         Mask = remove_small_objects(
             Mask.astype('uint16'), min_size=min_size_mask)
         Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
+        Mask_patch = Mask.copy()
         Mask = Region_embedding(image, roi_bbox, Mask)
     if save_dir is not None:
         imwrite((unet_results + Name + '.tif'), Mask.astype('uint16'))
@@ -870,7 +871,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
     if RGB:
         Mask = Mask[:, :, 0]
     smart_seeds, Markers, star_labels, proabability_map = SuperSTARPrediction(
-        patch, star_model, n_tiles, unet_mask=Mask, UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, RGB=RGB, seedpool=seedpool)
+        patch, star_model, n_tiles, unet_mask=Mask_patch = Mask.copy(), UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, RGB=RGB, seedpool=seedpool)
     smart_seeds = remove_small_objects(
         smart_seeds.astype('uint16'), min_size=min_size)
     smart_seeds = remove_big_objects(
@@ -1286,7 +1287,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                     Mask[i, :].astype('uint16'), min_size=min_size_mask)
                 Mask[i, :] = remove_big_objects(
                     Mask[i, :].astype('uint16'), max_size=max_size)
-
+            Mask_patch = Mask.copy()
             Mask = Region_embedding(image, roi_bbox, Mask)
             if slice_merge:
                 Mask = match_labels(Mask, iou_threshold=iou_threshold)
@@ -1321,6 +1322,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             Mask = match_labels(Mask, iou_threshold=iou_threshold)
         else:
             Mask = label(Mask > 0)
+        Mask_patch = Mask.copy()    
         Mask = Region_embedding(image, roi_bbox, Mask)
         SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
 
@@ -1330,7 +1332,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
     print('Stardist segmentation on Image')
 
     smart_seeds, proabability_map, star_labels, Markers = STARPrediction3D(
-        patch, star_model,  n_tiles, unet_mask=Mask, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+        patch, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     print('Removing small/large objects')
     for i in tqdm(range(0, smart_seeds.shape[0])):
         smart_seeds[i, :] = remove_small_objects(
