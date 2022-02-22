@@ -871,7 +871,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
     if RGB:
         Mask = Mask[:, :, 0]
     smart_seeds, Markers, star_labels, proabability_map = SuperSTARPrediction(
-        patch, star_model, n_tiles, unet_mask=Mask_patch = Mask.copy(), UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, RGB=RGB, seedpool=seedpool)
+        patch, star_model, n_tiles, unet_mask=Mask_patch.copy(), UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, RGB=RGB, seedpool=seedpool)
     smart_seeds = remove_small_objects(
         smart_seeds.astype('uint16'), min_size=min_size)
     smart_seeds = remove_big_objects(
