@@ -1303,11 +1303,11 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 thresholds = threshold_multiotsu(patch[i, :], classes=4)
 
                 # Using the threshold values, we generate the three regions.
-                regions = np.digitize(image[i, :], bins=thresholds)
+                regions = np.digitize(patch[i, :], bins=thresholds)
 
             except:
 
-                regions = image[i, :]
+                regions = patch[i, :]
 
             Mask[i, :] = regions > 0
             Mask[i, :] = label(Mask[i, :])
