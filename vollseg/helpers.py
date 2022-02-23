@@ -772,10 +772,6 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
         Path(unet_results).mkdir(exist_ok=True)
         Path(probability_results).mkdir(exist_ok=True)
         Path(marker_results).mkdir(exist_ok=True)
-    if donormalize:
-        image_star = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
-    else:
-        image_star = image
     if star_model is not None:
         nms_thresh = star_model.thresholds[1]
     elif nms_thresh is not None:
@@ -873,8 +869,12 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
     print('Stardist segmentation on Image')
     if RGB:
         Mask = Mask[:, :, 0]
+    if donormalize:
+        patch_star = normalize(patch, lower_perc, upper_perc, axis=(0, 1, 2)) 
+    else:
+        patch_star = patch    
     smart_seeds, Markers, star_labels, proabability_map = SuperSTARPrediction(
-        patch, star_model, n_tiles, unet_mask=Mask_patch.copy(), UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, RGB=RGB, seedpool=seedpool)
+        patch_star, star_model, n_tiles, unet_mask=Mask_patch.copy(), UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, RGB=RGB, seedpool=seedpool)
     smart_seeds = remove_small_objects(
         smart_seeds.astype('uint16'), min_size=min_size)
     smart_seeds = remove_big_objects(
@@ -1197,10 +1197,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
     Sizedstardist = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Mask = None
 
-    if donormalize:
-        image_star = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
-    else:
-        image_star = image
+    
     if noise_model is not None:
         print('Denoising Image')
 
@@ -1245,7 +1242,6 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                       slice(colstart, endcol))
         # The actual pixels in that region.
         patch = image[region]
-        patch_star = image_star[region]
     
     elif roi_image is not None:
         if len(roi_image.shape) < len(image.shape):
@@ -1258,7 +1254,6 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                       slice(colstart, endcol))
             # The actual pixels in that region.
             patch = image[region]
-            patch_star = image_star[region]
         elif len(roi_image.shape) == len(image.shape):
 
             roi_bbox = Bbox_region(roi_image)
@@ -1272,12 +1267,10 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                       slice(colstart, endcol))
             # The actual pixels in that region.
             patch = image[region]
-            patch_star = image_star[region]
 
     else:
 
         patch = image
-        patch_star = image_star[region]
         region = (slice(0, image.shape[0]), slice(0, image.shape[1]),
                   slice(0, image.shape[2]))
         rowstart = 0
@@ -1342,7 +1335,10 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         imwrite((unet_results + Name + '.tif'),
                 SizedMask.astype('uint16'))
     print('Stardist segmentation on Image')
-    
+    if donormalize:
+        patch_star = normalize(patch, lower_perc, upper_perc, axis=(0, 1, 2)) 
+    else:
+        patch_star = patch
     smart_seeds, proabability_map, star_labels, Markers = STARPrediction3D(
         patch_star, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     print('Removing small/large objects')
@@ -1670,7 +1666,7 @@ def RemoveLabels(LabelImage, minZ=2):
     return LabelImage
 
 
-def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=0.2, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None):
+def STARPrediction3D(image, model, n_tiles, unet_mask=None,  UseProbability=True, globalthreshold=0.2, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None):
 
     copymodel = model
     shape = [image.shape[1], image.shape[2]]
