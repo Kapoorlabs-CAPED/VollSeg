@@ -751,7 +751,7 @@ def Region_embedding(image, region, sourceimage):
 
 
 def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, roi_image=None, prob_thresh=None, nms_thresh=None, axes='YX', min_size_mask=5, min_size=5,
-              max_size=10000000, dounet=True, n_tiles=(2, 2), UseProbability=True, RGB=False, save_dir=None, Name='Result', seedpool=True, radius=15):
+              max_size=10000000, dounet=True, n_tiles=(2, 2),  donormalize=True, lower_perc=1, upper_perc=99.8, UseProbability=True, RGB=False, save_dir=None, Name='Result', seedpool=True, radius=15):
 
     print('Generating SmartSeed results')
 
@@ -772,7 +772,10 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
         Path(unet_results).mkdir(exist_ok=True)
         Path(probability_results).mkdir(exist_ok=True)
         Path(marker_results).mkdir(exist_ok=True)
-
+    if donormalize:
+        image_star = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
+    else:
+        image_star = image
     if star_model is not None:
         nms_thresh = star_model.thresholds[1]
     elif nms_thresh is not None:
@@ -1045,7 +1048,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
 
 def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=None, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-            n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, RGB=False):
+            n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=0.2,  extent=0,  donormalize=True, lower_perc=1, upper_perc=99.8, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, RGB=False):
 
     if len(image.shape) == 2:
 
@@ -1056,7 +1059,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=
         # If stardist model is supplied we use this method
         if star_model is not None:
 
-            res = VollSeg2D(image, unet_model, star_model, roi_model=roi_model, roi_image=roi_image, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, axes=axes, min_size_mask=min_size_mask, min_size=min_size,
+            res = VollSeg2D(image, unet_model, star_model, roi_model=roi_model, roi_image=roi_image, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh,  donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, axes=axes, min_size_mask=min_size_mask, min_size=min_size,
                             max_size=max_size, dounet=dounet, n_tiles=n_tiles, UseProbability=UseProbability, RGB=RGB, save_dir=None, Name=Name)
 
         # If there is no stardist model we use unet model or denoising model or both to get the semantic segmentation
@@ -1067,7 +1070,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=
     if len(image.shape) == 3 and 'T' not in axes:
         # this is a 3D image and if stardist model is supplied we use this method
         if star_model is not None:
-            res = VollSeg3D(image,  unet_model, star_model, roi_model=roi_model, roi_image=roi_image, axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
+            res = VollSeg3D(image,  unet_model, star_model, roi_model=roi_model, roi_image=roi_image, axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
                             n_tiles=n_tiles, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, dounet=dounet, seedpool=seedpool, save_dir=None, Name=Name,  startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
 
         # If there is no stardist model we use unet model with or without denoising model
@@ -1082,7 +1085,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=
         if star_model is not None:
             res = tuple(
                 zip(
-                    *tuple(VollSeg2D(_x, unet_model, star_model, noise_model=noise_model, roi_model=roi_model, roi_image=roi_image, prob_thresh=prob_thresh, nms_thresh=nms_thresh, axes=axes, min_size_mask=min_size_mask, min_size=min_size,
+                    *tuple(VollSeg2D(_x, unet_model, star_model, noise_model=noise_model, roi_model=roi_model, roi_image=roi_image, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, axes=axes, min_size_mask=min_size_mask, min_size=min_size,
                                      max_size=max_size, dounet=dounet, n_tiles=n_tiles, UseProbability=UseProbability, RGB=RGB, save_dir=None, Name=Name) for _x in tqdm(image))))
         if star_model is None:
 
@@ -1094,7 +1097,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=
             n_tiles = (n_tiles[1], n_tiles[2], n_tiles[3])
         res = tuple(
             zip(
-                *tuple(VollSeg3D(_x,  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model, roi_image=roi_image, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
+                *tuple(VollSeg3D(_x,  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model, roi_image=roi_image, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
                                  n_tiles=n_tiles, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent,
                                  dounet=dounet, seedpool=seedpool, save_dir=None, Name=Name,  startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for _x in tqdm(image))))
 
@@ -1162,7 +1165,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, roi_image=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius=15):
+              n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, save_dir=None, donormalize=True, lower_perc=1, upper_perc=99.8, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius=15):
 
     if save_dir is not None:
 
@@ -1193,6 +1196,11 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
     Sizedmarkers = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Sizedstardist = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Mask = None
+
+    if donormalize:
+        image_star = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
+    else:
+        image_star = image
     if noise_model is not None:
         print('Denoising Image')
 
@@ -1237,7 +1245,8 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                       slice(colstart, endcol))
         # The actual pixels in that region.
         patch = image[region]
-
+        patch_star = image_star[region]
+    
     elif roi_image is not None:
         if len(roi_image.shape) < len(image.shape):
             roi_bbox = Bbox_region(roi_image)
@@ -1249,6 +1258,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                       slice(colstart, endcol))
             # The actual pixels in that region.
             patch = image[region]
+            patch_star = image_star[region]
         elif len(roi_image.shape) == len(image.shape):
 
             roi_bbox = Bbox_region(roi_image)
@@ -1262,11 +1272,12 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                       slice(colstart, endcol))
             # The actual pixels in that region.
             patch = image[region]
+            patch_star = image_star[region]
 
     else:
 
         patch = image
-
+        patch_star = image_star[region]
         region = (slice(0, image.shape[0]), slice(0, image.shape[1]),
                   slice(0, image.shape[2]))
         rowstart = 0
@@ -1274,10 +1285,11 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         endrow = image.shape[1]
         endcol = image.shape[2]
         roi_bbox = [colstart, rowstart, endcol, endrow]
+
     if dounet:
 
         if unet_model is not None:
-            print('UNET segmentation on Image')
+            print('UNET segmentation on Image',  patch.shape)
 
             Mask = UNETPrediction3D(patch, unet_model, n_tiles, 'ZYX',
                                     iou_threshold=iou_threshold, slice_merge=slice_merge)
@@ -1330,9 +1342,9 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         imwrite((unet_results + Name + '.tif'),
                 SizedMask.astype('uint16'))
     print('Stardist segmentation on Image')
-
+    
     smart_seeds, proabability_map, star_labels, Markers = STARPrediction3D(
-        patch, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+        patch_star, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     print('Removing small/large objects')
     for i in tqdm(range(0, smart_seeds.shape[0])):
         smart_seeds[i, :] = remove_small_objects(
@@ -1658,11 +1670,9 @@ def RemoveLabels(LabelImage, minZ=2):
     return LabelImage
 
 
-def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=0.2, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None, donormalize=False, lower_perc=1, upper_perc=99.8):
+def STARPrediction3D(image, model, n_tiles, unet_mask=None, smartcorrection=None, UseProbability=True, globalthreshold=0.2, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None):
 
     copymodel = model
-    if donormalize:
-        image = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2))
     shape = [image.shape[1], image.shape[2]]
     image = zero_pad_time(image, 64, 64)
     grid = copymodel.config.grid
