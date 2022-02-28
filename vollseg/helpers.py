@@ -925,9 +925,11 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
     if save_dir is not None:
         unet_results = save_dir + 'BinaryMask/'
         denoised_results = save_dir + 'Denoised/'
+        skel_unet_results = save_dir + 'Skeleton/'
         Path(save_dir).mkdir(exist_ok=True)
         Path(denoised_results).mkdir(exist_ok=True)
         Path(unet_results).mkdir(exist_ok=True)
+        Path(skel_unet_results).mkdir(exist_ok=True)
     ndim = len(image.shape)    
     if roi_model is None:
         if RGB:
@@ -1056,7 +1058,9 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                         Finalimage.astype('uint16'))
 
             Skeleton = skeletonize(find_boundaries(Finalimage > 0))
-
+            if save_dir is not None:
+                imwrite((skel_unet_results + Name + '.tif'),
+                        Skeleton.astype('uint16'))
         return Finalimage.astype('uint16'), Skeleton, image
 
 
