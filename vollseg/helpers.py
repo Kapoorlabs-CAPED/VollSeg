@@ -1122,9 +1122,10 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=
 
         if unet_model is not None:
             unet_results = save_dir + 'BinaryMask/'
+            skel_unet_results = save_dir + 'Skeleton/'
             Path(unet_results).mkdir(exist_ok=True)
-            Path(skel_results).mkdir(exist_ok=True)
-            skel_unet_results = save_dir + 'Skeleton/' 
+            Path(skel_unet_results).mkdir(exist_ok=True)
+             
             imwrite((unet_results + Name + '.tif'),
                     SizedMask.astype('uint16'))
             imwrite((skel_unet_results + Name + '.tif'),
