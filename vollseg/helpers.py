@@ -922,14 +922,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
 
 def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet=True, save_dir=None, Name='Result', radius=15):
 
-    if save_dir is not None:
-        unet_results = save_dir + 'BinaryMask/'
-        denoised_results = save_dir + 'Denoised/'
-        skel_unet_results = save_dir + 'Skeleton/'
-        Path(save_dir).mkdir(exist_ok=True)
-        Path(denoised_results).mkdir(exist_ok=True)
-        Path(unet_results).mkdir(exist_ok=True)
-        Path(skel_unet_results).mkdir(exist_ok=True)
+    
     ndim = len(image.shape)    
     if roi_model is None:
         if RGB:
@@ -951,9 +944,6 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                 for z, y, x in indices:
 
                     image[z, y, x] = 0
-            if save_dir is not None:
-                imwrite((denoised_results + Name + '.tif'),
-                        image.astype('float32'))
         if dounet and unet_model is not None:
             Segmented = unet_model.predict(image, axes, n_tiles=n_tiles)
         else:
@@ -990,12 +980,9 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Binary = match_labels(Binary, iou_threshold=iou_threshold)
             Binary = fill_label_holes(Binary)
         Finalimage = relabel_sequential(Binary)[0]
-        if save_dir is not None:
-            imwrite((unet_results + Name + '.tif'),
-                    Finalimage.astype('uint16'))
 
         Skeleton = skeletonize(Finalimage > 0)
-        return Finalimage.astype('uint16'), Skeleton, image
+        
     elif roi_model is not None:
 
         if noise_model is not None:
@@ -1011,9 +998,6 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                 for z, y, x in indices:
 
                     image[z, y, x] = 0
-            if save_dir is not None:
-                imwrite((denoised_results + Name + '.tif'),
-                        image.astype('float32'))
         model_dim = roi_model.config.n_dim
         if model_dim < len(image.shape):
             if len(n_tiles) == len(image.shape):
@@ -1032,9 +1016,6 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Binary = fill_label_holes(Binary)
 
             Finalimage = relabel_sequential(Binary)[0]
-            if save_dir is not None:
-                imwrite((unet_results + Name + '.tif'),
-                        Finalimage.astype('uint16'))
 
             Skeleton = skeletonize(find_boundaries(Finalimage > 0))
         elif model_dim == len(image.shape):
@@ -1053,15 +1034,9 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                 Binary = match_labels(Binary, iou_threshold=iou_threshold)
                 Binary = fill_label_holes(Binary)
             Finalimage = relabel_sequential(Binary)[0]
-            if save_dir is not None:
-                imwrite((unet_results + Name + '.tif'),
-                        Finalimage.astype('uint16'))
 
             Skeleton = skeletonize(find_boundaries(Finalimage > 0))
         
-    if save_dir is not None:
-                imwrite((skel_unet_results + Name + '.tif'),
-                        Skeleton.astype('uint16'))
 
 
 
@@ -1148,9 +1123,12 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=
         if unet_model is not None:
             unet_results = save_dir + 'BinaryMask/'
             Path(unet_results).mkdir(exist_ok=True)
-
+            Path(skel_results).mkdir(exist_ok=True)
+            skel_unet_results = save_dir + 'Skeleton/' 
             imwrite((unet_results + Name + '.tif'),
                     SizedMask.astype('uint16'))
+            imwrite((skel_unet_results + Name + '.tif'),
+                    Skeleton.astype('uint16'))        
         if star_model is not None:
             vollseg_results = save_dir + 'VollSeg/'
             stardist_results = save_dir + 'StarDist/'
@@ -1197,23 +1175,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, roi_image=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
               n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, save_dir=None, donormalize=True, lower_perc=1, upper_perc=99.8, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius=15):
 
-    if save_dir is not None:
-
-        unet_results = save_dir + 'BinaryMask/'
-        vollseg_results = save_dir + 'VollSeg/'
-        stardist_results = save_dir + 'StarDist/'
-        denoised_results = save_dir + 'Denoised/'
-        probability_results = save_dir + 'Probability/'
-        marker_results = save_dir + 'Markers/'
-        skel_results = save_dir + 'Skeleton/'
-        Path(save_dir).mkdir(exist_ok=True)
-        Path(skel_results).mkdir(exist_ok=True)
-        Path(denoised_results).mkdir(exist_ok=True)
-        Path(vollseg_results).mkdir(exist_ok=True)
-        Path(stardist_results).mkdir(exist_ok=True)
-        Path(unet_results).mkdir(exist_ok=True)
-        Path(probability_results).mkdir(exist_ok=True)
-        Path(marker_results).mkdir(exist_ok=True)
+   
 
     print('Generating VollSeg results')
     sizeZ = image.shape[0]
@@ -1235,9 +1197,6 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         indices = zip(*np.where(image < 0))
         for z, y, x in indices:
             image[z, y, x] = 0
-        if save_dir is not None:
-            imwrite((denoised_results + Name + '.tif'),
-                    image.astype('float32'))
 
     if roi_model is not None:
 
@@ -1361,9 +1320,6 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         Mask = Region_embedding(image, roi_bbox, Mask)
         SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
 
-    if save_dir is not None:
-        imwrite((unet_results + Name + '.tif'),
-                SizedMask.astype('uint16'))
     print('Stardist segmentation on Image')
     if donormalize:
         patch_star = normalize(patch, lower_perc, upper_perc, axis=axes) 
@@ -1399,16 +1355,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                                    Sizedproabability_map[i, :])
     Skeleton = Skeleton > 0
 
-    if save_dir is not None:
-        print('Saving Results and Done')
-        imwrite((stardist_results + Name + '.tif'),
-                star_labels.astype('uint16'))
-        imwrite((vollseg_results + Name + '.tif'),
-                Sizedsmart_seeds.astype('uint16'))
-        imwrite((probability_results + Name + '.tif'),
-                proabability_map.astype('float32'))
-        imwrite((marker_results + Name + '.tif'), Markers.astype('uint16'))
-        imwrite((skel_results + Name + '.tif'), Skeleton)
+   
     if noise_model == None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype(R'uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16')
     else:
