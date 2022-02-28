@@ -1058,10 +1058,14 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                         Finalimage.astype('uint16'))
 
             Skeleton = skeletonize(find_boundaries(Finalimage > 0))
-            if save_dir is not None:
+        
+    if save_dir is not None:
                 imwrite((skel_unet_results + Name + '.tif'),
                         Skeleton.astype('uint16'))
-        return Finalimage.astype('uint16'), Skeleton, image
+
+
+
+    return Finalimage.astype('uint16'), Skeleton, image
 
 
 def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=None, axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
