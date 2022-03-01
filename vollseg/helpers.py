@@ -447,7 +447,7 @@ def NotumSeededQueen(save_dir, fname, denoising_model, projection_model, unet_mo
                               min_size=min_size, n_tiles=(n_tiles[1], n_tiles[2]), UseProbability=UseProbability)
 
 
-def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarModel, min_size=5, n_tiles=(2, 2), UseProbability=True):
+def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarModel, min_size=5, n_tiles=(2, 2),donormalize = True, lower_perc = 1.0, upper_perc = 99.8, UseProbability=True):
 
     print('Generating SmartSeed results')
 
@@ -472,7 +472,8 @@ def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarM
 
     OverAllMask = SuperUNETPrediction(image, MaskModel, n_tiles, 'YX')
     Mask = SuperUNETPrediction(image, UnetModel, n_tiles, 'YX')
-
+    if donormalize:
+        image = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
     # Smart Seed prediction
     smart_seeds, Markers, star_labels, ProbImage = SuperSTARPrediction(
         image, StarModel, n_tiles, unet_mask=Mask, OverAllunet_mask=OverAllMask, UseProbability=UseProbability)
@@ -581,7 +582,7 @@ def NotumKing(save_dir, filesRaw, denoising_model, projection_model, unet_model,
                   UseProbability=UseProbability, dounet=dounet, seedpool=seedpool, axes='ZYX', save_dir=save_dir, Name=Name)
 
 
-def NotumSegmentation2D(save_dir, image, fname, mask_model, star_model, min_size=5, n_tiles=(2, 2), UseProbability=True):
+def NotumSegmentation2D(save_dir, image, fname, mask_model, star_model, min_size=5, donormalize = True, lower_perc = 1.0, upper_perc = 99.8, n_tiles=(2, 2), UseProbability=True):
 
     print('Generating SmartSeed results')
     Path(save_dir).mkdir(exist_ok=True)
@@ -603,7 +604,8 @@ def NotumSegmentation2D(save_dir, image, fname, mask_model, star_model, min_size
     # U-net prediction
 
     OverAllMask = SuperUNETPrediction(image, mask_model, n_tiles, 'YX')
-
+    if donormalize:
+        image = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
     # Smart Seed prediction
     smart_seeds, Markers, star_labels, ProbImage = SuperSTARPrediction(
         image, star_model, n_tiles, unet_mask=OverAllMask, OverAllunet_mask=OverAllMask, UseProbability=UseProbability)
@@ -800,7 +802,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
             imwrite((denoised_results + Name + '.tif'),
                     image.astype('float32'))
     Mask = None
-
+    Mask_patch = None
     if roi_model is not None:
         model_dim = roi_model.config.n_dim
         assert model_dim == len(
@@ -1189,8 +1191,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
     Sizedmarkers = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Sizedstardist = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Mask = None
-
-    
+    Mask_patch = None
     if noise_model is not None:
         print('Denoising Image')
 
@@ -1323,7 +1324,8 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
 
     print('Stardist segmentation on Image')
     if donormalize:
-        patch_star = normalize(patch, lower_perc, upper_perc, axis=axes) 
+        
+        patch_star = normalize(patch, lower_perc, upper_perc, axis= (0,1,2)) 
     else:
         patch_star = patch
 
@@ -1542,10 +1544,8 @@ def RelabelZ(previousImage, currentImage, threshold):
     return relabelimage
 
 
-def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None, RGB=False, seedpool=True, donormalize=False, lower_perc=1, upper_perc=99.8):
+def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None):
 
-    if donormalize:
-        image = normalize(image, lower_perc, upper_perc, axis=(0, 1))
 
     shape = [image.shape[0], image.shape[1]]
 
@@ -1653,7 +1653,10 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     grid = copymodel.config.grid
 
     print('Predicting Instances')
+
     if prob_thresh is not None and nms_thresh is not None:
+
+        print(f'Using user choice of prob_thresh = {prob_thresh} and nms_thresh = {nms_thresh}')
         res = model.predict_vollseg(
             image, axes = axes, n_tiles=n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     else:
