@@ -916,7 +916,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), image
 
 
-def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0, slice_merge=False, dounet=True, save_dir=None, Name='Result', radius=15):
+def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0.3, slice_merge=False, dounet=True, save_dir=None, Name='Result', radius=15):
 
     
     ndim = len(image.shape)    
@@ -1170,7 +1170,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None, roi_image=
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, roi_image=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, save_dir=None, donormalize=True, lower_perc=1, upper_perc=99.8, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0, radius=15):
+              n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
 
    
 
@@ -1589,7 +1589,7 @@ def CleanMask(star_labels, OverAllunet_mask):
     return OverAllunet_mask
 
 
-def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0, slice_merge=False, radius=15):
+def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge=False):
 
     Segmented = model.predict(image, axis, n_tiles=n_tiles)
 
