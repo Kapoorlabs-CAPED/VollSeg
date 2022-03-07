@@ -247,13 +247,7 @@ def poisson_noise(x, mu):
     return x
 
 
-def _fill_label_holes(lbl_img, **kwargs):
-    lbl_img_filled = np.zeros_like(lbl_img)
-    for l in (set(np.unique(lbl_img)) - set([0])):
-        mask = lbl_img == l
-        mask_filled = binary_fill_holes(mask, **kwargs)
-        lbl_img_filled[mask_filled] = l
-    return lbl_img_filled
+
 
 
 def fill_label_holes(lbl_img, **kwargs):
@@ -644,7 +638,7 @@ def SmartSkel(smart_seedsLabels, ProbImage):
     return Skeleton
 
 
-def SuperWatershedwithMask(Image, Label, mask, grid):
+def SuperWatershedwithMask(Image, Label, mask):
 
     properties = measure.regionprops(Label, Image)
     binaryproperties = measure.regionprops(label(mask), Image)
@@ -1286,7 +1280,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             Mask_patch = Mask.copy()
             Mask = Region_embedding(image, roi_bbox, Mask)
             if slice_merge:
-                Mask = match_labels(Mask, iou_threshold=iou_threshold)
+                Mask = match_labels(Mask.astype('uint16'), iou_threshold=iou_threshold)
             else:
                 Mask = label(Mask > 0)
             SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
@@ -1481,7 +1475,7 @@ def DownsampleData(image, DownsampleFactor):
         return image
 
 
-def SuperUNETPrediction(image, model, n_tiles, axis, threshold=20, radius=15):
+def SuperUNETPrediction(image, model, n_tiles, axis):
 
     Segmented = model.predict(image, axis, n_tiles=n_tiles)
 

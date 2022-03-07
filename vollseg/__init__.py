@@ -39,6 +39,8 @@ register_model(MASKUNET,   'Xenopus_Tissue_Segmentation',  'https://zenodo.org/r
 register_model(UNET,   'Unet_Cyto_White_Blood_Cells',  'https://zenodo.org/record/5815603/files/UNETcytoWBC.zip', 'dd3bf8b8e2a04536144954e882445a5e') 
 register_model(MASKUNET,   'Unet_Lung_Segmentation',  'https://zenodo.org/record/6060177/files/Montgomery_county.zip', 'be41937a00693e28961358440d242417') 
 
+
+
 register_aliases(StarDist3D, 'Ascadian_Embryo_Model_A',   'Ascadian_Embryo_Model_A')
 register_aliases(UNET, 'Unet_Ascadian_Embryo_Model_A',  'Unet_Ascadian_Embryo_Model_A')
 register_aliases(StarDist2D, 'White_Blood_Cells',   'White_Blood_Cells')
