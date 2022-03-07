@@ -1573,18 +1573,24 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
         regions = Segmented
 
     Binary = regions > 0
+
     Binary = label(Binary)
     ndim = len(image.shape)
+    if ndim == 3:
+        for i in range(image.shape[0]):
+            Binary[i, :] = binary_erosion(Binary[i, :], iterations = 2)
+    if ndim == 2:
+            Binary = binary_erosion(Binary, iterations = 2)    
     if ndim == 3 and slice_merge:
         for i in range(image.shape[0]):
             Binary[i, :] = label(Binary[i, :])
         Binary = match_labels(Binary.astype('uint16'),
                               iou_threshold=iou_threshold)
-
+        
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
     Finalimage = relabel_sequential(Finalimage)[0]
-
+    Finalimage = expand_labels(Finalimage, distance = 2)
     return Finalimage
 
 
