@@ -28,9 +28,8 @@ register_model(CARE,   'Denoise_3D_cells',  'https://zenodo.org/record/5813521/f
 
 register_model(CARE,   'Denoise_carcinoma',  'https://zenodo.org/record/5910645/files/denoise_carcinoma.zip', 'fd33199738f0b17761272118cbffdf04')     
 
-register_model(StarDist3D,   'Ascadian_Embryo_Model_A',  'https://zenodo.org/record/5825801/files/Ascadian_large_td.zip', 'f59ea5a15eebc9832aded8e4f40e7298')
 
-register_model(UNET,   'Unet_Ascadian_Embryo_Model_A',  'https://zenodo.org/record/5825808/files/UnetAscadian_large_td.zip', 'bd04a44a43516dd901d6317de65a6cab')
+register_model(UNET,   'Embryo Cell Model (3D)',  'https://zenodo.org/record/6337699/files/embryo_cell_model.zip', 'c84fdec38a5b3cc6c1869c94ff23f3b')
 
 register_model(StarDist2D,   'White_Blood_Cells',  'https://zenodo.org/record/5815521/files/WBCSeg.zip', '7889f5902d8562766a4dee2726c90d49')
 
@@ -41,8 +40,7 @@ register_model(MASKUNET,   'Unet_Lung_Segmentation',  'https://zenodo.org/record
 
 
 
-register_aliases(StarDist3D, 'Ascadian_Embryo_Model_A',   'Ascadian_Embryo_Model_A')
-register_aliases(UNET, 'Unet_Ascadian_Embryo_Model_A',  'Unet_Ascadian_Embryo_Model_A')
+register_aliases(UNET, 'Embryo Cell Model (3D)',  'Embryo Cell Model (3D)')
 register_aliases(StarDist2D, 'White_Blood_Cells',   'White_Blood_Cells')
 register_aliases(UNET, 'Unet_White_Blood_Cells',  'Unet_White_Blood_Cells')
 register_aliases(UNET, 'Unet_Cyto_White_Blood_Cells',  'Unet_Cyto_White_Blood_Cells')
