@@ -918,7 +918,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Segmented = Segmented[:, :, 0]
 
         try:
-            thresholds = threshold_multiotsu(Segmented, classes=4)
+            thresholds = threshold_multiotsu(Segmented, classes=2)
 
             # Using the threshold values, we generate the three regions.
             regions = np.digitize(Segmented, bins=thresholds)
@@ -926,6 +926,13 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
             regions = Segmented
         Binary = regions > 0
+
+
+        if ndim == 3 and slice_merge:
+                for i in range(image.shape[0]):
+                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = 4)
+    
+    
 
         Binary = label(Binary)
 
@@ -946,7 +953,9 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Binary = match_labels(Binary, iou_threshold=iou_threshold)
             Binary = fill_label_holes(Binary)
         Finalimage = relabel_sequential(Binary)[0]
-
+        if ndim == 3 and slice_merge:
+          for i in range(image.shape[0]):
+              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 6)
         Skeleton = skeletonize(Finalimage > 0)
         
     elif roi_model is not None:
@@ -1262,7 +1271,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         for i in range(0, Mask.shape[0]):
 
             try:
-                thresholds = threshold_multiotsu(patch[i, :], classes=4)
+                thresholds = threshold_multiotsu(patch[i, :], classes=2)
 
                 # Using the threshold values, we generate the three regions.
                 regions = np.digitize(patch[i, :], bins=thresholds)
@@ -1573,15 +1582,14 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
         regions = Segmented
 
     Binary = regions > 0
+    ndim = len(image.shape)
     
     if ndim == 3 and slice_merge:
-        for i in range(image.shape[0]):
-            Binary[i, :] = binary_erosion(Binary[i, :], iterations = 4)
-    
-
+                for i in range(image.shape[0]):
+                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = 4)
 
     Binary = label(Binary)
-    ndim = len(image.shape)
+    
         
     if ndim == 3 and slice_merge:
         for i in range(image.shape[0]):
@@ -1592,10 +1600,10 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
     Finalimage = relabel_sequential(Finalimage)[0]
-    
-    if ndim == 3:
+    if ndim == 3 and slice_merge:
           for i in range(image.shape[0]):
-              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 4)
+              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 6)
+    
     return Finalimage
 
 
