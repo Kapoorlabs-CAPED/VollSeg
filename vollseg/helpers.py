@@ -905,6 +905,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                 for y, x in indices:
 
                     image[y, x] = 0
+
             if ndim == 3:
 
                 for z, y, x in indices:
@@ -948,17 +949,18 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
         if ndim == 3 and slice_merge:
             for i in range(image.shape[0]):
                 Binary[i, :] = label(Binary[i, :])
-                
             
             Binary = match_labels(Binary, iou_threshold=iou_threshold)
             Binary = fill_label_holes(Binary)
-        Finalimage = relabel_sequential(Binary)[0]
-        Binary = remove_small_objects(
-                    Binary.astype('uint16'), min_size=min_size_mask)
-        Binary = remove_big_objects(
-                    Binary.astype('uint16'), max_size=max_size)
-        if ndim == 3:
-          for i in range(image.shape[0]):
+
+        if ndim == 3: 
+            for i in range(image.shape[0]):
+                Binary[i, :]  = remove_small_objects(
+                    Binary[i, :] .astype('uint16'), min_size=min_size_mask)
+                Binary[i, :]  = remove_big_objects(
+                    Binary[i, :] .astype('uint16'), max_size=max_size)    
+            Finalimage = relabel_sequential(Binary)[0]
+            for i in range(image.shape[0]):
               Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
            
         zero_indices = np.where(overall_mask == 0)          
@@ -1008,13 +1010,16 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             if ndim == 3 and slice_merge:
                 for i in range(image.shape[0]):
                     Binary[i, :] = label(Binary[i, :])
+                    
+
+                Binary = match_labels(Binary, iou_threshold=iou_threshold)
+                Binary = fill_label_holes(Binary)
+                for i in range(image.shape[0]):
                     Binary[i, :] = remove_small_objects(
                         Binary[i, :].astype('uint16'), min_size=min_size_mask)
                     Binary[i, :] = remove_big_objects(
                         Binary[i, :].astype('uint16'), max_size=max_size)
 
-                Binary = match_labels(Binary, iou_threshold=iou_threshold)
-                Binary = fill_label_holes(Binary)
             Finalimage = relabel_sequential(Binary)[0]
 
             Skeleton = skeletonize(find_boundaries(Finalimage > 0))
@@ -1257,11 +1262,11 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
 
             Mask = UNETPrediction3D(patch, unet_model, n_tiles, axes,
                                     iou_threshold=iou_threshold, slice_merge=slice_merge)
-
-            Mask = remove_small_objects(
-                    Mask.astype('uint16'), min_size=min_size_mask)
-            Mask = remove_big_objects(
-                    Mask.astype('uint16'), max_size=max_size)
+            for i in range(0, Mask.shape[0]):
+                    Mask[i, :] = remove_small_objects(
+                            Mask[i, :].astype('uint16'), min_size=min_size_mask)
+                    Mask[i, :] = remove_big_objects(
+                            Mask[i, :].astype('uint16'), max_size=max_size)
             Mask_patch = Mask.copy()
             Mask = Region_embedding(image, roi_bbox, Mask)
             if slice_merge:
