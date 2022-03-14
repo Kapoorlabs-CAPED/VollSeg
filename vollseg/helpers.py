@@ -886,7 +886,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), image
 
 
-def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0.3, slice_merge=False, dounet=True):
+def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0.3, slice_merge=False, dounet=True, erosion_iterations = 15):
 
     
     ndim = len(image.shape)    
@@ -930,8 +930,8 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
         
         if ndim == 3:
                 for i in range(image.shape[0]):
-                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = 15)
-                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = 15)
+                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
+                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
                     Binary[i, :] = binary_erosion(Binary[i, :], iterations = 4)
     
@@ -1574,7 +1574,7 @@ def CleanMask(star_labels, OverAllunet_mask):
     return OverAllunet_mask
 
 
-def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge=False):
+def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge=False, erosion_iterations = 15):
 
     Segmented = model.predict(image, axis, n_tiles=n_tiles)
 
@@ -1593,8 +1593,8 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     
     if ndim == 3:
                 for i in range(image.shape[0]):
-                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = 15)
-                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = 15)
+                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
+                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
                     Binary[i, :] = binary_erosion(Binary[i, :], iterations = 4)
     
@@ -1681,8 +1681,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     if UseProbability:
 
         print('Using Probability maps')
-        indices = zip(*np.where(Probability < globalthreshold *
-                      (np.max(Probability) - np.min(Probability))))
+        indices = zip(*np.where(Probability < 1.0E-4))
         for z, y, x in indices:
 
             Probability[z, y, x] = 0
