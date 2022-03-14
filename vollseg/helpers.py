@@ -928,14 +928,14 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
         Binary = regions > 0
         overall_mask = Binary.copy()
         
-        if ndim == 3 and slice_merge:
+        if ndim == 3:
                 for i in range(image.shape[0]):
                     overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = 15)
                     overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = 15)
                     overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
                     Binary[i, :] = binary_erosion(Binary[i, :], iterations = 4)
     
-    
+       
 
         Binary = label(Binary)
 
@@ -957,9 +957,10 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                     Binary.astype('uint16'), min_size=min_size_mask)
         Binary = remove_big_objects(
                     Binary.astype('uint16'), max_size=max_size)
-        if ndim == 3 and slice_merge:
+        if ndim == 3:
           for i in range(image.shape[0]):
               Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
+           
         zero_indices = np.where(overall_mask == 0)          
         Finalimage[zero_indices] = 0     
         Skeleton = skeletonize(Finalimage > 0)
@@ -1590,13 +1591,13 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     overall_mask = Binary.copy()
     ndim = len(image.shape)
     
-    if ndim == 3 and slice_merge:
+    if ndim == 3:
                 for i in range(image.shape[0]):
                     overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = 15)
                     overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = 15)
                     overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
                     Binary[i, :] = binary_erosion(Binary[i, :], iterations = 4)
-
+    
     Binary = label(Binary)
     
         
@@ -1609,9 +1610,10 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
     Finalimage = relabel_sequential(Finalimage)[0]
-    if ndim == 3 and slice_merge:
+    if ndim == 3:
           for i in range(image.shape[0]):
               Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
+      
     zero_indices = np.where(overall_mask == 0)          
     Finalimage[zero_indices] = 0
     return Finalimage
