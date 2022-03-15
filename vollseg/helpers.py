@@ -946,6 +946,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Binary = remove_big_objects(
                 Binary.astype('uint16'), max_size=max_size)
             Binary = fill_label_holes(Binary)
+            Finalimage = relabel_sequential(Binary)[0]
         if ndim == 3 and slice_merge:
             for i in range(image.shape[0]):
                 Binary[i, :] = label(Binary[i, :])
