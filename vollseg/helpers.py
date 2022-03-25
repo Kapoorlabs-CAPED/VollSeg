@@ -1170,7 +1170,10 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
     sizeZ = image.shape[0]
     sizeY = image.shape[1]
     sizeX = image.shape[2]
-
+    if len(n_tiles) >= len(image.shape):
+                n_tiles = (n_tiles[-3],n_tiles[-2], n_tiles[-1])
+    else:
+                tiles = n_tiles
     SizedMask = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Sizedsmart_seeds = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Sizedproabability_map = np.zeros([sizeZ, sizeY, sizeX], dtype='float32')
@@ -1190,8 +1193,8 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
 
         model_dim = roi_model.config.n_dim
         if model_dim < len(image.shape):
-            if len(n_tiles) == len(image.shape):
-                tiles = (n_tiles[1], n_tiles[2])
+            if len(n_tiles) >= len(image.shape):
+                tiles = (n_tiles[-2], n_tiles[-1])
             else:
                 tiles = n_tiles
             maximage = np.amax(image, axis=0)
