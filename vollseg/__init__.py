@@ -74,7 +74,7 @@ def test_image_ascadian_3d():
 
 def test_image_carcinoma_3dt():
     from tifffile import imread
-    url = "https://zenodo.org/record/5965906/files/carcinoma_xyzt.tif"
-    hash = "053ca6410593c01ca0cb655958b5a0b9"
+    url = "https://zenodo.org/record/6403439/files/carcinoma_xyzt.tif"
+    hash = "713911848cf5263393e479d5cb3e5d59"
     img = imread(abspath(get_file(fname='Carcinoma', origin=url, file_hash=hash)))
     return img
