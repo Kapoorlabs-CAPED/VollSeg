@@ -25,8 +25,7 @@ setup(
     install_requires=[
         
         "pandas",
-        "stardist>=0.7.0",
-        "numpy==1.20.0",
+        "stardist",
         "scipy",
         "tifffile",
         "matplotlib",
