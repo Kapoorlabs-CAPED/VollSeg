@@ -29,7 +29,7 @@ register_model(CARE,   'Denoise_3D_cells',  'https://zenodo.org/record/5813521/f
 register_model(CARE,   'Denoise_carcinoma',  'https://zenodo.org/record/5910645/files/denoise_carcinoma.zip', 'fd33199738f0b17761272118cbffdf04')     
 
 
-register_model(UNET,   'Embryo Cell Model (3D)',  'https://zenodo.org/record/6337699/files/embryo_cell_model.zip', 'c84fdec38a5b3cc6c1869c94ff23f3b')
+register_model(UNET,   'Embryo Cell Model (3D)',  'https://zenodo.org/record/6337699/files/embryo_cell_model.zip', 'c84fdec38a5b3cc6c1869c94ff23f3ba')
 register_model(UNET,   'Xenopus Tissue (2D)',  'https://zenodo.org/record/6060378/files/Xenopus_tissue_model.zip', '2694d8b05fa828aceb055eef8cd5ca1f')
 register_model(StarDist2D,   'White_Blood_Cells',  'https://zenodo.org/record/5815521/files/WBCSeg.zip', '7889f5902d8562766a4dee2726c90d49')
 register_model(StarDist3D,   'Carcinoma_cells',  'https://zenodo.org/record/6354077/files/carcinoma_stardist.zip', 'b92b9d5347862e52279629be575fe0b7')
