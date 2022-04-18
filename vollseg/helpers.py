@@ -754,7 +754,7 @@ def Region_embedding(image, region, sourceimage, RGB = False):
     return returnimage
 
 
-def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, roi_image=None, prob_thresh=None, nms_thresh=None, axes='YX', min_size_mask=5, min_size=5,
+def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  prob_thresh=None, nms_thresh=None, axes='YX', min_size_mask=5, min_size=5,
               max_size=10000000, dounet=True, n_tiles=(2, 2),  donormalize=True, lower_perc=1, upper_perc=99.8, UseProbability=True, RGB=False, seedpool=True):
 
     print('Generating SmartSeed results')
@@ -778,6 +778,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
             image[y, x] = 0
     Mask = None
     Mask_patch = None
+    roi_image=None
     if roi_model is not None:
         model_dim = roi_model.config.n_dim
         assert model_dim == len(
@@ -794,17 +795,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
         # The actual pixels in that region.
         patch = image[region]
 
-    elif roi_image is not None:
-
-        roi_bbox = Bbox_region(roi_image)
-        rowstart = roi_bbox[0]
-        colstart = roi_bbox[1]
-        endrow = roi_bbox[2]
-        endcol = roi_bbox[3]
-        region = (slice(rowstart, endrow),
-                  slice(colstart, endcol))
-        # The actual pixels in that region.
-        patch = image[region]
+    
 
     else:
 
@@ -887,10 +878,10 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None, r
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16')
 
 
-    if noise_model is not None and roi_image is None:
+    if noise_model is not None and roi_image is not None:
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), image
 
-    if noise_model is not None and roi_image is not None:
+    if noise_model is not None and roi_image is None:
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), image, roi_image.astype('uint16')
 
 
@@ -1169,21 +1160,22 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
             imwrite((denoised_results + Name + '.tif'),
                     image.astype('float32'))
 
-        print('Done')
+      
     # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
     if noise_model is None and star_model is not None and  roi_model is not None:
 
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image
-    elif noise_model is None and star_model is not None and roi_image is None or roi_model is  None:
+
+    elif noise_model is None and star_model is not None and  roi_model is  None:
 
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton    
 
     # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
     elif noise_model is not None and star_model is not None and  roi_model is not None:
-
+      
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image
 
-    elif noise_model is not None and star_model is not None and roi_image is None or roi_model is None:
+    elif noise_model is not None and star_model is not None and  roi_model is None:
 
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image    
 
@@ -1192,7 +1184,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
         return SizedMask, Skeleton, image, roi_image
 
-    elif star_model is None and roi_image is  None or roi_model is  None:
+    elif star_model is None and  roi_model is  None:
 
         return SizedMask, Skeleton, image    
 
@@ -1217,7 +1209,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
     Sizedstardist = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Mask = None
     Mask_patch = None
-    
+    roi_image = None
     if noise_model is not None:
         print('Denoising Image')
 
@@ -1260,30 +1252,6 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         # The actual pixels in that region.
         patch = image[region]
     
-    elif roi_image is not None:
-        if len(roi_image.shape) < len(image.shape):
-            roi_bbox = Bbox_region(roi_image)
-            rowstart = roi_bbox[0]
-            colstart = roi_bbox[1]
-            endrow = roi_bbox[2]
-            endcol = roi_bbox[3]
-            region = (slice(0, image.shape[0]), slice(rowstart, endrow),
-                      slice(colstart, endcol))
-            # The actual pixels in that region.
-            patch = image[region]
-        elif len(roi_image.shape) == len(image.shape):
-
-            roi_bbox = Bbox_region(roi_image)
-            zstart = roi_bbox[0]
-            rowstart = roi_bbox[1]
-            colstart = roi_bbox[2]
-            zend = roi_bbox[3]
-            endrow = roi_bbox[4]
-            endcol = roi_bbox[5]
-            region = (slice(zstart, zend), slice(rowstart, endrow),
-                      slice(colstart, endcol))
-            # The actual pixels in that region.
-            patch = image[region]
 
     else:
 
