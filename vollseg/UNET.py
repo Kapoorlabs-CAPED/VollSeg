@@ -28,12 +28,10 @@ import tensorflow as tf
 
 
 class UNET(BaseModel):
-    """Standard CARE network for image restoration and enhancement.
+    """Standard UNET network for image segmentation based on CARE network.
 
     Uses a convolutional neural network created by :func:`csbdeep.internals.nets.common_unet`.
-    Note that isotropic reconstruction and manifold extraction/projection are not supported here
-    (see :class:`csbdeep.models.IsotropicCARE` ).
-
+   
     Parameters
     ----------
     config : :class:`csbdeep.models.Config` or None
@@ -55,12 +53,12 @@ class UNET(BaseModel):
 
     Example
     -------
-    >>> model = CARE(config, 'my_model')
+    >>> model = UNET(config, 'my_model')
 
     Attributes
     ----------
     config : :class:`csbdeep.models.Config`
-        Configuration of CARE network, as provided during instantiation.
+        Configuration of UNET network, as provided during instantiation.
     keras_model : `Keras model <https://keras.io/getting-started/functional-api-guide/>`_
         Keras neural network model.
     name : str
@@ -339,7 +337,7 @@ class UNET(BaseModel):
         # _permute_axes_n_tiles: (img_axes_in <-> net_axes_in) to convert n_tiles between img and net axes
         def _permute_n_tiles(n,undo=False):
             # hack: move tiling axis around in the same way as the image was permuted by creating an array
-            return _permute_axes_n_tiles(np.empty(n,np.bool),undo=undo).shape
+            return _permute_axes_n_tiles(np.empty(n,bool),undo=undo).shape
 
         # to support old api: set scalar n_tiles value for the largest tiling axis
         if np.isscalar(n_tiles) and int(n_tiles)==n_tiles and 1<=n_tiles:

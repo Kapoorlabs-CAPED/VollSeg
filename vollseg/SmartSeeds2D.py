@@ -6,6 +6,7 @@ Created on Mon Sep 30 14:38:04 2019
 @author: aimachine
 """
 
+from csbdeep.utils.utils import normalize_mi_ma
 import numpy as np
 import os
 import glob
@@ -19,10 +20,13 @@ from csbdeep.io import load_training_data
 from csbdeep.models import Config, CARE
 from skimage.measure import label
 from csbdeep.utils import Path, normalize
+from vollseg.helpers import normalizeZero255
 #from IPython.display import clear_output
 from stardist.models import Config2D, StarDist2D
 from tensorflow.keras.utils import Sequence
 from tqdm import tqdm
+from skimage.measure import label, regionprops
+from scipy import ndimage
 from pathlib import Path
 import cv2
     
@@ -73,6 +77,25 @@ def erode_label_holes(lbl_img, iterations):
         mask_filled = binary_erosion(mask,iterations = iterations)
         lbl_img_filled[mask_filled] = l
     return lbl_img_filled    
+
+def erode_labels(segmentation, erosion_iterations= 2):
+    # create empty list where the eroded masks can be saved to
+    list_of_eroded_masks = list()
+    regions = regionprops(segmentation)
+    erode = np.zeros(segmentation.shape)
+    def erode_mask(segmentation_labels, label_id, erosion_iterations):
+        
+        only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
+        eroded = ndimage.binary_erosion(only_current_label_id, iterations = erosion_iterations)
+        relabeled_eroded = np.where(eroded == 1, label_id, 0)
+        return(relabeled_eroded)
+
+    for i in range(len(regions)):
+        label_id = regions[i].label
+        erode = erode + erode_mask(segmentation, label_id, erosion_iterations)
+
+    # convert list of numpy arrays to stacked numpy array
+    return erode    
     
 class SmartSeeds2D(object):
 
@@ -81,30 +104,41 @@ class SmartSeeds2D(object):
 
 
 
-     def __init__(self, BaseDir, NPZfilename, model_name, model_dir, n_patches_per_image, DownsampleFactor = 1, startfilter = 48, RGB = False, TrainSeedUNET = True, TrainUNET = True, TrainSTAR = True, CroppedLoad = False, grid = (1,1),  GenerateNPZ = True,copy_model_dir = None, PatchX=256, PatchY=256,  use_gpu = True,unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
+     def __init__(self, base_dir, npz_filename, model_name, model_dir, n_patches_per_image, raw_dir = '/Raw/', real_mask_dir = '/real_mask/', binary_mask_dir = '/binary_mask/',
+     binary_erode_mask_dir = '/binary_erode_mask/',  val_raw_dir = '/val_raw/', val_real_mask_dir = '/val_real_mask/',
+     downsample_factor = 1, startfilter = 48, RGB = False, validation_split = 0.01, n_channel_in = 1,erosion_iterations = 2,
+     train_seed_unet = True, train_unet = True, train_star = True, load_data_sequence = False, grid = (1,1),  generate_npz = True, patch_x=256, patch_y=256,  use_gpu = True,unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
          
          
          
          
-         self.NPZfilename = NPZfilename
-         self.BaseDir = BaseDir
-         self.DownsampleFactor = DownsampleFactor
-         self.TrainUNET = TrainUNET
-         self.TrainSeedUNET = TrainSeedUNET
-         self.TrainSTAR = TrainSTAR
-         self.CroppedLoad = CroppedLoad
+         self.npz_filename = npz_filename
+         self.base_dir = base_dir
+         self.downsample_factor = downsample_factor
+         self.train_unet = train_unet
+         self.train_seed_unet = train_seed_unet
+         self.train_star = train_star
+         self.load_data_sequence = load_data_sequence
          self.model_dir = model_dir
-         self.copy_model_dir = copy_model_dir
+         self.raw_dir = raw_dir
+         self.real_mask_dir = real_mask_dir
+         self.binary_mask_dir = binary_mask_dir
+         self.binary_erode_mask_dir = binary_erode_mask_dir
+         self.val_raw_dir = val_raw_dir
+         self.val_real_mask_dir = val_real_mask_dir
          self.model_name = model_name
-         self.GenerateNPZ = GenerateNPZ
+         self.generate_npz = generate_npz
          self.epochs = epochs
          self.learning_rate = learning_rate
          self.depth = depth
+         self.n_channel_in = n_channel_in
+         self.erosion_iterations = erosion_iterations
          self.n_rays = n_rays
          self.kern_size = kern_size
-         self.PatchX = PatchX
-         self.PatchY = PatchY
+         self.patch_x = patch_x
+         self.patch_y = patch_y
          self.RGB = RGB
+         self.validation_split = validation_split
          self.startfilter = startfilter
          self.batch_size = batch_size
          self.use_gpu = use_gpu
@@ -141,7 +175,7 @@ class SmartSeeds2D(object):
                                  x = x
                          if self.labelMe == True:
                                  #Read Label images
-                                 x = ReadInt(self.files[i])
+                                 x = read_int(self.files[i])
                                  x = x
                          return x
 
@@ -149,52 +183,58 @@ class SmartSeeds2D(object):
 
      def Train(self):
          
-                    BinaryName = 'BinaryMask/' 
-                    ErodeBinaryName = 'ErodeBinaryMask/' 
-                    RealName = 'RealMask/'
-                    Raw = sorted(glob.glob(self.BaseDir + '/Raw/' + '*.tif'))
-                    Path(self.BaseDir + '/' + BinaryName).mkdir(exist_ok=True)
-                    Path(self.BaseDir + '/' + ErodeBinaryName).mkdir(exist_ok=True)
-                    Path(self.BaseDir + '/' + RealName).mkdir(exist_ok=True)
-                    RealMask = sorted(glob.glob(self.BaseDir + '/' + RealName + '*.tif'))
-                    ValRaw = sorted(glob.glob(self.BaseDir + '/ValRaw/' + '*.tif'))        
-                    ValRealMask = sorted(glob.glob(self.BaseDir + '/ValRealMask/' + '*.tif'))
-
+                   
+                    Raw = sorted(glob.glob(self.base_dir + self.raw_dir + '*.tif'))
+                    Path(self.base_dir + self.binary_mask_dir).mkdir(exist_ok=True)
+                    Path(self.base_dir + self.binary_erode_mask_dir).mkdir(exist_ok=True)
+                    Path(self.base_dir + self.real_mask_dir).mkdir(exist_ok=True)
+                    RealMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + '*.tif'))
+                    ValRaw = sorted(glob.glob(self.base_dir + self.val_raw_dir + '*.tif'))        
+                    ValRealMask = sorted(glob.glob(self.base_dir + self.val_real_mask_dir + '*.tif'))
+                    Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*.tif'))
+                    ErodeMask = sorted(glob.glob(self.base_dir + self.binary_erode_mask_dir + '*.tif'))
                     
                     
 
 
                     
                     print('Instance segmentation masks:', len(RealMask))
-                    if len(RealMask)== 0:
+                    print('Semantic segmentation masks:', len(Mask))
+                    if self.train_star and  len(Mask) > 0 and len(RealMask) < len(Mask):
                         
                         print('Making labels')
-                        Mask = sorted(glob.glob(self.BaseDir + '/' + BinaryName + '*.tif'))
+                        Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*.tif'))
                         
                         for fname in Mask:
                     
                            image = imread(fname)
                     
                            Name = os.path.basename(os.path.splitext(fname)[0])
-                    
+                           if np.max(image) == 1:
+                               image = image * 255
                            Binaryimage = label(image) 
                     
-                           imwrite((self.BaseDir + '/' + RealName + Name + '.tif'), Binaryimage)
-                           
-                
-                    Mask = sorted(glob.glob(self.BaseDir + '/' + BinaryName + '*.tif'))
-                    ErodeMask = sorted(glob.glob(self.BaseDir + '/' + ErodeBinaryName + '*.tif'))
-                    print('Semantic segmentation masks:', len(Mask))
+                           imwrite((self.base_dir + self.real_mask_dir + Name + '.tif'), Binaryimage)
                     
                     
-                    
-                    
-                    if len(Mask) == 0:
-                        print('Generating Binary images')
-               
+                    if self.train_seed_unet and len(RealMask) > 0  and len(ErodeMask) < len(RealMask):
+                        print('Generating Eroded Binary images')
                                
-                        RealfilesMask = sorted(glob.glob(self.BaseDir + '/' + RealName + '*tif'))  
+                        RealfilesMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + '*tif'))  
                 
+                        for fname in RealfilesMask:
+                    
+                            image = imread(fname)
+                            if self.erosion_iterations > 0:
+                               image = erode_labels(image.astype('uint16'), self.erosion_iterations)
+                            Name = os.path.basename(os.path.splitext(fname)[0])
+                            Binaryimage = image > 0
+                            imwrite((self.base_dir + self.binary_erode_mask_dir + Name + '.tif'), Binaryimage.astype('uint16'))
+
+                    if self.train_unet and len(RealMask) > 0  and len(Mask) < len(RealMask):
+                        print('Generating Binary images')
+                               
+                        RealfilesMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + '*tif'))  
                 
                         for fname in RealfilesMask:
                     
@@ -204,103 +244,97 @@ class SmartSeeds2D(object):
                     
                             Binaryimage = image > 0
                     
-                            imwrite((self.BaseDir + '/' + BinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
+                            imwrite((self.base_dir + self.binary_mask_dir + Name + '.tif'), Binaryimage.astype('uint16'))
                     
-                        
-                            Binaryimage = binary_erosion(Binaryimage)
-                    
-                            imwrite((self.BaseDir + '/' + ErodeBinaryName + Name + '.tif'), Binaryimage.astype('uint16'))
-                    
-                    
-                    if self.GenerateNPZ:
+                    if self.generate_npz:
                       if self.RGB:
                           
                              raw_data = RawData.from_folder (
-                             basepath    = self.BaseDir,
-                             source_dirs = ['Raw/'],
-                             target_dir  = BinaryName,
+                             basepath    = self.base_dir,
+                             source_dirs = [self.raw_dir],
+                             target_dir  = self.binary_mask_dir,
                              axes        = 'YXC',
                               )
                            
                              X, Y, XY_axes = create_patches_reduced_target (
                              raw_data            = raw_data,
-                             patch_size          = (self.PatchY,self.PatchX, None),
+                             patch_size          = (self.patch_y,self.patch_x, None),
                              n_patches_per_image = self.n_patches_per_image,
                              patch_filter = None,
                              target_axes         = 'YX',
                              reduction_axes      = 'C',
-                             save_file           = self.BaseDir + self.NPZfilename + '.npz',
+                             save_file           = self.base_dir + self.npz_filename + '.npz',
                              
                              )
-                             
-                             raw_data = RawData.from_folder (
-                             basepath    = self.BaseDir,
-                             source_dirs = ['Raw/'],
-                             target_dir  = ErodeBinaryName,
-                             axes        = 'YXC',
-                              )
-                           
-                             X, Y, XY_axes = create_patches_reduced_target (
-                             raw_data            = raw_data,
-                             patch_size          = (self.PatchY,self.PatchX, None),
-                             n_patches_per_image = self.n_patches_per_image,
-                             patch_filter = None,
-                             target_axes         = 'YX',
-                             reduction_axes      = 'C',
-                             save_file           = self.BaseDir + self.NPZfilename + "Erode" + '.npz',
-                             )
+                             if self.train_seed_unet:
+                                    raw_data = RawData.from_folder (
+                                    basepath    = self.base_dir,
+                                    source_dirs = [self.raw_dir],
+                                    target_dir  = self.binary_erode_mask_dir,
+                                    axes        = 'YXC',
+                                    )
+                                
+                                    X, Y, XY_axes = create_patches_reduced_target (
+                                    raw_data            = raw_data,
+                                    patch_size          = (self.patch_y,self.patch_x, None),
+                                    n_patches_per_image = self.n_patches_per_image,
+                                    patch_filter = None,
+                                    target_axes         = 'YX',
+                                    reduction_axes      = 'C',
+                                    save_file           = self.base_dir + self.npz_filename + "Erode" + '.npz',
+                                    )
                           
                           
                           
                       else:
                               raw_data = RawData.from_folder (
-                              basepath    = self.BaseDir,
-                              source_dirs = ['Raw/'],
-                              target_dir  = BinaryName,
+                              basepath    = self.base_dir,
+                              source_dirs = [self.raw_dir],
+                              target_dir  = self.binary_mask_dir,
                               axes        = 'YX',
                                )
                             
                               X, Y, XY_axes = create_patches (
                               raw_data            = raw_data,
-                              patch_size          = (self.PatchY,self.PatchX),
+                              patch_size          = (self.patch_y,self.patch_x),
                               n_patches_per_image = self.n_patches_per_image,
                               patch_filter = None,
-                              save_file           = self.BaseDir + self.NPZfilename + '.npz',
+                              save_file           = self.base_dir + self.npz_filename + '.npz',
                               )
-                              
-                              raw_data = RawData.from_folder (
-                              basepath    = self.BaseDir,
-                              source_dirs = ['Raw/'],
-                              target_dir  = ErodeBinaryName,
-                              axes        = 'YX',
-                               )
-                            
-                              X, Y, XY_axes = create_patches (
-                              raw_data            = raw_data,
-                              patch_size          = (self.PatchY,self.PatchX),
-                              n_patches_per_image = self.n_patches_per_image,
-                              patch_filter = None,
-                              save_file           = self.BaseDir + self.NPZfilename + "Erode" + '.npz',
-                              )
+                              if self.train_seed_unet:
+                                    raw_data = RawData.from_folder (
+                                    basepath    = self.base_dir,
+                                    source_dirs = [self.raw_dir],
+                                    target_dir  = self.binary_erode_mask_dir,
+                                    axes        = 'YX',
+                                    )
+                                    
+                                    X, Y, XY_axes = create_patches (
+                                    raw_data            = raw_data,
+                                    patch_size          = (self.patch_y,self.patch_x),
+                                    n_patches_per_image = self.n_patches_per_image,
+                                    patch_filter = None,
+                                    save_file           = self.base_dir + self.npz_filename + "Erode" + '.npz',
+                                    )
                     
                   
 
 
-                    if self.TrainSTAR: 
+                    if self.train_star: 
                                 print('Training StarDistModel model')
                      
                                 self.axis_norm = (0,1)   # normalize channels independently
                                     
-                                if self.CroppedLoad == False:
+                                if self.load_data_sequence == False:
                                      assert len(Raw) > 1, "not enough training data"
                                      print(len(Raw))
                                      rng = np.random.RandomState(42)
                                      ind = rng.permutation(len(Raw))
 
                                      X_train = list(map(ReadFloat,Raw))
-                                     Y_train = list(map(ReadInt,RealMask))
-                                     self.Y = [label(DownsampleData(y, self.DownsampleFactor)) for y in tqdm(Y_train)]
-                                     self.X = [normalize(DownsampleData(x, self.DownsampleFactor),1,99.8,axis=self.axis_norm) for x in tqdm(X_train)]
+                                     Y_train = list(map(read_int,RealMask))
+                                     self.Y = [label(DownsampleData(y, self.downsample_factor)) for y in tqdm(Y_train)]
+                                     self.X = [normalize(DownsampleData(x, self.downsample_factor),1,99.8,axis=self.axis_norm) for x in tqdm(X_train)]
                                      n_val = max(1, int(round(0.15 * len(ind))))
                                      ind_train, ind_val = ind[:-n_val], ind[-n_val:]
 
@@ -313,7 +347,7 @@ class SmartSeeds2D(object):
                                      print('- validation:     %3d' % len(self.X_val))
                                      self.train_sample_cache = True
                                 
-                                if self.CroppedLoad:
+                                if self.load_data_sequence:
                                         self.X_trn = self.DataSequencer(Raw, self.axis_norm, Normalize = True, labelMe = False)
                                         self.Y_trn = self.DataSequencer(RealMask, self.axis_norm, Normalize = False, labelMe = True)
                                     
@@ -330,14 +364,13 @@ class SmartSeeds2D(object):
                                   train_epochs = self.epochs,
                                   train_learning_rate = self.learning_rate,
                                   unet_n_depth = self.depth ,
-                                  train_patch_size = (self.PatchY,self.PatchX),
-                                  n_channel_in = 1,
+                                  train_patch_size = (self.patch_y,self.patch_x),
+                                  n_channel_in = self.n_channel_in,
                                   unet_n_filter_base = self.unet_n_first,
                                   train_checkpoint= self.model_dir + self.model_name +'.h5',
                                   grid         = self.grid,
                                   train_loss_weights=(1, 0.05),
                                   use_gpu      = self.use_gpu,
-
                                   train_batch_size = self.batch_size, 
                                   train_sample_cache = self.train_sample_cache
 
@@ -348,19 +381,6 @@ class SmartSeeds2D(object):
                              
                             
                                 Starmodel = StarDist2D(conf, name=self.model_name, basedir=self.model_dir)
-                                if self.copy_model_dir is not None:   
-                                  if os.path.exists(self.copy_model_dir + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5') == False:
-                                      print('Loading copy model')
-                                      Starmodel.load_weights(self.copy_model_dir + self.copy_model_name + '/' + 'weights_now.h5')
-                                  if os.path.exists(self.copy_model_dir + self.copy_model_name + '/' + 'weights_last.h5') and os.path.exists(self.model_dir + self.model_name + '/' + 'weights_last.h5') == False:
-                                      print('Loading copy model')
-                                      Starmodel.load_weights(self.copy_model_dir + self.copy_model_name + '/' + 'weights_last.h5')
-
-                                  if os.path.exists(self.copy_model_dir + self.copy_model_name + '/' + 'weights_best.h5') and os.path.exists(self.model_dir + self.model_name + '/' + 'weights_best.h5') == False:
-                                      print('Loading copy model')
-                                      Starmodel.load_weights(self.copy_model_dir + self.copy_model_name + '/' + 'weights_best.h5')
-
-   
                                 
                                 if os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5'):
                                     print('Loading checkpoint model')
@@ -377,11 +397,11 @@ class SmartSeeds2D(object):
                                 Starmodel.train(self.X_trn, (self.Y_trn), validation_data=(self.X_val,(self.Y_val)), epochs = self.epochs)
                                 Starmodel.optimize_thresholds(self.X_val, self.Y_val)
                    # Training UNET model
-                    if self.TrainUNET:
+                    if self.train_unet:
                                     print('Training UNET model')
-                                    load_path = self.BaseDir + self.NPZfilename  + '.npz'
+                                    load_path = self.base_dir + self.npz_filename  + '.npz'
                 
-                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split=0.1, verbose=True)
+                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split= self.validation_split, verbose=True)
                                     c = axes_dict(axes)['C']
                                     n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
                                     
@@ -414,11 +434,11 @@ class SmartSeeds2D(object):
                                     
                                     
                      # Training UNET model
-                    if self.TrainSeedUNET:
+                    if self.train_seed_unet:
                                     print('Training Seed UNET model')
-                                    load_path = self.BaseDir + self.NPZfilename + "Erode" + '.npz'
+                                    load_path = self.base_dir + self.npz_filename + "Erode" + '.npz'
                 
-                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split=0.1, verbose=True)
+                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split= self.validation_split, verbose=True)
                                     c = axes_dict(axes)['C']
                                     n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
                                     
@@ -428,10 +448,7 @@ class SmartSeeds2D(object):
                                     
                                     model = CARE(config , name = 'SeedUNET' + self.model_name, basedir = self.model_dir)
                                     
-                                    if self.copy_model_dir is not None:   
-                                      if os.path.exists(self.copy_model_dir + 'SeedUNET' + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_now.h5') == False:
-                                         print('Loading copy model')
-                                         model.load_weights(self.copy_model_dir + 'SeedUNET' + self.copy_model_name + '/' + 'weights_now.h5')   
+                                    
                                     
                                     if os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_now.h5'):
                                         print('Loading checkpoint model')
@@ -455,18 +472,18 @@ def ReadFloat(fname):
     return imread(fname).astype('float32')         
          
 
-def ReadInt(fname):
+def read_int(fname):
 
     return imread(fname).astype('uint16')           
          
          
          
          
-def DownsampleData(image, DownsampleFactor):
+def DownsampleData(image, downsample_factor):
                     
 
 
-                    scale_percent = int(100/DownsampleFactor) # percent of original size
+                    scale_percent = int(100/downsample_factor) # percent of original size
                     width = int(image.shape[1] * scale_percent / 100)
                     height = int(image.shape[0] * scale_percent / 100)
                     dim = (width, height)

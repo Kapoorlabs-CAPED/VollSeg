@@ -20,7 +20,7 @@ from scipy.ndimage.interpolation import shift, zoom
 from scipy.ndimage import rotate
 from scipy import ndimage
 from pathlib import Path
-    
+from vollseg.helpers import image_pixel_duplicator, image_embedding, poisson_noise     
     
     
 class Augmentation3D(object):
@@ -40,7 +40,10 @@ class Augmentation3D(object):
                  zoom_axis=None,
                  zoom_range=None,
                  rotate_axis=None,
-                 rotate_angle=None
+                 rotate_angle=None,
+                 size = None,
+                 size_zero = None,
+                 mu = None,
                  ):
         """
         Arguments:
@@ -73,7 +76,9 @@ class Augmentation3D(object):
         self.zoom_range = zoom_range
         self.rotate_axis = rotate_axis
         self.rotate_angle = rotate_angle
-
+        self.size = size
+        self.size_zero = size_zero
+        self.mu = mu
     def build(self,
               data=None,
               label=None,
@@ -108,7 +113,20 @@ class Augmentation3D(object):
 
         parse_dict = {}
         callback = None
+        callback_poisson = None
+        #pixel_duplicator
+        if self.size is not None:
+            callback = self._duplicate_data
+            parse_dict['size'] = self.size  
+        #pixel_embedder
+        if self.size_zero is not None:
+            callback = self._embed_data
+            parse_dict['size_zero'] = self.size_zero   
 
+        #poisson_noise
+        if self.mu is not None:
+            callback_poisson = self._noise_data
+            parse_dict['mu'] = self.mu
         # flip
         if self.flip_axis is not None:
             callback = self._flip_data
@@ -175,6 +193,8 @@ class Augmentation3D(object):
         # build and return generator with specified callback function
         if callback:
             return self._return_generator(callback, parse_dict)
+        if callback_poisson:
+             return self._return_generator_poisson(callback_poisson, parse_dict)       
         else:
             raise ValueError('No generator returned. Arguments are not set properly.')
 
@@ -191,8 +211,8 @@ class Augmentation3D(object):
             target_label = self.label[target_idx]
 
             # data augmentation by callback function
-            ret_data = np.array([callback(target_data[[i]], parse_dict)[0, ...] for i in range(self.batch_size)])
-            ret_label =  np.array([callback(target_label[[i]], parse_dict)[0, ...] for i in range(self.batch_size)])
+            ret_data = [callback(target_data[i], parse_dict) for i in range(self.batch_size)]
+            ret_label =  [callback(target_label[i], parse_dict) for i in range(self.batch_size)]
             
             if cnt < rp_num - 1:
                 cnt += 1
@@ -201,18 +221,47 @@ class Augmentation3D(object):
                 np.random.shuffle(self.idx_list)
 
                 yield ret_data, ret_label
+    def _return_generator_poisson(self, callback, parse_dict):
+        """return generator according to callback"""
+        self.idx_list = [i for i in range(self.data_size)]
+        np.random.shuffle(self.idx_list)
+        rp_num = self.data_size // self.batch_size
+        cnt = 0
 
+        while True:
+            target_idx = self.idx_list[cnt * self.batch_size: (cnt + 1) * self.batch_size]
+            target_data = self.data[target_idx]
+            target_label = self.label[target_idx]
+
+            # data augmentation by callback function
+            ret_data = [callback(target_data[i], parse_dict) for i in range(self.batch_size)]
+            ret_label =  [target_label[i] for i in range(self.batch_size)]
+         
+            if cnt < rp_num - 1:
+                cnt += 1
+            elif cnt == rp_num - 1:
+                cnt = 0
+                np.random.shuffle(self.idx_list)
+
+                yield ret_data, ret_label            
+
+
+    def _noise_data(self , data, parse_dict):
+
+            return poisson_noise(data, parse_dict['mu'])
     def _flip_data(self, data, parse_dict):
         """flip array along specified axis(x, y or z)"""
-        return np.flip(data, parse_dict['flip_axis'])
+        data = np.expand_dims(data,0)
+        return np.flip(data, parse_dict['flip_axis'])[0,...]
 
     def _shift_data(self, data, parse_dict):
         """shift array by specified range along specified axis(x, y or z)"""
+        data = np.expand_dims(data,0)
         shift_lst = [0] * self.data_dim
         shift_lst[parse_dict['shift_axis']] = math.floor(
             parse_dict['shift_range'] * self.data_shape[parse_dict['shift_axis']])
 
-        return shift(data, shift=shift_lst, cval=0)
+        return shift(data, shift=shift_lst, cval=0)[0,...]
 
     def _zoom_data(self, data, parse_dict):
         """zoom array by specified range along specified axis(x, y or z). After zoomed, the voxel size is the same as
@@ -221,7 +270,8 @@ class Augmentation3D(object):
         # - d/2 <= zoom_range * (x - d/2) <= d/2
         f1 = lambda d: math.floor((d / 2) * (1 + 1 / parse_dict['zoom_range']))
         f2 = lambda d: math.ceil((d / 2) * (1 - 1 / parse_dict['zoom_range']))
-
+        data_shape = data.shape
+        data = np.expand_dims(data,0)
         if parse_dict['zoom_range'] > 1.0:
             # expand
             z_win1 = list(map(f1, self.data_shape[1:]))
@@ -251,8 +301,8 @@ class Augmentation3D(object):
         zoomed = zoom(target_data, zoom=zoom_lst, cval=0)
         temp = [[math.floor((i - j) / 2), math.ceil((i - j) / 2)] for i, j in zip(self.data_shape[1:], zoomed.shape[1:])]
 
-        cast_zoomed = np.zeros(self.data_shape)
-        cast_zoomed[:,
+        cast_zoomed = np.zeros(data_shape)
+        cast_zoomed[
         temp[0][0]:self.data_shape[1] - temp[0][1],
         temp[1][0]:self.data_shape[2] - temp[1][1],
         temp[2][0]:self.data_shape[3] - temp[2][1]] = zoomed
@@ -269,5 +319,15 @@ class Augmentation3D(object):
             ax_tup = (1, 2)
         else:
             raise ValueError('rotate axis should be 1, 2 or 3')
+        data = np.expand_dims(data,0)
+        return rotate(data, axes=ax_tup, angle=parse_dict['rotate_angle'], cval=0.0, reshape=False)[0,...]
 
-        return rotate(data, axes=ax_tup, angle=parse_dict['rotate_angle'], cval=0.0, reshape=False)
+    def _duplicate_data(self, data, parse_dict):
+
+        size =  parse_dict['size']    
+        return image_pixel_duplicator(data, size)
+
+    def _embed_data(self, data, parse_dict):
+
+        size_zero =  parse_dict['size_zero']    
+        return image_embedding(data, size_zero)    

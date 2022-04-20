@@ -1,14 +1,20 @@
 import setuptools
 from setuptools import find_packages, setup
 
+from os import path
+
+_dir = path.dirname(__file__)
+
+
 with open('README.md') as f:
     long_description = f.read()
-
+with open(path.join(_dir,'vollseg','version.py'), encoding="utf-8") as f:
+    exec(f.read())
 
 setup(
     name="vollseg",
 
-    version='2.5.6',
+    version=__version__,
 
     author='Varun Kapoor,Claudia Carabana Garcia,Mari Tolonen',
     author_email='randomaccessiblekapoor@gmail.com',
@@ -19,8 +25,9 @@ setup(
     install_requires=[
         
         "pandas",
-        "stardist>=0.7.0",
-        "numpy==1.21.0",
+
+        "stardist",
+
         "scipy",
         "tifffile",
         "matplotlib",
