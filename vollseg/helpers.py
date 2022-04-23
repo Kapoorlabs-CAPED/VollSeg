@@ -14,19 +14,15 @@ from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
 import cv2
-from skimage.morphology import remove_small_objects, remove_small_holes, disk
-from skimage.filters import gaussian
-from six.moves import reduce
+from skimage.morphology import remove_small_objects
 from matplotlib import cm
 from scipy import spatial
 from skimage.segmentation import find_boundaries
 import matplotlib.pyplot as plt
-from scipy.ndimage.morphology import binary_fill_holes
 from skimage.segmentation import watershed
 from pathlib import Path
 from skimage.segmentation import relabel_sequential
-from scipy.ndimage.measurements import find_objects
-from scipy.ndimage.morphology import binary_dilation, binary_erosion
+from scipy.ndimage import binary_dilation, binary_erosion
 from skimage.util import invert as invertimage
 from skimage import measure
 from skimage.measure import label
@@ -42,7 +38,7 @@ from vollseg.matching import matching
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
 import diplib as dip
-from skimage.filters import threshold_multiotsu
+
 
 Boxname = 'ImageIDBox'
 
@@ -1184,7 +1180,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
         return SizedMask, Skeleton, image, roi_image
 
-    elif star_model is None and  roi_model is  None:
+    elif star_model is None and  roi_model is  None and noise_model is None:
 
         return SizedMask, Skeleton, image    
 
