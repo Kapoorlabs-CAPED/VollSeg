@@ -23,6 +23,7 @@ from skimage.segmentation import watershed
 from pathlib import Path
 from skimage.segmentation import relabel_sequential
 from scipy.ndimage import binary_dilation, binary_erosion
+from scipy.ndimage.morphology import binary_fill_holes
 from skimage.util import invert as invertimage
 from skimage import measure
 from skimage.measure import label
@@ -38,7 +39,8 @@ from vollseg.matching import matching
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
 import diplib as dip
-
+from skimage.filters import threshold_multiotsu
+from scipy.ndimage.measurements import find_objects
 
 Boxname = 'ImageIDBox'
 
@@ -725,20 +727,31 @@ def Region_embedding(image, region, sourceimage, RGB = False):
 
     returnimage = np.zeros(image.shape)
 
-    if len(image.shape) == 2:
+    if len(region) == 4 and len(image.shape) == 2:
         rowstart = region[0]
         colstart = region[1]
         endrow = region[2]
         endcol = region[3]
         returnimage[rowstart:endrow, colstart:endcol] = sourceimage
-    if len(image.shape) == 3 and RGB == False:
+    if len(image.shape) == 3 and len(region) == 6  and RGB == False:
+        zstart = region[0]
+        rowstart = region[1]
+        colstart = region[2]
+        zend = region[3]
+        endrow = region[4]
+        endcol = region[5]
+        returnimage[zstart:zend, rowstart:endrow,
+                    colstart:endcol] = sourceimage
+
+    if len(image.shape) == 3 and len(region) == 4  and RGB == False:
         rowstart = region[0]
         colstart = region[1]
         endrow = region[2]
         endcol = region[3]
         returnimage[0:image.shape[0], rowstart:endrow,
                     colstart:endcol] = sourceimage
-    if len(image.shape) == 3 and RGB:
+
+    if len(image.shape) == 3 and len(region) == 4 and RGB:
         returnimage = returnimage[:,:,0]
         rowstart = region[0]
         colstart = region[1]
@@ -746,6 +759,7 @@ def Region_embedding(image, region, sourceimage, RGB = False):
         endcol = region[3]
         returnimage[rowstart:endrow,
                     colstart:endcol] = sourceimage
+
     
     return returnimage
 
@@ -1101,13 +1115,18 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
     elif noise_model is not None and star_model is not None and  roi_model is None:
         Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image = res    
 
-    elif star_model is None and  roi_model is None :
+    elif star_model is None and  roi_model is None and unet_model is not None and noise_model is not None :
 
         SizedMask, Skeleton, image = res
 
-    elif star_model is None and  roi_model is not None :
+    elif star_model is None and  roi_model is not None and unet_model is None and noise_model is None :
 
-        SizedMask, Skeleton, image, roi_image = res
+        roi_image, Skeleton, image = res
+        SizedMask = roi_image
+
+    elif star_model is None and roi_model is None and noise_model is None  and unet_model is not None:
+
+        SizedMask, Skeleton, image = res    
 
 
     if save_dir is not None:
@@ -1176,13 +1195,20 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image    
 
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
-    elif star_model is None and  roi_model is not None:
+    elif star_model is None and  roi_model is not None and noise_model is not None:
 
         return SizedMask, Skeleton, image, roi_image
 
-    elif star_model is None and  roi_model is  None and noise_model is None:
+    elif star_model is None and  roi_model is not None and noise_model is None:
 
-        return SizedMask, Skeleton, image    
+        return  roi_image.astype('uint16')  , Skeleton, image   
+
+    elif noise_model is not None and roi_model is not None and star_model == None:
+        return  image, roi_image.astype('uint16')    
+
+    elif star_model is None and  roi_model is  None and noise_model is None and unet_model is not None:
+
+        return SizedMask, Skeleton, image 
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
@@ -1235,7 +1261,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         elif model_dim == len(image.shape):
             roi_image = UNETPrediction3D(
                 image, roi_model, n_tiles, axes)
-
+          
             roi_bbox = Bbox_region(roi_image)
             zstart = roi_bbox[0]
             rowstart = roi_bbox[1]
@@ -1310,54 +1336,60 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         Mask_patch = Mask.copy()    
         Mask = Region_embedding(image, roi_bbox, Mask)
         SizedMask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
+    if star_model is not None:
+            print('Stardist segmentation on Image')
+            if donormalize:
+                
+                patch_star = normalize(patch, lower_perc, upper_perc, axis= (0,1,2)) 
+            else:
+                patch_star = patch
 
-    print('Stardist segmentation on Image')
-    if donormalize:
-        
-        patch_star = normalize(patch, lower_perc, upper_perc, axis= (0,1,2)) 
-    else:
-        patch_star = patch
-
-    smart_seeds, proabability_map, star_labels, Markers = STARPrediction3D(
-        patch_star, axes, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
-    print('Removing small/large objects')
-    for i in tqdm(range(0, smart_seeds.shape[0])):
-        smart_seeds[i, :] = remove_small_objects(
-            smart_seeds[i, :].astype('uint16'), min_size=min_size)
-        smart_seeds[i, :] = remove_big_objects(
-            smart_seeds[i, :].astype('uint16'), max_size=max_size)
-    smart_seeds = fill_label_holes(smart_seeds.astype('uint16'))
-    if startZ > 0:
-        smart_seeds[0:startZ, :, :] = 0
-    smart_seeds = Region_embedding(image, roi_bbox, smart_seeds)
-    Sizedsmart_seeds[:, :smart_seeds.shape[1],
-                     :smart_seeds.shape[2]] = smart_seeds
-    Markers = Region_embedding(image, roi_bbox, Markers)
-    Sizedmarkers[:, :smart_seeds.shape[1],
-                 :smart_seeds.shape[2]] = Markers
-    proabability_map = Region_embedding(image, roi_bbox, proabability_map)
-    Sizedproabability_map[:, :proabability_map.shape[1],
-                          :proabability_map.shape[2]] = proabability_map
-    star_labels = Region_embedding(image, roi_bbox, star_labels)
-    Sizedstardist[:, :star_labels.shape[1],
-                  :star_labels.shape[2]] = star_labels
-    Skeleton = np.zeros_like(Sizedsmart_seeds)
-    for i in range(0, Sizedsmart_seeds.shape[0]):
-        Skeleton[i, :] = SmartSkel(Sizedsmart_seeds[i, :],
-                                   Sizedproabability_map[i, :])
-    Skeleton = Skeleton > 0
+            smart_seeds, proabability_map, star_labels, Markers = STARPrediction3D(
+                patch_star, axes, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+            print('Removing small/large objects')
+            for i in tqdm(range(0, smart_seeds.shape[0])):
+                smart_seeds[i, :] = remove_small_objects(
+                    smart_seeds[i, :].astype('uint16'), min_size=min_size)
+                smart_seeds[i, :] = remove_big_objects(
+                    smart_seeds[i, :].astype('uint16'), max_size=max_size)
+            smart_seeds = fill_label_holes(smart_seeds.astype('uint16'))
+            if startZ > 0:
+                smart_seeds[0:startZ, :, :] = 0
+            smart_seeds = Region_embedding(image, roi_bbox, smart_seeds)
+            Sizedsmart_seeds[:, :smart_seeds.shape[1],
+                            :smart_seeds.shape[2]] = smart_seeds
+            Markers = Region_embedding(image, roi_bbox, Markers)
+            Sizedmarkers[:, :smart_seeds.shape[1],
+                        :smart_seeds.shape[2]] = Markers
+            proabability_map = Region_embedding(image, roi_bbox, proabability_map)
+            Sizedproabability_map[:, :proabability_map.shape[1],
+                                :proabability_map.shape[2]] = proabability_map
+            star_labels = Region_embedding(image, roi_bbox, star_labels)
+            Sizedstardist[:, :star_labels.shape[1],
+                        :star_labels.shape[2]] = star_labels
+            Skeleton = np.zeros_like(Sizedsmart_seeds)
+            for i in range(0, Sizedsmart_seeds.shape[0]):
+                Skeleton[i, :] = SmartSkel(Sizedsmart_seeds[i, :],
+                                        Sizedproabability_map[i, :])
+            Skeleton = Skeleton > 0
 
    
-    if noise_model == None and roi_image is not None:
-        return Sizedsmart_seeds.astype('uint16'), SizedMask.astype(R'uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), roi_image.astype('uint16')
-    if noise_model == None and roi_image is None:
-        return Sizedsmart_seeds.astype('uint16'), SizedMask.astype(R'uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16')    
-    if noise_model is not None and roi_image is None:
+    if noise_model == None and roi_image is not None and star_model is not None:
+        return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), roi_image.astype('uint16')
+    if noise_model == None and roi_image is None and star_model is not None:
+        return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16')    
+    if noise_model is not None and roi_image is None and star_model is not None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'),  image
-    if noise_model is not None and roi_image is not None:
+    if noise_model is not None and roi_image is not None and star_model is not None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'),  image, roi_image.astype('uint16')
+    
+    if noise_model is not None and roi_image is not None and star_model == None:
+        return  image, roi_image.astype('uint16')
+    
 
-
+    if noise_model == None and roi_image == None and star_model == None and unet_model is not None:
+         return SizedMask.astype('uint16'), Skeleton, image
+           
 def image_pixel_duplicator(image, size):
 
     assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'

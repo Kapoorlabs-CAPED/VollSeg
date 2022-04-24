@@ -16,7 +16,7 @@ import scipy
 import math
 import random
 
-from scipy.ndimage.interpolation import shift, zoom
+from scipy.ndimage import shift, zoom
 from scipy.ndimage import rotate
 from scipy import ndimage
 from pathlib import Path

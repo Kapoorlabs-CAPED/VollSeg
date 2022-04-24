@@ -13,8 +13,8 @@ import glob
 from tifffile import imread, imwrite
 from csbdeep.utils import axes_dict
 from skimage.morphology import binary_dilation, binary_erosion
-from scipy.ndimage.morphology import binary_fill_holes
-from scipy.ndimage.measurements import find_objects
+from scipy.ndimage import binary_fill_holes
+from scipy.ndimage import find_objects
 from csbdeep.data import RawData, create_patches, create_patches_reduced_target 
 from csbdeep.io import load_training_data
 from csbdeep.models import Config, CARE
