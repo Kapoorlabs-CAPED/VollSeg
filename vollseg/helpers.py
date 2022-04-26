@@ -726,41 +726,42 @@ def SuperWatershedwithoutMask(Image, Label, mask, grid):
 def Region_embedding(image, region, sourceimage, RGB = False):
 
     returnimage = np.zeros(image.shape)
+    if region is not None:
+            if len(region) == 4 and len(image.shape) == 2:
+                rowstart = region[0]
+                colstart = region[1]
+                endrow = region[2]
+                endcol = region[3]
+                returnimage[rowstart:endrow, colstart:endcol] = sourceimage
+            if len(image.shape) == 3 and len(region) == 6  and RGB == False:
+                zstart = region[0]
+                rowstart = region[1]
+                colstart = region[2]
+                zend = region[3]
+                endrow = region[4]
+                endcol = region[5]
+                returnimage[zstart:zend, rowstart:endrow,
+                            colstart:endcol] = sourceimage
 
-    if len(region) == 4 and len(image.shape) == 2:
-        rowstart = region[0]
-        colstart = region[1]
-        endrow = region[2]
-        endcol = region[3]
-        returnimage[rowstart:endrow, colstart:endcol] = sourceimage
-    if len(image.shape) == 3 and len(region) == 6  and RGB == False:
-        zstart = region[0]
-        rowstart = region[1]
-        colstart = region[2]
-        zend = region[3]
-        endrow = region[4]
-        endcol = region[5]
-        returnimage[zstart:zend, rowstart:endrow,
-                    colstart:endcol] = sourceimage
+            if len(image.shape) == 3 and len(region) == 4  and RGB == False:
+                rowstart = region[0]
+                colstart = region[1]
+                endrow = region[2]
+                endcol = region[3]
+                returnimage[0:image.shape[0], rowstart:endrow,
+                            colstart:endcol] = sourceimage
 
-    if len(image.shape) == 3 and len(region) == 4  and RGB == False:
-        rowstart = region[0]
-        colstart = region[1]
-        endrow = region[2]
-        endcol = region[3]
-        returnimage[0:image.shape[0], rowstart:endrow,
-                    colstart:endcol] = sourceimage
+            if len(image.shape) == 3 and len(region) == 4 and RGB:
+                returnimage = returnimage[:,:,0]
+                rowstart = region[0]
+                colstart = region[1]
+                endrow = region[2]
+                endcol = region[3]
+                returnimage[rowstart:endrow,
+                            colstart:endcol] = sourceimage
 
-    if len(image.shape) == 3 and len(region) == 4 and RGB:
-        returnimage = returnimage[:,:,0]
-        rowstart = region[0]
-        colstart = region[1]
-        endrow = region[2]
-        endcol = region[3]
-        returnimage[rowstart:endrow,
-                    colstart:endcol] = sourceimage
-
-    
+    else:
+        returnimage = image
     return returnimage
 
 
@@ -796,14 +797,18 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         roi_image = UNETPrediction3D(
             image, roi_model, n_tiles, axes)
         roi_bbox = Bbox_region(roi_image)
-        rowstart = roi_bbox[0]
-        colstart = roi_bbox[1]
-        endrow = roi_bbox[2]
-        endcol = roi_bbox[3]
-        region = (slice(rowstart, endrow),
-                  slice(colstart, endcol))
-        # The actual pixels in that region.
-        patch = image[region]
+        if roi_bbox is not None:
+                rowstart = roi_bbox[0]
+                colstart = roi_bbox[1]
+                endrow = roi_bbox[2]
+                endcol = roi_bbox[3]
+                region = (slice(rowstart, endrow),
+                        slice(colstart, endcol))
+                # The actual pixels in that region.
+                patch = image[region]
+        else:
+
+                 patch = image        
 
     
 
@@ -1252,28 +1257,32 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             roi_image = UNETPrediction3D(
                 maximage, roi_model, tiles, 'YX', iou_threshold=nms_thresh)
             roi_bbox = Bbox_region(roi_image)
-            rowstart = roi_bbox[0]
-            colstart = roi_bbox[1]
-            endrow = roi_bbox[2]
-            endcol = roi_bbox[3]
-            region = (slice(0, image.shape[0]), slice(rowstart, endrow),
-                      slice(colstart, endcol))
+            if roi_bbox is not None:
+                rowstart = roi_bbox[0]
+                colstart = roi_bbox[1]
+                endrow = roi_bbox[2]
+                endcol = roi_bbox[3]
+                region = (slice(0, image.shape[0]), slice(rowstart, endrow),
+                        slice(colstart, endcol))
         elif model_dim == len(image.shape):
             roi_image = UNETPrediction3D(
                 image, roi_model, n_tiles, axes)
           
             roi_bbox = Bbox_region(roi_image)
-            zstart = roi_bbox[0]
-            rowstart = roi_bbox[1]
-            colstart = roi_bbox[2]
-            zend = roi_bbox[3]
-            endrow = roi_bbox[4]
-            endcol = roi_bbox[5]
-            region = (slice(zstart, zend), slice(rowstart, endrow),
-                      slice(colstart, endcol))
+            if roi_bbox is not None:
+                zstart = roi_bbox[0]
+                rowstart = roi_bbox[1]
+                colstart = roi_bbox[2]
+                zend = roi_bbox[3]
+                endrow = roi_bbox[4]
+                endcol = roi_bbox[5]
+                region = (slice(zstart, zend), slice(rowstart, endrow),
+                        slice(colstart, endcol))
         # The actual pixels in that region.
-        patch = image[region]
-    
+        if roi_bbox is not None:
+            patch = image[region]
+        else:
+            patch = image        
 
     else:
 
@@ -1669,10 +1678,11 @@ def Bbox_region(image):
 
     props = measure.regionprops(image)
     area = [prop.area for prop in props]
-    largest_blob_ind = np.argmax(area)
-    largest_bbox = props[largest_blob_ind].bbox
-
-    return largest_bbox
+    if len(area) > 0:
+            largest_blob_ind = np.argmax(area)
+            largest_bbox = props[largest_blob_ind].bbox
+            return largest_bbox
+           
 
 
 def RemoveLabels(LabelImage, minZ=2):
