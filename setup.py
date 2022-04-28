@@ -39,7 +39,7 @@ setup(
     ],
     dependeny_links = ['https://github.com/bhoeckendorf/pyklb.git@skbuild'],
     packages=setuptools.find_packages(),
-    package_data={'vollseg': [ 'data/*', 'models/*' ]},
+    package_data={'vollseg': [ 'data/*', 'models/Carcinoma_cells/*', 'models/denoise_carcinoma/*', 'models/Roi_Nuclei_Xenopus/*' ]},
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Natural Language :: English',
