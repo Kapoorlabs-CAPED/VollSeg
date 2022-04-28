@@ -1,5 +1,5 @@
-from tifffile import imread
 
+from dask.array.image import imread as daskread
 
 def abspath(path):
     import os
@@ -9,7 +9,7 @@ def abspath(path):
 
 def get_test_data():
     
-    image = imread(abspath('data/carcinoma_xyzt.tif'))
+    image = daskread(abspath('data/carcinoma_xyzt.tif'))[0]
     return image
 
 def get_stardist_modelpath():
