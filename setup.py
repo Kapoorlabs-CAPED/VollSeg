@@ -39,6 +39,7 @@ setup(
     ],
     dependeny_links = ['https://github.com/bhoeckendorf/pyklb.git@skbuild'],
     packages=setuptools.find_packages(),
+    package_data={'vollseg': [ 'data/*', 'models/*' ]},
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Natural Language :: English',
