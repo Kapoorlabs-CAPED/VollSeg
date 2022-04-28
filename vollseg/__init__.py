@@ -14,7 +14,7 @@ from .folder import *
 from .pretrained import register_model, register_aliases, clear_models_and_aliases
 from .UNET import  UNET 
 from .MASKUNET import MASKUNET
-
+from .data import *
 from .StarDist2D import StarDist2D
 from .StarDist3D import StarDist3D
 from .CARE import CARE
