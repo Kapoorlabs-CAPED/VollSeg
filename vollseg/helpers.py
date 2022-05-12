@@ -862,13 +862,16 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         Mask = Region_embedding(image, roi_bbox, Mask, RGB = RGB)
     # Smart Seed prediction
     print('Stardist segmentation on Image')
+    if RGB:
+        axis = (0,1,2)
+    else:
+        axis = (0,1)    
     if donormalize:
-        patch_star = normalize(patch, lower_perc, upper_perc, axis=(0, 1, 2)) 
+        patch_star = normalize(patch.astype('float32'), lower_perc, upper_perc, axis=axis) 
     else:
         patch_star = patch
-    
     smart_seeds, Markers, star_labels, proabability_map = SuperSTARPrediction(
-        patch_star, star_model, n_tiles, unet_mask=Mask_patch.copy(), UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, RGB=RGB, seedpool=seedpool)
+        patch_star, star_model, n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     smart_seeds = remove_small_objects(
         smart_seeds.astype('uint16'), min_size=min_size)
     smart_seeds = remove_big_objects(
@@ -876,7 +879,10 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
     Skeleton = SmartSkel(smart_seeds, proabability_map)
     Skeleton = Skeleton > 0
     # For avoiding pixel level error
-    Mask = expand_labels(Mask, distance=1)
+    if Mask is not None:
+       Mask = expand_labels(Mask, distance=1)
+   
+
     smart_seeds = expand_labels(smart_seeds, distance=1)
 
     smart_seeds = Region_embedding(image, roi_bbox, smart_seeds, RGB = RGB)
@@ -884,8 +890,10 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
     star_labels = Region_embedding(image, roi_bbox, star_labels, RGB = RGB)
     proabability_map = Region_embedding(image, roi_bbox, proabability_map, RGB = RGB)
     Skeleton = Region_embedding(image, roi_bbox, Skeleton, RGB = RGB)
-
+    if Mask is None:
+        Mask = smart_seeds > 0
    
+
     if noise_model == None and roi_image is not None:
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), roi_image.astype('uint16')
     
@@ -1609,12 +1617,13 @@ def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=
 
     if OverAllunet_mask is None:
         OverAllunet_mask = unet_mask
-    OverAllunet_mask = CleanMask(star_labels, OverAllunet_mask)
+    if OverAllunet_mask is not None:    
+       OverAllunet_mask = CleanMask(star_labels, OverAllunet_mask)
 
     if unet_mask is None:
         unet_mask = star_labels > 0
     Watershed, Markers = SuperWatershedwithMask(
-        MaxProjectDistance, star_labels.astype('uint16'), unet_mask.astype('uint16'), grid)
+        MaxProjectDistance, star_labels.astype('uint16'), unet_mask.astype('uint16'))
     Watershed = fill_label_holes(Watershed.astype('uint16'))
 
     return Watershed, Markers, star_labels, MaxProjectDistance
