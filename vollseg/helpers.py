@@ -411,9 +411,9 @@ def NotumQueen(save_dir, fname, denoising_model, projection_model, mask_model, s
     Name = os.path.basename(os.path.splitext(fname)[0])
     print('Denoising Image')
     image = imread(fname)
-    image = denoising_model.predict(image, 'ZYX', n_tiles=n_tiles)
+    image = denoising_model.predict(image.astype('float32'), 'ZYX', n_tiles=n_tiles)
     image = projection_model.predict(
-        image, 'YX', n_tiles=(n_tiles[1], n_tiles[2]))
+        image.astype('float32'), 'YX', n_tiles=(n_tiles[1], n_tiles[2]))
 
     imwrite((projection_results + Name + '.tif'), image.astype('float32'))
 
@@ -429,9 +429,9 @@ def NotumSeededQueen(save_dir, fname, denoising_model, projection_model, unet_mo
     Name = os.path.basename(os.path.splitext(fname)[0])
     print('Denoising Image')
     image = imread(fname)
-    image = denoising_model.predict(image, 'ZYX', n_tiles=n_tiles)
+    image = denoising_model.predict(image.astype('float32'), 'ZYX', n_tiles=n_tiles)
     image = projection_model.predict(
-        image, 'YX', n_tiles=(n_tiles[1], n_tiles[2]))
+        image.astype('float32'), 'YX', n_tiles=(n_tiles[1], n_tiles[2]))
 
     imwrite((projection_results + Name + '.tif'), image.astype('float32'))
 
@@ -557,9 +557,9 @@ def NotumKing(save_dir, filesRaw, denoising_model, projection_model, unet_model,
     time_lapse = []
     for fname in filesRaw:
         image = imread(fname)
-        image = denoising_model.predict(image, 'ZYX', n_tiles=n_tiles)
+        image = denoising_model.predict(image.astype('float32'), 'ZYX', n_tiles=n_tiles)
         image = projection_model.predict(
-            image, 'YX', n_tiles=(n_tiles[1], n_tiles[2]))
+            image.astype('float32'), 'YX', n_tiles=(n_tiles[1], n_tiles[2]))
         time_lapse.append(image)
     Name = os.path.basename(os.path.splitext(fname)[0])
     time_lapse = np.asarray(time_lapse)
@@ -783,7 +783,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
     if noise_model is not None:
         print('Denoising Image')
 
-        image = noise_model.predict(image, axes=axes, n_tiles=n_tiles)
+        image = noise_model.predict(image.astype('float32'), axes=axes, n_tiles=n_tiles)
         indices = zip(*np.where(image < 0))
         for y, x in indices:
             image[y, x] = 0
@@ -920,7 +920,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
         
 
         if noise_model is not None:
-            image = noise_model.predict(image, axes, n_tiles=n_tiles)
+            image = noise_model.predict(image.astype('float32'), axes, n_tiles=n_tiles)
 
             indices = zip(*np.where(image < 0))
             if ndim == 2:
@@ -934,7 +934,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
                     image[z, y, x] = 0
         if dounet and unet_model is not None:
-            Segmented = unet_model.predict(image, axes, n_tiles=n_tiles)
+            Segmented = unet_model.predict(image.astype('float32'), axes, n_tiles=n_tiles)
         else:
             Segmented = image
         if RGB:
@@ -993,7 +993,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
     elif roi_model is not None:
 
         if noise_model is not None:
-            image = noise_model.predict(image, axes, n_tiles=n_tiles)
+            image = noise_model.predict(image.astype('float32'), axes, n_tiles=n_tiles)
 
             indices = zip(*np.where(image < 0))
             if ndim == 2:
@@ -1056,6 +1056,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX', noise_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
             n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=0.2,  extent=0,  donormalize=True, lower_perc=1, upper_perc=99.8, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0.3, RGB=False):
 
+    print('Models', star_model, unet_model, roi_model, noise_model) 
     if len(image.shape) == 2:
 
         # if the default tiling of the function is not changed by the user, we use the last two tuples
@@ -1091,9 +1092,10 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
                             max_size=max_size, dounet=dounet, n_tiles=n_tiles, UseProbability=UseProbability, RGB=RGB)
         # If there is no stardist model we use unet model with or without denoising model
         if star_model is None:
-
+            print('I am here')
             res = VollSeg_unet(image, unet_model=unet_model, roi_model=roi_model, n_tiles=n_tiles, axes=axes, min_size_mask=min_size_mask,
                                max_size=max_size,  noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet=dounet)
+            print('should return', res)      
     if len(image.shape) == 3 and 'T' in axes:
         if len(n_tiles) == 3:
             n_tiles = (n_tiles[1], n_tiles[2])
@@ -1127,20 +1129,37 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
     elif noise_model is not None and star_model is not None and  roi_model is None:
         Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image = res    
+    elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
 
+         SizedMask, Skeleton, image = res
+   
+    
     elif star_model is None and  roi_model is None and unet_model is not None and noise_model is not None :
 
         SizedMask, Skeleton, image = res
+
+    elif star_model is None and  roi_model is not None and unet_model is not None and noise_model is not None :
+
+        SizedMask, Skeleton, image = res    
+
+    elif star_model is None and  roi_model is None and unet_model is not None and noise_model is None :
+
+        SizedMask, Skeleton, image = res    
 
     elif star_model is None and  roi_model is not None and unet_model is None and noise_model is None :
 
         roi_image, Skeleton, image = res
         SizedMask = roi_image
 
-    elif star_model is None and roi_model is None and noise_model is None  and unet_model is not None:
+    elif star_model is None and  roi_model is not None and unet_model is None and noise_model is not None :
 
-        SizedMask, Skeleton, image = res    
+        roi_image, Skeleton, image = res
+        SizedMask = roi_image    
 
+    elif star_model is None and  roi_model is not None and unet_model is not None and noise_model is None :
+
+        roi_image, Skeleton, image = res
+        SizedMask = roi_image
 
     if save_dir is not None:
         print('Saving Results ...')
@@ -1210,14 +1229,22 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
     elif star_model is None and  roi_model is not None and noise_model is not None:
 
-        return SizedMask, Skeleton, image, roi_image
+        return SizedMask, Skeleton, image
 
     elif star_model is None and  roi_model is not None and noise_model is None:
 
-        return  roi_image.astype('uint16')  , Skeleton, image   
+        return  roi_image.astype('uint16')  , Skeleton, image 
 
-    elif noise_model is not None and roi_model is not None and star_model == None:
-        return  image, roi_image.astype('uint16')    
+    elif star_model is None and  roi_model is not None and noise_model is not None:
+
+        return  roi_image.astype('uint16')  , Skeleton, image     
+    
+    elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
+            
+            return  SizedMask , Skeleton, image
+                  
+
+    
 
     elif star_model is None and  roi_model is  None and noise_model is None and unet_model is not None:
 
@@ -1248,7 +1275,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
     if noise_model is not None:
         print('Denoising Image')
 
-        image = noise_model.predict(image, axes=axes, n_tiles=n_tiles)
+        image = noise_model.predict(image.astype('float32'), axes=axes, n_tiles=n_tiles)
         indices = zip(*np.where(image < 0))
         for z, y, x in indices:
             image[z, y, x] = 0
@@ -1400,12 +1427,15 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
     if noise_model is not None and roi_image is not None and star_model is not None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'),  image, roi_image.astype('uint16')
     
-    if noise_model is not None and roi_image is not None and star_model == None:
-        return  image, roi_image.astype('uint16')
+    if noise_model is not None and roi_image is not None and star_model is None:
+        return  SizedMask.astype('uint16'), Skeleton, image
     
-
-    if noise_model == None and roi_image == None and star_model == None and unet_model is not None:
+    if noise_model is not None and roi_image is None and star_model is None and unet_model is None:
          return SizedMask.astype('uint16'), Skeleton, image
+
+    if noise_model is None and roi_image is None and star_model is None and unet_model is not None:
+         return SizedMask.astype('uint16'), Skeleton, image
+
            
 def image_pixel_duplicator(image, size):
 
@@ -1525,7 +1555,7 @@ def DownsampleData(image, DownsampleFactor):
 
 def SuperUNETPrediction(image, model, n_tiles, axis):
 
-    Segmented = model.predict(image, axis, n_tiles=n_tiles)
+    Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
 
     try:
         thresholds = threshold_multiotsu(Segmented, classes=4)
@@ -1594,10 +1624,10 @@ def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=
     if prob_thresh is not None and nms_thresh is not None:
 
         MidImage,  SmallProbability, SmallDistance = model.predict_vollseg(
-            image, n_tiles=n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+            image.astype('float32'), n_tiles=n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     else:
         MidImage,  SmallProbability, SmallDistance = model.predict_vollseg(
-            image, n_tiles=n_tiles)
+            image.astype('float32'), n_tiles=n_tiles)
 
     star_labels = MidImage[:shape[0], :shape[1]]
 
@@ -1640,7 +1670,7 @@ def CleanMask(star_labels, OverAllunet_mask):
 
 def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge=False, erosion_iterations = 15):
 
-    Segmented = model.predict(image, axis, n_tiles=n_tiles)
+    Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
 
     try:
         thresholds = threshold_multiotsu(Segmented, classes=2)
@@ -1718,9 +1748,9 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
         print(f'Using user choice of prob_thresh = {prob_thresh} and nms_thresh = {nms_thresh}')
         res = model.predict_vollseg(
-            image, axes = axes, n_tiles=n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+            image.astype('float32'), axes = axes, n_tiles=n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     else:
-        res = model.predict_vollseg(image, axes = axes, n_tiles=n_tiles)
+        res = model.predict_vollseg(image.astype('float32'), axes = axes, n_tiles=n_tiles)
     MidImage, SmallProbability, SmallDistance = res
     print('Predictions Done')
     star_labels = MidImage[:image.shape[0], :shape[0], :shape[1]]
