@@ -100,8 +100,8 @@ class SmartSeeds3D(object):
 
 
 
-     def __init__(self, base_dir, npz_filename, model_name, model_dir, n_patches_per_image, raw_dir = '/Raw/', real_mask_dir = '/real_mask/', binary_mask_dir = '/binary_mask/',
-      val_raw_dir = '/val_raw/', val_real_mask_dir = '/val_real_mask/', n_channel_in = 1,  downsample_factor = 1, backbone = 'resnet', load_data_sequence = True, train_unet = True, train_star = True, generate_npz = True,
+     def __init__(self, base_dir, npz_filename, model_name, model_dir, n_patches_per_image, raw_dir = 'Raw/', real_mask_dir = 'real_mask/', binary_mask_dir = 'binary_mask/',
+      val_raw_dir = 'val_raw/', val_real_mask_dir = 'val_real_mask/', n_channel_in = 1,  downsample_factor = 1, backbone = 'resnet', load_data_sequence = True, train_unet = True, train_star = True, generate_npz = True,
       validation_split = 0.01, erosion_iterations = 2, patch_x=256, patch_y=256, patch_z = 16, grid_x = 1, grid_y = 1, annisotropy = (1,1,1),  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
 
          
@@ -258,21 +258,21 @@ class SmartSeeds3D(object):
                             print(config)
                             vars(config)
                             
-                            model = CARE(config , name = 'UNET' + self.model_name, basedir = self.model_dir)
+                            model = CARE(config , name = 'unet_' + self.model_name, basedir = self.model_dir)
                                  
                            
                             
-                            if os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_now.h5'):
+                            if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5'):
                                 print('Loading checkpoint model')
-                                model.load_weights(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_now.h5')
+                                model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5')
                             
-                            if os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_last.h5'):
+                            if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_last.h5'):
                                 print('Loading checkpoint model')
-                                model.load_weights(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_last.h5')
+                                model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_last.h5')
                                 
-                            if os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_best.h5'):
+                            if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_best.h5'):
                                 print('Loading checkpoint model')
-                                model.load_weights(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_best.h5')    
+                                model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_best.h5')    
                             
                             history = model.train(X,Y, validation_data=(X_val,Y_val))
                             

@@ -23,6 +23,7 @@ from csbdeep.utils import Path, normalize
 from vollseg.helpers import normalizeZero255
 #from IPython.display import clear_output
 from stardist.models import Config2D, StarDist2D
+
 from tensorflow.keras.utils import Sequence
 from tqdm import tqdm
 from skimage.measure import label, regionprops
@@ -409,24 +410,24 @@ class SmartSeeds2D(object):
                                     print(config)
                                     vars(config)
                                     
-                                    model = CARE(config , name = 'UNET' + self.model_name, basedir = self.model_dir)
+                                    model = CARE(config , name = 'unet_' + self.model_name, basedir = self.model_dir)
                                     
                                     if self.copy_model_dir is not None:   
-                                      if os.path.exists(self.copy_model_dir + 'UNET' + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_now.h5') == False:
+                                      if os.path.exists(self.copy_model_dir + 'unet_' + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_now.h5') == False:
                                          print('Loading copy model')
-                                         model.load_weights(self.copy_model_dir + 'UNET' + self.copy_model_name + '/' + 'weights_now.h5')   
+                                         model.load_weights(self.copy_model_dir + 'unet_' + self.copy_model_name + '/' + 'weights_now.h5')   
                                     
-                                    if os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_now.h5'):
+                                    if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5'):
                                         print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_now.h5')
+                                        model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5')
                                         
-                                    if os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_last.h5'):
+                                    if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_last.h5'):
                                         print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_last.h5')
+                                        model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_last.h5')
                                         
-                                    if os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_best.h5'):
+                                    if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_best.h5'):
                                         print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_best.h5')    
+                                        model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_best.h5')    
                                
                                     
                                         
@@ -446,21 +447,21 @@ class SmartSeeds2D(object):
                                     print(config)
                                     vars(config)
                                     
-                                    model = CARE(config , name = 'SeedUNET' + self.model_name, basedir = self.model_dir)
+                                    model = CARE(config , name = 'seed_unet_' + self.model_name, basedir = self.model_dir)
                                     
                                     
                                     
-                                    if os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_now.h5'):
+                                    if os.path.exists(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_now.h5'):
                                         print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_now.h5')
+                                        model.load_weights(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_now.h5')
                                         
-                                    if os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_last.h5'):
+                                    if os.path.exists(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_last.h5'):
                                         print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_last.h5')
+                                        model.load_weights(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_last.h5')
                                         
-                                    if os.path.exists(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_best.h5'):
+                                    if os.path.exists(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_best.h5'):
                                         print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'SeedUNET' + self.model_name + '/' + 'weights_best.h5')    
+                                        model.load_weights(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_best.h5')    
                                
                                     
                                         

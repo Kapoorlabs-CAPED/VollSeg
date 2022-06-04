@@ -25,11 +25,11 @@ npz_filename = 'VolumeSeg'
 model_dir = '/data/'
 model_name = 'VolumeSeg'
 
-raw_dir = '/Raw/'
-real_mask_dir = '/real_mask/' 
-binary_mask_dir = '/binary_mask/'
-val_raw_dir = '/val_raw/'
-val_real_mask_dir = '/val_real_mask/'
+raw_dir = 'Raw/'
+real_mask_dir = 'real_mask/' 
+binary_mask_dir = 'binary_mask/'
+val_raw_dir = 'val_raw/'
+val_real_mask_dir = 'val_real_mask/'
 
 
 # # In this cell choose the network training parameters for the Neural Network
@@ -41,7 +41,7 @@ val_real_mask_dir = '/val_real_mask/'
 
 #Network training parameters
 depth = 3
-Epochs = 100
+epochs = 100
 learning_rate = 1.0E-4
 batch_size = 1
 patch_x = 128
