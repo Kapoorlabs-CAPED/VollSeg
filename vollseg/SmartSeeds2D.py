@@ -288,20 +288,21 @@ class SmartSeeds2D(object):
                           
                           
                       else:
-                              raw_data = RawData.from_folder (
-                              basepath    = self.base_dir,
-                              source_dirs = [self.raw_dir],
-                              target_dir  = self.binary_mask_dir,
-                              axes        = 'YX',
-                               )
-                            
-                              X, Y, XY_axes = create_patches (
-                              raw_data            = raw_data,
-                              patch_size          = (self.patch_y,self.patch_x),
-                              n_patches_per_image = self.n_patches_per_image,
-                              patch_filter = None,
-                              save_file           = self.base_dir + self.npz_filename + '.npz',
-                              )
+                              if self.train_unet: 
+                                    raw_data = RawData.from_folder (
+                                    basepath    = self.base_dir,
+                                    source_dirs = [self.raw_dir],
+                                    target_dir  = self.binary_mask_dir,
+                                    axes        = 'YX',
+                                    )
+                                    
+                                    X, Y, XY_axes = create_patches (
+                                    raw_data            = raw_data,
+                                    patch_size          = (self.patch_y,self.patch_x),
+                                    n_patches_per_image = self.n_patches_per_image,
+                                    patch_filter = None,
+                                    save_file           = self.base_dir + self.npz_filename + '.npz',
+                                    )
                               if self.train_seed_unet:
                                     raw_data = RawData.from_folder (
                                     basepath    = self.base_dir,
