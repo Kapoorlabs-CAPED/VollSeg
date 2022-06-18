@@ -34,6 +34,9 @@ register_model(StarDist3D,   'Carcinoma_cells',  'https://zenodo.org/record/6354
 register_model(UNET,   'Microtubule Kymograph Segmentation',  'https://zenodo.org/record/6355705/files/microtubule_kymograph_segmentation.zip', 'a42fcd4ba732734d36eda3dbbb3d5673' )
 register_model(UNET,   'Unet_White_Blood_Cells',  'https://zenodo.org/record/5815588/files/UNETWBC.zip', '9645f004db478f661811d6da615ccc0b')
 register_model(MASKUNET,   'Xenopus_Cell_Tissue_Segmentation',  'https://zenodo.org/record/6060378/files/Xenopus_tissue_model.zip', '2694d8b05fa828aceb055eef8cd5ca1f')
+register_model(MASKUNET,   'Arabidopsis Mask',  'https://zenodo.org/record/6659789/files/Unet_Arabidopsis_Mask.zip', '039a701d68a51b70d4cb5cf786418d83')
+register_model(UNET,   'Arabidopsis Semantic Segmentation',  'https://zenodo.org/record/6659799/files/Unet_Arabidopsis.zip', 'd0e635449ae4c100682db529c0ea54e7')
+
 register_model(UNET,   'Unet_Cyto_White_Blood_Cells',  'https://zenodo.org/record/5815603/files/UNETcytoWBC.zip', 'dd3bf8b8e2a04536144954e882445a5e') 
 register_model(UNET,   'Unet_Lung_Segmentation',  'https://zenodo.org/record/6060177/files/Montgomery_county.zip', 'be41937a00693e28961358440d242417') 
 
@@ -47,7 +50,9 @@ register_aliases(UNET, 'Unet_Cyto_White_Blood_Cells',  'Unet_Cyto_White_Blood_Ce
 register_aliases(UNET, 'Microtubule Kymograph Segmentation',  'Microtubule Kymograph Segmentation')
 register_aliases(UNET, 'Xenopus Tissue (2D)',  'Xenopus Tissue (2D)')
 register_aliases(UNET, 'Unet_Lung_Segmentation',  'Unet_Lung_Segmentation')
+register_aliases(UNET, 'Arabidopsis_Semantic_Segmentation',  'Arabidopsis_Semantic_Segmentation')
 register_aliases(MASKUNET, 'Xenopus_Cell_Tissue_Segmentation',  'Xenopus_Cell_Tissue_Segmentation')
+register_aliases(MASKUNET, 'Arabidopsis_Mask_Segmentation',  'Arabidopsis_Mask_Segmentation')
 register_aliases(CARE, 'Denoise_3D_cells',  'Denoise_3D_cells')
 
 
