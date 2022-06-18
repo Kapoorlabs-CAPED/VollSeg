@@ -780,6 +780,10 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
 
     if RGB:
         axes = 'YXC'
+    if 'T' in axes:
+        axes = 'YX'
+        if RGB:
+              axes = 'YXC'  
     if noise_model is not None:
         print('Denoising Image')
 
