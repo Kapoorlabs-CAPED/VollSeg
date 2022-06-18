@@ -1185,9 +1185,9 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
             Path(skel_unet_results).mkdir(exist_ok=True)
              
             imwrite((unet_results + Name + '.tif'),
-                    SizedMask.astype('uint16'))
+                    np.asarray(SizedMask).astype('uint16'))
             imwrite((skel_unet_results + Name + '.tif'),
-                    Skeleton.astype('uint16'))        
+                    np.asarray(Skeleton).astype('uint16'))        
         if star_model is not None:
             vollseg_results = save_dir + 'VollSeg/'
             stardist_results = save_dir + 'StarDist/'
@@ -1200,19 +1200,19 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
             Path(probability_results).mkdir(exist_ok=True)
             Path(marker_results).mkdir(exist_ok=True)
             imwrite((stardist_results + Name + '.tif'),
-                    star_labels.astype('uint16'))
+                    np.asarray(star_labels).astype('uint16'))
             imwrite((vollseg_results + Name + '.tif'),
-                    Sizedsmart_seeds.astype('uint16'))
+                    np.asarray(Sizedsmart_seeds).astype('uint16'))
             imwrite((probability_results + Name + '.tif'),
-                    proabability_map.astype('float32'))
+                    np.asarray(proabability_map).astype('float32'))
             imwrite((marker_results + Name + '.tif'),
-                    Markers.astype('uint16'))
-            imwrite((skel_results + Name + '.tif'), Skeleton)
+                    np.asarray(Markers).astype('uint16'))
+            imwrite((skel_results + Name + '.tif'), np.asarray(Skeleton))
         if noise_model is not None:
             denoised_results = save_dir + 'Denoised/'
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite((denoised_results + Name + '.tif'),
-                    image.astype('float32'))
+                    np.asarray(image).astype('float32'))
 
       
     # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
