@@ -17,6 +17,7 @@ from .MASKUNET import MASKUNET
 from .get_data import *
 from .StarDist2D import StarDist2D
 from .StarDist3D import StarDist3D
+from .Projection3D import Projection3D
 from .CARE import CARE
 from csbdeep.utils.tf import keras_import
 get_file = keras_import('utils', 'get_file')
@@ -25,10 +26,7 @@ get_file = keras_import('utils', 'get_file')
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
 
 register_model(CARE,   'Denoise_3D_cells',  'https://zenodo.org/record/5813521/files/GenericDenoising3D.zip', 'be8dffd239193361a9c289090425dd12')           
-
 register_model(CARE,   'Denoise_carcinoma',  'https://zenodo.org/record/5910645/files/denoise_carcinoma.zip', 'fd33199738f0b17761272118cbffdf04')     
-
-
 register_model(UNET,   'Embryo Cell Model (3D)',  'https://zenodo.org/record/6337699/files/embryo_cell_model.zip', 'c84fdec38a5b3cc6c1869c94ff23f3ba')
 register_model(UNET,   'Xenopus Tissue (2D)',  'https://zenodo.org/record/6060378/files/Xenopus_tissue_model.zip', '2694d8b05fa828aceb055eef8cd5ca1f')
 register_model(StarDist2D,   'White_Blood_Cells',  'https://zenodo.org/record/5815521/files/WBCSeg.zip', '7889f5902d8562766a4dee2726c90d49')
@@ -50,7 +48,6 @@ register_aliases(UNET, 'Microtubule Kymograph Segmentation',  'Microtubule Kymog
 register_aliases(UNET, 'Xenopus Tissue (2D)',  'Xenopus Tissue (2D)')
 register_aliases(UNET, 'Unet_Lung_Segmentation',  'Unet_Lung_Segmentation')
 register_aliases(MASKUNET, 'Xenopus_Cell_Tissue_Segmentation',  'Xenopus_Cell_Tissue_Segmentation')
-
 register_aliases(CARE, 'Denoise_3D_cells',  'Denoise_3D_cells')
 
 
