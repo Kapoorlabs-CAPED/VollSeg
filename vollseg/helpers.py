@@ -898,10 +898,10 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         Mask = smart_seeds > 0
    
 
-    if noise_model == None and roi_image is not None:
+    if noise_model is None and roi_image is not None:
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), roi_image.astype('uint16')
     
-    if noise_model == None and roi_image is None:
+    if noise_model is None and roi_image is None:
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16')
 
 
@@ -1096,10 +1096,10 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
                             max_size=max_size, dounet=dounet, n_tiles=n_tiles, UseProbability=UseProbability, RGB=RGB)
         # If there is no stardist model we use unet model with or without denoising model
         if star_model is None:
-            print('I am here')
+           
             res = VollSeg_unet(image, unet_model=unet_model, roi_model=roi_model, n_tiles=n_tiles, axes=axes, min_size_mask=min_size_mask,
                                max_size=max_size,  noise_model=noise_model, RGB=RGB, iou_threshold=iou_threshold, slice_merge=slice_merge, dounet=dounet)
-            print('should return', res)      
+                 
     if len(image.shape) == 3 and 'T' in axes:
         if len(n_tiles) == 3:
             n_tiles = (n_tiles[1], n_tiles[2])
@@ -1122,6 +1122,8 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
                                  n_tiles=n_tiles, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent,
                                  dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for _x in tqdm(image))))
 
+ 
+
     if noise_model is None and star_model is not None and  roi_model is not None:
         Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
 
@@ -1133,6 +1135,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
     elif noise_model is not None and star_model is not None and  roi_model is None:
         Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image = res    
+        
     elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
 
          SizedMask, Skeleton, image = res
