@@ -995,6 +995,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                 Binary[i, :]  = remove_big_objects(
                     Binary[i, :] .astype('uint16'), max_size=max_size)    
             Finalimage = relabel_sequential(Binary)[0]
+            Skeleton = np.zeros_like(Finalimage)
             for i in range(image.shape[0]):
               Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
               Skeleton[i, :] = Skel(Finalimage[i,:])
