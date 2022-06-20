@@ -981,6 +981,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Binary = fill_label_holes(Binary)
             Finalimage = relabel_sequential(Binary)[0]
             Skeleton = Skel(Finalimage)
+            Skeleton = Skeleton > 0
         if ndim == 3 and slice_merge:
             for i in range(image.shape[0]):
                 Binary[i, :] = label(Binary[i, :])
@@ -999,6 +1000,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             for i in range(image.shape[0]):
               Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
               Skeleton[i, :] = Skel(Finalimage[i,:])
+              Skeleton[i, :] = Skeleton[i, :] > 0
         zero_indices = np.where(overall_mask == 0)          
         Finalimage[zero_indices] = 0     
         
