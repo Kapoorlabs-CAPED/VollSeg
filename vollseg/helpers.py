@@ -483,6 +483,7 @@ def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarM
         image_max[y, x] = 0
     smart_seeds = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
 
+
     # Save results, we only need smart seeds finale results but hey!
     imwrite((ProbResults + Name + '.tif'), ProbImage.astype('float32'))
     imwrite((smart_seedsResults + Name + '.tif'), smart_seeds.astype('uint8'))
@@ -635,7 +636,13 @@ def SmartSkel(smart_seedsLabels, ProbImage):
 
     return Skeleton
 
+def Skel(smart_seedsLabels):
 
+    image_max = find_boundaries(smart_seedsLabels)
+    
+    Skeleton = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
+
+    return Skeleton
 def SuperWatershedwithMask(Image, Label, mask):
 
     properties = measure.regionprops(Label, Image)
@@ -973,6 +980,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                 Binary.astype('uint16'), max_size=max_size)
             Binary = fill_label_holes(Binary)
             Finalimage = relabel_sequential(Binary)[0]
+            Skeleton = Skel(Finalimage)
         if ndim == 3 and slice_merge:
             for i in range(image.shape[0]):
                 Binary[i, :] = label(Binary[i, :])
@@ -989,10 +997,10 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Finalimage = relabel_sequential(Binary)[0]
             for i in range(image.shape[0]):
               Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
-           
+              Skeleton[i, :] = Skel(Finalimage[i,:])
         zero_indices = np.where(overall_mask == 0)          
         Finalimage[zero_indices] = 0     
-        Skeleton = skeletonize(Finalimage > 0)
+        
         
     elif roi_model is not None:
 
