@@ -36,7 +36,6 @@ register_model(UNET,   'Unet_White_Blood_Cells',  'https://zenodo.org/record/581
 register_model(MASKUNET,   'Xenopus_Cell_Tissue_Segmentation',  'https://zenodo.org/record/6060378/files/Xenopus_tissue_model.zip', '2694d8b05fa828aceb055eef8cd5ca1f')
 register_model(MASKUNET,   'Arabidopsis_Mask_Segmentation',  'https://zenodo.org/record/6659789/files/Unet_Arabidopsis_Mask.zip', '039a701d68a51b70d4cb5cf786418d83')
 register_model(UNET,   'Arabidopsis_Semantic_Segmentation',  'https://zenodo.org/record/6659799/files/Unet_Arabidopsis.zip', 'd0e635449ae4c100682db529c0ea54e7')
-
 register_model(UNET,   'Unet_Cyto_White_Blood_Cells',  'https://zenodo.org/record/5815603/files/UNETcytoWBC.zip', 'dd3bf8b8e2a04536144954e882445a5e') 
 register_model(UNET,   'Unet_Lung_Segmentation',  'https://zenodo.org/record/6060177/files/Montgomery_county.zip', 'be41937a00693e28961358440d242417') 
 
@@ -73,6 +72,14 @@ def test_image_ascadian_3d():
     
     img = imread(abspath(get_file(fname='Ascadian', origin=url, file_hash=hash)))
     return img
+
+def test_image_arabidopsis_3d():
+    from tifffile import imread
+    url = "https://zenodo.org/record/6670569/files/04.tif"
+    hash = "68204a6c871d6eeca9870728bfd1b8b7"
+    
+    img = imread(abspath(get_file(fname='Arabidopsis', origin=url, file_hash=hash)))
+    return img    
 
 def test_image_carcinoma_3dt():
     from tifffile import imread
