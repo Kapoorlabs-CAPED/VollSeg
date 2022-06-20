@@ -1003,7 +1003,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
               Skeleton[i, :] = Skeleton[i, :] > 0
         zero_indices = np.where(overall_mask == 0)          
         Finalimage[zero_indices] = 0     
-        
+        Skeleton[zero_indices] = 0
         
     elif roi_model is not None:
 
