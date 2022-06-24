@@ -351,7 +351,7 @@ class UNET(BaseModel):
             n_tiles = [1]*img.ndim
         
         n_tiles = tuple(n_tiles)
-        if(img.ndim < len(n_tiles))
+        if(img.ndim < len(n_tiles)):
           n_tiles = (n_tiles[-3], n_tiles[-2], n_tiles[-1])
         
 
