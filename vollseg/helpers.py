@@ -225,9 +225,9 @@ def expand_labels(label_image, distance=1):
     return labels_out
 
 
-def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axes='ZYX', globalthreshold=0.2):
+def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axes='ZYX', globalthreshold=0.2, ExpandLabels = True):
 
-    Mask = UNETPrediction3D(x, UnetModel, n_tiles, axes)
+    Mask = UNETPrediction3D(x, UnetModel, n_tiles, axes, ExpandLabels)
 
     smart_seeds, _, star_labels, _ = STARPrediction3D(
         x, axes, StarModel, n_tiles, unet_mask=Mask, smartcorrection=None, UseProbability=UseProbability, globalthreshold=globalthreshold)
@@ -773,7 +773,7 @@ def Region_embedding(image, region, sourceimage, RGB = False):
 
 
 def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  prob_thresh=None, nms_thresh=None, axes='YX', min_size_mask=5, min_size=5,
-              max_size=10000000, dounet=True, n_tiles=(2, 2),  donormalize=True, lower_perc=1, upper_perc=99.8, UseProbability=True, RGB=False, seedpool=True):
+              max_size=10000000, dounet=True, n_tiles=(2, 2), ExpandLabels = True,  donormalize=True, lower_perc=1, upper_perc=99.8, UseProbability=True, RGB=False, seedpool=True):
 
     print('Generating SmartSeed results')
 
@@ -806,7 +806,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         assert model_dim == len(
             image.shape), f'For 2D images the region of interest model has to be 2D, model provided had {model_dim} instead'
         roi_image = UNETPrediction3D(
-            image, roi_model, n_tiles, axes)
+            image, roi_model, n_tiles, axes,ExpandLabels = ExpandLabels)
         roi_bbox = Bbox_region(roi_image)
         if roi_bbox is not None:
                 rowstart = roi_bbox[0]
@@ -840,7 +840,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
             print('UNET segmentation on Image')
 
             Mask = UNETPrediction3D(
-                patch, unet_model, n_tiles, axes, iou_threshold=nms_thresh)
+                patch, unet_model, n_tiles, axes, iou_threshold=nms_thresh, ExpandLabels = ExpandLabels)
             Mask = remove_small_objects(
                 Mask.astype('uint16'), min_size=min_size_mask)
             Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
@@ -919,7 +919,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), image
 
 
-def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0.3, slice_merge=False, dounet=True, erosion_iterations = 15):
+def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', ExpandLabels = True, noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0.3, slice_merge=False, dounet=True, erosion_iterations = 15):
 
     
     ndim = len(image.shape)    
@@ -1028,7 +1028,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                 tiles = n_tiles
             maximage = np.amax(image, axis=0)
             Binary = UNETPrediction3D(
-                maximage, roi_model, tiles, 'YX')
+                maximage, roi_model, tiles, 'YX', ExpandLabels = ExpandLabels)
 
             Binary = label(Binary)
             Binary = remove_small_objects(
@@ -1042,7 +1042,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Skeleton = skeletonize(find_boundaries(Finalimage > 0))
         elif model_dim == len(image.shape):
             Binary = UNETPrediction3D(
-                image, roi_model, n_tiles, axes)
+                image, roi_model, n_tiles, axes, ExpandLabels = ExpandLabels)
 
             Binary = label(Binary)
             if ndim == 3 and slice_merge:
@@ -1270,7 +1270,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2), UseProbability=True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
+              n_tiles=(1, 2, 2), UseProbability=True, ExpandLabels = True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
 
    
 
@@ -1308,7 +1308,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 tiles = n_tiles
             maximage = np.amax(image, axis=0)
             roi_image = UNETPrediction3D(
-                maximage, roi_model, tiles, 'YX', iou_threshold=nms_thresh)
+                maximage, roi_model, tiles, 'YX', iou_threshold=nms_thresh, ExpandLabels = ExpandLabels)
             roi_bbox = Bbox_region(roi_image)
             if roi_bbox is not None:
                 rowstart = roi_bbox[0]
@@ -1319,7 +1319,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                         slice(colstart, endcol))
         elif model_dim == len(image.shape):
             roi_image = UNETPrediction3D(
-                image, roi_model, n_tiles, axes)
+                image, roi_model, n_tiles, axes, ExpandLabels = ExpandLabels)
           
             roi_bbox = Bbox_region(roi_image)
             if roi_bbox is not None:
@@ -1354,7 +1354,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             print('UNET segmentation on Image',  patch.shape)
 
             Mask = UNETPrediction3D(patch, unet_model, n_tiles, axes,
-                                    iou_threshold=iou_threshold, slice_merge=slice_merge)
+                                    iou_threshold=iou_threshold, slice_merge=slice_merge, ExpandLabels = ExpandLabels)
             for i in range(0, Mask.shape[0]):
                     Mask[i, :] = remove_small_objects(
                             Mask[i, :].astype('uint16'), min_size=min_size_mask)
@@ -1686,7 +1686,7 @@ def CleanMask(star_labels, OverAllunet_mask):
     return OverAllunet_mask
 
 
-def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge=False, erosion_iterations = 15):
+def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge=False, erosion_iterations = 15, ExpandLabels = True):
 
     Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
 
@@ -1722,7 +1722,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
     Finalimage = relabel_sequential(Finalimage)[0]
-    if ndim == 3:
+    if ndim == 3 and ExpandLabels:
           for i in range(image.shape[0]):
               Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
       
