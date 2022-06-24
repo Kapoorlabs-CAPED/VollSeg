@@ -349,11 +349,11 @@ class UNET(BaseModel):
 
         if n_tiles is None:
             n_tiles = [1]*img.ndim
-        try:
-            n_tiles = tuple(n_tiles)
-            img.ndim == len(n_tiles) or _raise(TypeError())
-        except TypeError:
-            raise ValueError("n_tiles must be an iterable of length %d" % img.ndim)
+        
+        n_tiles = tuple(n_tiles)
+        if(img.ndim < len(n_tiles))
+          n_tiles = (n_tiles[-3], n_tiles[-2], n_tiles[-1])
+        
 
         all(np.isscalar(t) and 1<=t and int(t)==t for t in n_tiles) or _raise(
             ValueError("all values of n_tiles must be integer values >= 1"))

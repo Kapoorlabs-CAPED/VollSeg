@@ -1435,7 +1435,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                                         Sizedproabability_map[i, :])
             Skeleton = Skeleton > 0
 
-   
+
     if noise_model == None and roi_image is not None and star_model is not None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), roi_image.astype('uint16')
     if noise_model == None and roi_image is None and star_model is not None:
