@@ -352,7 +352,7 @@ class MASKUNET(BaseModel):
         
         n_tiles = tuple(n_tiles)
         if(img.ndim < len(n_tiles)):
-          n_tiles = (n_tiles[-3], n_tiles[-2], n_tiles[-1])
+          n_tiles = ( n_tiles[-2], n_tiles[-1])
 
         all(np.isscalar(t) and 1<=t and int(t)==t for t in n_tiles) or _raise(
             ValueError("all values of n_tiles must be integer values >= 1"))
