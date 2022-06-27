@@ -1031,19 +1031,27 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             else:
                 tiles = n_tiles
             maximage = np.amax(image, axis=0)
-            Binary = UNETPrediction3D(
+            s_Binary = UNETPrediction3D(
                 maximage, roi_model, tiles, 'YX', ExpandLabels = ExpandLabels)
 
-            Binary = label(Binary)
-            Binary = remove_small_objects(
-                Binary.astype('uint16'), min_size=min_size_mask)
-            Binary = remove_big_objects(
-                Binary.astype('uint16'), max_size=max_size)
-            Binary = fill_label_holes(Binary)
+            s_Binary = label(s_Binary)
+            s_Binary = remove_small_objects(
+                s_Binary.astype('uint16'), min_size=min_size_mask)
+            s_Binary = remove_big_objects(
+                s_Binary.astype('uint16'), max_size=max_size)
+            s_Binary = fill_label_holes(s_Binary)
 
-            Finalimage = relabel_sequential(Binary)[0]
+            s_Finalimage = relabel_sequential(s_Binary)[0]
 
-            Skeleton = skeletonize(find_boundaries(Finalimage > 0))
+            s_Skeleton = skeletonize(find_boundaries(s_Finalimage > 0))
+            Binary = np.zeros_like(image)
+            Skeleton = np.zeros_like(image)
+            for i in range(0, image.shape[0]):
+
+               Binary[i,:,:] = s_Binary
+               Skeleton[i,:,:] = s_Skeleton
+
+
         elif model_dim == len(image.shape):
             Binary = UNETPrediction3D(
                 image, roi_model, n_tiles, axes, ExpandLabels = ExpandLabels)
