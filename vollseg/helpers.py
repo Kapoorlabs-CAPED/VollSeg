@@ -921,7 +921,6 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
 
 def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', ExpandLabels = True, noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0.3, slice_merge=False, dounet=True, erosion_iterations = 15):
 
-    print("ExpandLabels", ExpandLabels)
     ndim = len(image.shape)    
     if roi_model is None:
         if RGB:
