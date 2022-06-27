@@ -1046,11 +1046,12 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             s_Skeleton = skeletonize(find_boundaries(s_Finalimage > 0))
             Binary = np.zeros_like(image)
             Skeleton = np.zeros_like(image)
+            Finalimage = np.zeros_like(image)
             for i in range(0, image.shape[0]):
 
                Binary[i,:,:] = s_Binary
                Skeleton[i,:,:] = s_Skeleton
-
+               Finalimage[i,:,:] = s_Finalimage
 
         elif model_dim == len(image.shape):
             Binary = UNETPrediction3D(
