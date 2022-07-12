@@ -1199,7 +1199,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
             roi_results = save_dir + 'Roi/'
             Path(roi_results).mkdir(exist_ok=True)
             imwrite((roi_results + Name + '.tif'),
-                    roi_image.astype('uint16'))
+                    np.asarray(roi_image).astype('uint16'))
 
         if unet_model is not None:
             unet_results = save_dir + 'BinaryMask/'
@@ -1448,9 +1448,9 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             Skeleton = Skeleton > 0
 
 
-    if noise_model == None and roi_image is not None and star_model is not None:
+    if noise_model is None and roi_image is not None and star_model is not None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), roi_image.astype('uint16')
-    if noise_model == None and roi_image is None and star_model is not None:
+    if noise_model is None and roi_image is None and star_model is not None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16')    
     if noise_model is not None and roi_image is None and star_model is not None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'),  image
