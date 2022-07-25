@@ -1735,7 +1735,7 @@ def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=
 
     if UseProbability:
 
-        MaxProjectDistance = Probability[:star_labels_prob.shape[0],:star_labels_prob.shape[1]] + star_labels_prob
+        MaxProjectDistance = Probability[:star_labels_prob.shape[0],:star_labels_prob.shape[1]] 
 
     else:
 
@@ -1797,7 +1797,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     if UseProbability:
 
         print('Using Probability maps')
-        MaxProjectDistance = Probability[:star_labels_prob.shape[0],:star_labels_prob.shape[1],:star_labels_prob.shape[2]] + star_labels_prob
+        MaxProjectDistance = Probability[:star_labels_prob.shape[0],:star_labels_prob.shape[1],:star_labels_prob.shape[2]]
 
     else:
 
