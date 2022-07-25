@@ -1787,12 +1787,12 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     if UseProbability:
 
         print('Using Probability maps')
-        MaxProjectDistance = Probability + star_labels_prob
+        MaxProjectDistance = Probability.reshape(star_labels_prob.shape) + star_labels_prob
 
     else:
 
         print('Using Distance maps')
-        MaxProjectDistance = Distance
+        MaxProjectDistance = Distance.reshape(star_labels_prob.shape)
 
     print('Doing Watershedding')
  
