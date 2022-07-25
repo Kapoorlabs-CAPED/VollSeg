@@ -1250,7 +1250,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2), UseProbability=True, ExpandLabels = True,  extent=0, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
+              n_tiles=(1, 2, 2), UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
 
    
 
@@ -1388,7 +1388,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 patch_star = patch
 
             smart_seeds, proabability_map, star_labels, Markers = STARPrediction3D(
-                patch_star, axes, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+                patch_star, axes, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability,seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
             print('Removing small/large objects')
             for i in tqdm(range(0, smart_seeds.shape[0])):
                 smart_seeds[i, :] = remove_small_objects(
@@ -1633,46 +1633,6 @@ def RelabelZ(previousImage, currentImage, threshold):
     return relabelimage
 
 
-def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None):
-
-
-    shape = [image.shape[0], image.shape[1]]
-
-    if prob_thresh is not None and nms_thresh is not None:
-
-        star_labels,  SmallProbability, SmallDistance = model.predict_vollseg(
-            image.astype('float32'), n_tiles=n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
-    else:
-        star_labels,  SmallProbability, SmallDistance = model.predict_vollseg(
-            image.astype('float32'), n_tiles=n_tiles)
-
-
-    grid = model.config.grid
-    Probability = cv2.resize(SmallProbability, dsize=(
-        SmallProbability.shape[1] * grid[1], SmallProbability.shape[0] * grid[0]))
-    Distance = MaxProjectDist(SmallDistance, axis=-1)
-    Distance = cv2.resize(Distance, dsize=(
-        Distance.shape[1] * grid[1], Distance.shape[0] * grid[0]))
-    if UseProbability:
-
-        MaxProjectDistance = Probability[:shape[0], :shape[1]]
-
-    else:
-
-        MaxProjectDistance = Distance[:shape[0], :shape[1]]
-
-    if OverAllunet_mask is None:
-        OverAllunet_mask = unet_mask
-    if OverAllunet_mask is not None:    
-       OverAllunet_mask = CleanMask(star_labels, OverAllunet_mask)
-
-    if unet_mask is None:
-        unet_mask = star_labels > 0
-    Watershed, Markers = SuperWatershedwithMask(
-        MaxProjectDistance, star_labels.astype('uint16'), unet_mask.astype('uint16'))
-    Watershed = fill_label_holes(Watershed.astype('uint16'))
-
-    return Watershed, Markers, star_labels, MaxProjectDistance
 
 
 def CleanMask(star_labels, OverAllunet_mask):
@@ -1742,12 +1702,56 @@ def Bbox_region(image):
 
 
 
+def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None):
 
 
-def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbability=True, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None):
+    shape = [image.shape[0], image.shape[1]]
+
+    if prob_thresh is not None and nms_thresh is not None:
+
+        star_labels,  SmallProbability, SmallDistance = model.predict_vollseg(
+            image.astype('float32'), n_tiles=n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+    else:
+        star_labels,  SmallProbability, SmallDistance = model.predict_vollseg(
+            image.astype('float32'), n_tiles=n_tiles)
+
+
+    grid = model.config.grid
+    star_labels_bin = star_labels > 0
+    pixel_condition = (star_labels_bin > 0)
+    pixel_replace_condition = 0.25
+    star_labels_prob = image_conditionals(star_labels_bin,pixel_condition,pixel_replace_condition)
+
+    Probability = cv2.resize(SmallProbability, dsize=(
+        SmallProbability.shape[1] * grid[1], SmallProbability.shape[0] * grid[0]))
+    Distance = MaxProjectDist(SmallDistance, axis=-1)
+    Distance = cv2.resize(Distance, dsize=(
+        Distance.shape[1] * grid[1], Distance.shape[0] * grid[0]))
+    if UseProbability:
+
+        MaxProjectDistance = Probability[:star_labels_prob.shape[0],:star_labels_prob.shape[1]] + star_labels_prob
+
+    else:
+
+        MaxProjectDistance = Distance[:star_labels_prob.shape[0],:star_labels_prob.shape[1]]
+
+    if OverAllunet_mask is None:
+        OverAllunet_mask = unet_mask
+    if OverAllunet_mask is not None:    
+       OverAllunet_mask = CleanMask(star_labels, OverAllunet_mask)
+
+    if unet_mask is None:
+        unet_mask = star_labels > 0
+    Watershed, Markers = SuperWatershedwithMask(
+        MaxProjectDistance, star_labels.astype('uint16'), unet_mask.astype('uint16'))
+    Watershed = fill_label_holes(Watershed.astype('uint16'))
+
+    return Watershed, Markers, star_labels, MaxProjectDistance
+
+
+def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbability=True,  seedpool=True, prob_thresh=None, nms_thresh=None):
 
     copymodel = model
-    shape = [image.shape[1], image.shape[2]]
     grid = copymodel.config.grid
     print('Predicting Instances')
 
@@ -1787,17 +1791,20 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     if UseProbability:
 
         print('Using Probability maps')
-        MaxProjectDistance = Probability.reshape(star_labels_prob.shape) + star_labels_prob
+        MaxProjectDistance = Probability[:star_labels_prob.shape[0],:star_labels_prob.shape[1],:star_labels_prob.shape[2]] + star_labels_prob
 
     else:
 
         print('Using Distance maps')
-        MaxProjectDistance = Distance.reshape(star_labels_prob.shape)
+        MaxProjectDistance = Distance[:star_labels_prob.shape[0],:star_labels_prob.shape[1],:star_labels_prob.shape[2]]
 
     print('Doing Watershedding')
  
+    if unet_mask is None:
+         unet_mask = star_labels_bin
+
     Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype(
-        'uint16'), star_labels.astype('uint16'), star_labels_bin.astype('uint16'), seedpool)
+        'uint16'), star_labels.astype('uint16'), unet_mask.astype('uint16'), seedpool)
     Watershed = fill_label_holes(Watershed.astype('uint16'))
 
     return Watershed, MaxProjectDistance, star_labels, Markers
