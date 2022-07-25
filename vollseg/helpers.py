@@ -43,7 +43,7 @@ from skimage.filters import threshold_multiotsu
 from scipy.ndimage.measurements import find_objects
 
 Boxname = 'ImageIDBox'
-GLOBAL_THRESH = 1.0E-5
+
 
 class SegCorrect(object):
 
@@ -225,12 +225,12 @@ def expand_labels(label_image, distance=1):
     return labels_out
 
 
-def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axes='ZYX', globalthreshold=GLOBAL_THRESH, ExpandLabels = True):
+def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axes='ZYX', ExpandLabels = True):
 
     Mask = UNETPrediction3D(x, UnetModel, n_tiles, axes, ExpandLabels)
 
-    smart_seeds, _, star_labels, _ = STARPrediction3D(
-        x, axes, StarModel, n_tiles, unet_mask=Mask, smartcorrection=None, UseProbability=UseProbability, globalthreshold=globalthreshold)
+    smart_seeds, _, _, _ = STARPrediction3D(
+        x, axes, StarModel, n_tiles, unet_mask=Mask, smartcorrection=None, UseProbability=UseProbability)
 
     smart_seeds = smart_seeds.astype('uint16')
 
@@ -467,7 +467,7 @@ def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarM
     if donormalize:
         image = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
     # Smart Seed prediction
-    smart_seeds, Markers, star_labels, ProbImage = SuperSTARPrediction(
+    smart_seeds, _, star_labels, ProbImage = SuperSTARPrediction(
         image, StarModel, n_tiles, unet_mask=Mask, OverAllunet_mask=OverAllMask, UseProbability=UseProbability)
 
     smart_seedsLabels = smart_seeds.copy()
@@ -478,9 +478,11 @@ def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarM
     SegimageB = find_boundaries(smart_seedsLabels)
     invertProbimage = 1 - ProbImage
     image_max = np.add(invertProbimage, SegimageB)
-    indices = np.where(image_max < 1.2)
-    for y, x in indices:
-        image_max[y, x] = 0
+
+    pixel_condition = (image_max < 1.2)
+    pixel_replace_condition = 0
+    image_max = image_conditionals(image_max,pixel_condition,pixel_replace_condition )
+
     smart_seeds = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
 
 
@@ -600,7 +602,7 @@ def NotumSegmentation2D(save_dir, image, fname, mask_model, star_model, min_size
     if donormalize:
         image = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
     # Smart Seed prediction
-    smart_seeds, Markers, star_labels, ProbImage = SuperSTARPrediction(
+    smart_seeds, _, star_labels, ProbImage = SuperSTARPrediction(
         image, star_model, n_tiles, unet_mask=OverAllMask, OverAllunet_mask=OverAllMask, UseProbability=UseProbability)
 
     smart_seedsLabels = smart_seeds.copy()
@@ -611,8 +613,11 @@ def NotumSegmentation2D(save_dir, image, fname, mask_model, star_model, min_size
     SegimageB = find_boundaries(smart_seedsLabels)
     invertProbimage = 1 - ProbImage
     image_max = np.add(invertProbimage, SegimageB)
-    indices = np.where(image_max < 1.2)
-    image_max[indices] = 0
+
+    pixel_condition = (image_max < 1.2)
+    pixel_replace_condition = 0
+    image_max = image_conditionals(image_max,pixel_condition,pixel_replace_condition )
+
     smart_seeds = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
 
     # Save results, we only need smart seeds finale results but hey!
@@ -630,8 +635,11 @@ def SmartSkel(smart_seedsLabels, ProbImage):
     SegimageB = find_boundaries(smart_seedsLabels)
     invertProbimage = 1 - ProbImage
     image_max = np.add(invertProbimage, SegimageB)
-    indices = np.where(image_max < 1.2)
-    image_max[indices] = 0
+
+    pixel_condition = (image_max < 1.2)
+    pixel_replace_condition = 0
+    image_max = image_conditionals(image_max,pixel_condition,pixel_replace_condition )
+
     Skeleton = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
 
     return Skeleton
@@ -699,35 +707,6 @@ def iouNotum(boxA, centroid):
     return inside
 
 
-def SuperWatershedwithoutMask(Image, Label, mask, grid):
-
-    properties = measure.regionprops(Label, Image)
-    binaryproperties = measure.regionprops(label(mask), Image)
-
-    Coordinates = [prop.centroid for prop in properties]
-    BinaryCoordinates = [prop.centroid for prop in binaryproperties]
-    Binarybbox = [prop.bbox for prop in binaryproperties]
-
-    if len(Binarybbox) > 0:
-        for i in range(0, len(Binarybbox)):
-
-            box = Binarybbox[i]
-            inside = [iouNotum(box, star) for star in Coordinates]
-
-            if not any(inside):
-                Coordinates.append(BinaryCoordinates[i])
-    Coordinates = sorted(Coordinates, key=lambda k: [k[1], k[0]])
-    Coordinates.append((0, 0))
-    Coordinates = np.asarray(Coordinates)
-
-    coordinates_int = np.round(Coordinates).astype(int)
-    markers_raw = np.zeros_like(Image)
-    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
-
-    markers = morphology.dilation(markers_raw, morphology.disk(2))
-    watershedImage = watershed(-Image, markers)
-
-    return watershedImage, markers
 
 
 def Region_embedding(image, region, sourceimage, RGB = False):
@@ -795,9 +774,10 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         print('Denoising Image')
 
         image = noise_model.predict(image.astype('float32'), axes=axes, n_tiles=n_tiles)
-        indices = zip(*np.where(image < 0))
-        for y, x in indices:
-            image[y, x] = 0
+        pixel_condition = (image < 0)
+        pixel_replace_condition = 0
+        image = image_conditionals(image,pixel_condition,pixel_replace_condition ) 
+
     Mask = None
     Mask_patch = None
     roi_image=None
@@ -931,18 +911,10 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
         if noise_model is not None:
             image = noise_model.predict(image.astype('float32'), axes, n_tiles=n_tiles)
-
-            indices = zip(*np.where(image < 0))
-            if ndim == 2:
-                for y, x in indices:
-
-                    image[y, x] = 0
-
-            if ndim == 3:
-
-                for z, y, x in indices:
-
-                    image[z, y, x] = 0
+            pixel_condition = (image < 0)
+            pixel_replace_condition = 0
+            image = image_conditionals(image,pixel_condition,pixel_replace_condition )
+            
         if dounet and unet_model is not None:
             Segmented = unet_model.predict(image.astype('float32'), axes, n_tiles=n_tiles)
         else:
@@ -1004,26 +976,22 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             else:
                 for i in range(image.shape[0]):
                    Skeleton[i, :] = Skel(Finalimage[i,:])
-                   Skeleton[i, :] = Skeleton[i, :] > 0               
-        zero_indices = np.where(overall_mask == 0)          
-        Finalimage[zero_indices] = 0     
-        Skeleton[zero_indices] = 0
-        
+                   Skeleton[i, :] = Skeleton[i, :] > 0    
+
+        pixel_condition = (overall_mask == 0)
+        pixel_replace_condition = 0
+        Finalimage = image_conditionals(Finalimage,pixel_condition,pixel_replace_condition )        
+        Skeleton = image_conditionals(Skeleton,pixel_condition,pixel_replace_condition )
+
     elif roi_model is not None:
 
         if noise_model is not None:
             image = noise_model.predict(image.astype('float32'), axes, n_tiles=n_tiles)
 
-            indices = zip(*np.where(image < 0))
-            if ndim == 2:
-                for y, x in indices:
+            pixel_condition = (image < 0)
+            pixel_replace_condition = 0
+            image = image_conditionals(image,pixel_condition,pixel_replace_condition) 
 
-                    image[y, x] = 0
-            if ndim == 3:
-
-                for z, y, x in indices:
-
-                    image[z, y, x] = 0
         model_dim = roi_model.config.n_dim
         if model_dim < len(image.shape):
             if len(n_tiles) == len(image.shape):
@@ -1082,7 +1050,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
 
 def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX', noise_model=None, prob_thresh=None, ExpandLabels = True, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-            n_tiles=(1, 1, 1), UseProbability=True, globalthreshold= GLOBAL_THRESH,  extent=0,  donormalize=True, lower_perc=1, upper_perc=99.8, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0.3, RGB=False):
+            n_tiles=(1, 1, 1), UseProbability=True,  extent=0,  donormalize=True, lower_perc=1, upper_perc=99.8, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0.3, RGB=False):
 
     if len(image.shape) == 2:
 
@@ -1105,7 +1073,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
         # this is a 3D image and if stardist model is supplied we use this method
         if star_model is not None:
             res = VollSeg3D(image,  unet_model, star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-                            n_tiles=n_tiles, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
+                            n_tiles=n_tiles, UseProbability=UseProbability, extent=extent, dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
 
         # If there is no stardist model we use unet model with or without denoising model
         if star_model is None:
@@ -1142,7 +1110,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
         res = tuple(
             zip(
                 *tuple(VollSeg3D(_x,  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-                                 n_tiles=n_tiles, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent,
+                                 n_tiles=n_tiles, UseProbability=UseProbability,  extent=extent,
                                  dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for _x in tqdm(image))))
 
  
@@ -1282,7 +1250,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2), UseProbability=True, ExpandLabels = True, globalthreshold=GLOBAL_THRESH, extent=0, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
+              n_tiles=(1, 2, 2), UseProbability=True, ExpandLabels = True,  extent=0, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
 
    
 
@@ -1306,9 +1274,10 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         print('Denoising Image')
 
         image = noise_model.predict(image.astype('float32'), axes=axes, n_tiles=n_tiles)
-        indices = zip(*np.where(image < 0))
-        for z, y, x in indices:
-            image[z, y, x] = 0
+        pixel_condition = (image < 0)
+        pixel_replace_condition = 0
+        image = image_conditionals(image,pixel_condition,pixel_replace_condition)
+        
 
     if roi_model is not None:
 
@@ -1419,7 +1388,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 patch_star = patch
 
             smart_seeds, proabability_map, star_labels, Markers = STARPrediction3D(
-                patch_star, axes, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, globalthreshold=globalthreshold, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+                patch_star, axes, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, extent=extent, seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
             print('Removing small/large objects')
             for i in tqdm(range(0, smart_seeds.shape[0])):
                 smart_seeds[i, :] = remove_small_objects(
@@ -1527,6 +1496,19 @@ def image_pixel_duplicator(image, size):
                 j = 0  
 
     return ResizeImage
+
+
+def image_conditionals(image, pixel_condition, pixel_replace_condition):
+
+    ndim = len(image.shape) 
+    indices = zip(*np.where(pixel_condition))
+    if ndim == 3:
+        for z, y, x in indices:
+            image[z, y, x] = pixel_replace_condition
+    if ndim == 2:
+        for y, x in indices:
+            image[y, x] = pixel_replace_condition        
+    return image
 
 def image_embedding(image, size):
 
@@ -1638,11 +1620,16 @@ def RelabelZ(previousImage, currentImage, threshold):
                     previouslabel = previousImage[int(indices[previouspoint[1]][0]), int(
                         indices[previouspoint[1]][1])]
                     if previouspoint[0] > threshold:
-                        relabelimage[np.where(
-                            currentImage == currentlabel)] = currentlabel
+                        
+                        pixel_condition = (currentImage == currentlabel)
+                        pixel_replace_condition = currentlabel
+                        relabelimage = image_conditionals(relabelimage,pixel_condition,pixel_replace_condition )
+
                     else:
-                        relabelimage[np.where(
-                            currentImage == currentlabel)] = previouslabel
+                        pixel_condition = (currentImage == currentlabel)
+                        pixel_replace_condition = previouslabel
+                        relabelimage = image_conditionals(relabelimage,pixel_condition,pixel_replace_condition )
+
     return relabelimage
 
 
@@ -1737,8 +1724,10 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
           for i in range(image.shape[0]):
               Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
       
-    zero_indices = np.where(overall_mask == 0)          
-    Finalimage[zero_indices] = 0
+    pixel_condition = (overall_mask == 0)
+    pixel_replace_condition = 0
+    Finalimage = image_conditionals(Finalimage,pixel_condition,pixel_replace_condition )
+
     return Finalimage
 
 
@@ -1753,24 +1742,14 @@ def Bbox_region(image):
            
 
 
-def RemoveLabels(LabelImage, minZ=2):
-
-    properties = measure.regionprops(LabelImage)
-    for prop in properties:
-        regionlabel = prop.label
-        sizeZ = abs(prop.bbox[0] - prop.bbox[3])
-        if sizeZ <= minZ:
-            LabelImage[LabelImage == regionlabel] = 0
-    return LabelImage
 
 
-def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbability=True, globalthreshold=GLOBAL_THRESH, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None):
+
+def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbability=True, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None):
 
     copymodel = model
     shape = [image.shape[1], image.shape[2]]
-    image = zero_pad_time(image, 64, 64)
     grid = copymodel.config.grid
-
     print('Predicting Instances')
 
     if prob_thresh is not None and nms_thresh is not None:
@@ -1784,7 +1763,12 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     print('Predictions Done')
     star_labels = MidImage[:image.shape[0], :shape[0], :shape[1]]
 
-    star_labels = RemoveLabels(star_labels)
+    star_labels_bin = star_labels > 0
+    
+    pixel_condition = (star_labels_bin > 0)
+    pixel_replace_condition = 0.25
+    star_labels_prob = image_conditionals(star_labels_bin,pixel_condition,pixel_replace_condition )
+
     if UseProbability == False:
 
         SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
@@ -1805,55 +1789,32 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     if UseProbability:
 
         print('Using Probability maps')
-        indices = zip(*np.where(Probability < 1.0E-4))
-        for z, y, x in indices:
-
-            Probability[z, y, x] = 0
-
-        MaxProjectDistance = Probability[:image.shape[0], :shape[0], :shape[1]]
+        MaxProjectDistance = Probability + star_labels_prob
 
     else:
 
         print('Using Distance maps')
-        MaxProjectDistance = Distance[:image.shape[0], :shape[0], :shape[1]]
+        MaxProjectDistance = Distance
 
     print('Doing Watershedding')
-    if unet_mask is None:
-        unet_mask = star_labels > 0
-
+ 
     Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype(
-        'uint16'), star_labels.astype('uint16'), unet_mask.astype('uint16'), grid, extent, seedpool)
+        'uint16'), star_labels.astype('uint16'), star_labels_bin.astype('uint16'), seedpool)
     Watershed = fill_label_holes(Watershed.astype('uint16'))
 
     return Watershed, MaxProjectDistance, star_labels, Markers
 
 
-def VetoRegions(Image, Zratio=3):
-
-    Image = Image.astype('uint16')
-
-    properties = measure.regionprops(Image, Image)
-
-    for prop in properties:
-
-        LabelImage = prop.image
-        if LabelImage.shape[0] < Image.shape[0]/Zratio:
-            indices = zip(*np.where(LabelImage > 0))
-            for z, y, x in indices:
-
-                Image[z, y, x] = 0
-
-    return Image
 
 
 # Default method that works well with cells which are below a certain shape and do not have weak edges
 
-def iou3D(boxA, centroid, extent=0):
+def iou3D(boxA, centroid):
 
     ndim = len(centroid)
     inside = False
 
-    Condition = [Conditioncheck(centroid, boxA, p, ndim, extent)
+    Condition = [Conditioncheck(centroid, boxA, p, ndim)
                  for p in range(0, ndim)]
 
     inside = all(Condition)
@@ -1861,20 +1822,18 @@ def iou3D(boxA, centroid, extent=0):
     return inside
 
 
-def Conditioncheck(centroid, boxA, p, ndim, extent):
+def Conditioncheck(centroid, boxA, p, ndim):
 
     condition = False
 
-    vol = extent * (boxA[p + ndim] - boxA[p]) / 2
-
-    if centroid[p] >= boxA[p] - vol and centroid[p] <= boxA[p + ndim] + vol:
+    if centroid[p] >= boxA[p] and centroid[p] <= boxA[p + ndim]:
 
         condition = True
 
     return condition
 
 
-def WatershedwithMask3D(Image, Label, mask, grid, extent=0, seedpool=True):
+def WatershedwithMask3D(Image, Label, mask, seedpool=True):
     properties = measure.regionprops(Label, Image)
     binaryproperties = measure.regionprops(label(mask), Image)
 
@@ -1889,7 +1848,7 @@ def WatershedwithMask3D(Image, Label, mask, grid, extent=0, seedpool=True):
             for i in range(0, len(Binarybbox)):
 
                 box = Binarybbox[i]
-                inside = [iou3D(box, star, extent) for star in Coordinates]
+                inside = [iou3D(box, star) for star in Coordinates]
 
                 if not any(inside):
                     Coordinates.append(BinaryCoordinates[i])
