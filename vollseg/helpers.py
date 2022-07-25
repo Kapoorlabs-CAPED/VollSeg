@@ -45,6 +45,7 @@ from scipy.ndimage.measurements import find_objects
 
 Boxname = 'ImageIDBox'
 GLOBAL_THRESH = 1.0E-2
+GLOBAL_ERODE = 8
 
 class SegCorrect(object):
 
@@ -939,7 +940,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                     overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
-                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = 4)
+                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE)
     
        
 
@@ -976,7 +977,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                             Skeleton[i, :] = Skeleton[i, :] > 0
             else:
                 for i in range(image.shape[0]):
-                   Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 4) 
+                   Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE) 
                    Skeleton[i, :] = Skel(Finalimage[i,:])
                    Skeleton[i, :] = Skeleton[i, :] > 0    
 
@@ -1667,7 +1668,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
                     overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
-                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = 4)
+                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE)
     
     Binary = label(Binary)
     
@@ -1687,7 +1688,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
 
     if ndim == 3 and ExpandLabels == False:
         for i in range(image.shape[0]):
-              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 4)
+              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE)
 
     pixel_condition = (overall_mask == 0)
     pixel_replace_condition = 0
