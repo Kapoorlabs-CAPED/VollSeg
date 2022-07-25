@@ -44,7 +44,7 @@ from skimage.filters import threshold_multiotsu
 from scipy.ndimage.measurements import find_objects
 
 Boxname = 'ImageIDBox'
-GLOBAL_THRESH = 1.0E-4
+GLOBAL_THRESH = 1.0E-2
 
 class SegCorrect(object):
 
