@@ -1887,17 +1887,15 @@ def Conditioncheck(boxB, boxA, ndim, nms_thresh):
 
         xA = max(boxA[0], boxB[0])
         yA = max(boxA[1], boxB[1])
-        zA = max(boxA[2], boxB[2]) 
 
         xB = min(boxA[3], boxB[3])
         yB = min(boxA[4], boxB[4])
-        zB = min(boxA[5], boxB[5])
         # compute the area of intersection rectangle
-        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1) * max(0, zB - zA + 1)
+        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1) 
         # compute the area of both the prediction and ground-truth
         # rectangles
-        boxAArea = (boxA[3] - boxA[0] + 1) * (boxA[4] - boxA[1] + 1) * (boxA[5] - boxA[2] + 1)
-        boxBArea = (boxB[3] - boxB[0] + 1) * (boxB[4] - boxB[1] + 1) * (boxB[5] - boxB[2] + 1)
+        boxAArea = (boxA[3] - boxA[0] + 1) * (boxA[4] - boxA[1] + 1) 
+        boxBArea = (boxB[3] - boxB[0] + 1) * (boxB[4] - boxB[1] + 1) 
         # compute the intersection over union by taking the intersection
         # area and dividing it by the sum of prediction + ground-truth
         # areas - the interesection area
