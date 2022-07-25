@@ -43,7 +43,7 @@ from skimage.filters import threshold_multiotsu
 from scipy.ndimage.measurements import find_objects
 
 Boxname = 'ImageIDBox'
-
+GLOBAL_THRESH = 1.0E-5
 
 class SegCorrect(object):
 
@@ -225,7 +225,7 @@ def expand_labels(label_image, distance=1):
     return labels_out
 
 
-def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axes='ZYX', globalthreshold=0.2, ExpandLabels = True):
+def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=True, min_size=20, axes='ZYX', globalthreshold=GLOBAL_THRESH, ExpandLabels = True):
 
     Mask = UNETPrediction3D(x, UnetModel, n_tiles, axes, ExpandLabels)
 
@@ -1082,7 +1082,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
 
 def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX', noise_model=None, prob_thresh=None, ExpandLabels = True, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-            n_tiles=(1, 1, 1), UseProbability=True, globalthreshold=0.2,  extent=0,  donormalize=True, lower_perc=1, upper_perc=99.8, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0.3, RGB=False):
+            n_tiles=(1, 1, 1), UseProbability=True, globalthreshold= GLOBAL_THRESH,  extent=0,  donormalize=True, lower_perc=1, upper_perc=99.8, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0.3, RGB=False):
 
     if len(image.shape) == 2:
 
@@ -1282,7 +1282,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2), UseProbability=True, ExpandLabels = True, globalthreshold=0.2, extent=0, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
+              n_tiles=(1, 2, 2), UseProbability=True, ExpandLabels = True, globalthreshold=GLOBAL_THRESH, extent=0, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
 
    
 
@@ -1764,7 +1764,7 @@ def RemoveLabels(LabelImage, minZ=2):
     return LabelImage
 
 
-def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbability=True, globalthreshold=0.2, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None):
+def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbability=True, globalthreshold=GLOBAL_THRESH, extent=0, seedpool=True, prob_thresh=None, nms_thresh=None):
 
     copymodel = model
     shape = [image.shape[1], image.shape[2]]
