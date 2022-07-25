@@ -1792,9 +1792,12 @@ def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=
 def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbability=True,  seedpool=True, prob_thresh=None, nms_thresh=None):
 
     copymodel = model
+    
     grid = copymodel.config.grid
     print('Predicting Instances')
-
+    if prob_thresh is None and nms_thresh is None:
+        prob_thresh = model.thresholds.prob
+        nms_thresh = model.thresholds.nms 
     if prob_thresh is not None and nms_thresh is not None:
 
         print(f'Using user choice of prob_thresh = {prob_thresh} and nms_thresh = {nms_thresh}')
@@ -1838,7 +1841,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
          unet_mask = star_labels > 0
 
     Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype(
-        'uint16'), star_labels.astype('uint16'), unet_mask.astype('uint16'), seedpool)
+        'uint16'), star_labels.astype('uint16'), unet_mask.astype('uint16'), nms_thresh = nms_thresh, seedpool = seedpool)
     Watershed = fill_label_holes(Watershed.astype('uint16'))
 
     return Watershed, MaxProjectDistance, star_labels, Markers
