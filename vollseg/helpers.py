@@ -1640,13 +1640,12 @@ def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=
 
     if prob_thresh is not None and nms_thresh is not None:
 
-        MidImage,  SmallProbability, SmallDistance = model.predict_vollseg(
+        star_labels,  SmallProbability, SmallDistance = model.predict_vollseg(
             image.astype('float32'), n_tiles=n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     else:
-        MidImage,  SmallProbability, SmallDistance = model.predict_vollseg(
+        star_labels,  SmallProbability, SmallDistance = model.predict_vollseg(
             image.astype('float32'), n_tiles=n_tiles)
 
-    star_labels = MidImage[:shape[0], :shape[1]]
 
     grid = model.config.grid
     Probability = cv2.resize(SmallProbability, dsize=(
@@ -1759,9 +1758,8 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
             image.astype('float32'), axes = axes, n_tiles=n_tiles, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
     else:
         res = model.predict_vollseg(image.astype('float32'), axes = axes, n_tiles=n_tiles)
-    MidImage, SmallProbability, SmallDistance = res
+    star_labels, SmallProbability, SmallDistance = res
     print('Predictions Done')
-    star_labels = MidImage[:image.shape[0], :shape[0], :shape[1]]
 
     star_labels_bin = star_labels > 0
     
@@ -1865,79 +1863,6 @@ def WatershedwithMask3D(Image, Label, mask, seedpool=True):
     watershedImage = watershed(-Image, markers, mask=mask.copy())
 
     return watershedImage, markers
-
-
-def zero_pad(image, PadX, PadY):
-
-    sizeY = image.shape[1]
-    sizeX = image.shape[0]
-
-    sizeXextend = sizeX
-    sizeYextend = sizeY
-
-    while sizeXextend % PadX != 0:
-        sizeXextend = sizeXextend + 1
-
-    while sizeYextend % PadY != 0:
-        sizeYextend = sizeYextend + 1
-
-    extendimage = np.zeros([sizeXextend, sizeYextend])
-
-    extendimage[0:sizeX, 0:sizeY] = image
-
-    return extendimage
-
-
-def zero_pad_color(image, PadX, PadY):
-
-    sizeY = image.shape[1]
-    sizeX = image.shape[0]
-    color = image.shape[2]
-
-    sizeXextend = sizeX
-    sizeYextend = sizeY
-
-    while sizeXextend % PadX != 0:
-        sizeXextend = sizeXextend + 1
-
-    while sizeYextend % PadY != 0:
-        sizeYextend = sizeYextend + 1
-
-    extendimage = np.zeros([sizeXextend, sizeYextend, color])
-
-    extendimage[0:sizeX, 0:sizeY, 0:color] = image
-
-    return extendimage
-
-
-def zero_pad_time(image, PadX, PadY):
-
-    sizeY = image.shape[2]
-    sizeX = image.shape[1]
-
-    sizeXextend = sizeX
-    sizeYextend = sizeY
-
-    while sizeXextend % PadX != 0:
-        sizeXextend = sizeXextend + 1
-
-    while sizeYextend % PadY != 0:
-        sizeYextend = sizeYextend + 1
-
-    extendimage = np.zeros([image.shape[0], sizeXextend, sizeYextend])
-
-    extendimage[:, 0:sizeX, 0:sizeY] = image
-
-    return extendimage
-
-
-def BackGroundCorrection2D(Image, sigma):
-
-    Blur = gaussian(Image.astype(float), sigma)
-
-    Corrected = Image - Blur
-
-    return Corrected
 
 
 def MaxProjectDist(Image, axis=-1):
@@ -2060,16 +1985,7 @@ def move_image_axes(x, fr, to, adjust_singletons=False):
     return np.moveaxis(x, [ax_from[a] for a in fr], [ax_to[a] for a in fr])
 
 
-def consume(iterator):
-    collections.deque(iterator, maxlen=0)
 
-
-def _raise(e):
-    raise e
-
-
-def compose(*funcs):
-    return lambda x: reduce(lambda f, g: g(f), funcs, x)
 
 
 def normalizeZeroOne(x):
