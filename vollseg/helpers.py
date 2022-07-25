@@ -6,6 +6,7 @@ Created on Fri Sep 27 13:08:41 2019
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from pickle import GLOBAL
 # import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -43,7 +44,7 @@ from skimage.filters import threshold_multiotsu
 from scipy.ndimage.measurements import find_objects
 
 Boxname = 'ImageIDBox'
-
+GLOBAL_THRESH = 1.0E-4
 
 class SegCorrect(object):
 
@@ -1727,6 +1728,11 @@ def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=
     Distance = MaxProjectDist(SmallDistance, axis=-1)
     Distance = cv2.resize(Distance, dsize=(
         Distance.shape[1] * grid[1], Distance.shape[0] * grid[0]))
+
+    pixel_condition = (Probability < GLOBAL_THRESH)
+    pixel_replace_condition = 0
+    Probability = image_conditionals(Probability, pixel_condition, pixel_replace_condition) 
+
     if UseProbability:
 
         MaxProjectDistance = Probability[:star_labels_prob.shape[0],:star_labels_prob.shape[1]] + star_labels_prob
