@@ -1723,7 +1723,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
     Finalimage = relabel_sequential(Finalimage)[0]
-    
+
     if ExpandLabels:
         Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
     else:
@@ -1848,36 +1848,72 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 # Default method that works well with cells which are below a certain shape and do not have weak edges
 
-def iou3D(boxA, centroid):
+def iou3D(boxA, boxB, nms_thresh):
 
-    ndim = len(centroid)
+    ndim = len(boxB)//2
     inside = False
-
-    Condition = [Conditioncheck(centroid, boxA, p, ndim)
-                 for p in range(0, ndim)]
-
-    inside = all(Condition)
-
+    inside = Conditioncheck(boxB, boxA, ndim, nms_thresh)
     return inside
 
 
-def Conditioncheck(centroid, boxA, p, ndim):
+
+
+def Conditioncheck(boxB, boxA, ndim, nms_thresh):
 
     condition = False
 
-    if centroid[p] >= boxA[p] and centroid[p] <= boxA[p + ndim]:
+    if ndim == 2:
+        xA = max(boxA[0], boxB[0])
+        yA = max(boxA[1], boxB[1])
+        xB = min(boxA[2], boxB[2])
+        yB = min(boxA[3], boxB[3])
+        # compute the area of intersection rectangle
+        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+        # compute the area of both the prediction and ground-truth
+        # rectangles
+        boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+        boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+        # compute the intersection over union by taking the intersection
+        # area and dividing it by the sum of prediction + ground-truth
+        # areas - the interesection area
+        iou = interArea / float(boxAArea + boxBArea - interArea)
+        if iou >= nms_thresh:
+            condition = True
 
-        condition = True
+    if ndim == 3:
+
+        xA = max(boxA[0], boxB[0])
+        yA = max(boxA[1], boxB[1])
+        zA = max(boxA[2], boxB[2]) 
+
+        xB = min(boxA[3], boxB[3])
+        yB = min(boxA[4], boxB[4])
+        zB = min(boxA[5], boxB[5])
+        # compute the area of intersection rectangle
+        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1) * max(0, zB - zA + 1)
+        # compute the area of both the prediction and ground-truth
+        # rectangles
+        boxAArea = (boxA[3] - boxA[0] + 1) * (boxA[4] - boxA[1] + 1) * (boxA[5] - boxA[2] + 1)
+        boxBArea = (boxB[3] - boxB[0] + 1) * (boxB[4] - boxB[1] + 1) * (boxB[5] - boxB[2] + 1)
+        # compute the intersection over union by taking the intersection
+        # area and dividing it by the sum of prediction + ground-truth
+        # areas - the interesection area
+        iou = interArea / float(boxAArea + boxBArea - interArea)
+        if iou >= nms_thresh:
+            condition = True
+
+
 
     return condition
 
 
-def WatershedwithMask3D(Image, Label, mask, seedpool=True):
+def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
     properties = measure.regionprops(Label)
     binaryproperties = measure.regionprops(label(mask))
 
     Coordinates = [prop.centroid for prop in properties]
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
+    Starbbox = [prop.bbox for prop in properties]
 
     Binarybbox = [prop.bbox for prop in binaryproperties]
     Coordinates = sorted(Coordinates, key=lambda k: [k[0], k[1], k[2]])
@@ -1887,7 +1923,7 @@ def WatershedwithMask3D(Image, Label, mask, seedpool=True):
             for i in range(0, len(Binarybbox)):
 
                 box = Binarybbox[i]
-                inside = [iou3D(box, star) for star in Coordinates]
+                inside = [iou3D(box, star, nms_thresh) for star in Starbbox]
 
                 if not any(inside):
                     Coordinates.append(BinaryCoordinates[i])
