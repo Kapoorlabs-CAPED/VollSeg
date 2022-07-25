@@ -1855,13 +1855,13 @@ def iou3D(boxA, boxB, nms_thresh):
 
     ndim = len(boxB)//2
     inside = False
-    inside = Conditioncheck(boxB, boxA, ndim, nms_thresh)
+    inside = Conditioncheck(boxA, boxB, ndim, nms_thresh)
     return inside
 
 
 
 
-def Conditioncheck(boxB, boxA, ndim, nms_thresh):
+def Conditioncheck(boxA, boxB, ndim, nms_thresh):
 
     condition = False
 
@@ -1870,18 +1870,22 @@ def Conditioncheck(boxB, boxA, ndim, nms_thresh):
         yA = max(boxA[1], boxB[1])
         xB = min(boxA[2], boxB[2])
         yB = min(boxA[3], boxB[3])
-        # compute the area of intersection rectangle
-        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-        # compute the area of both the prediction and ground-truth
-        # rectangles
-        boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-        boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
-        # compute the intersection over union by taking the intersection
-        # area and dividing it by the sum of prediction + ground-truth
-        # areas - the interesection area
-        iou = interArea / float(boxAArea + boxBArea - interArea)
-        if iou >= nms_thresh:
+
+        if boxA[0] <= boxB[0] and boxA[2] >= boxB[2] and boxA[1] <= boxB[1] and boxA[3] >= boxB[3]: 
             condition = True
+        else:    
+            # compute the area of intersection rectangle
+            interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+            # compute the area of both the prediction and ground-truth
+            # rectangles
+            boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+            boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+            # compute the intersection over union by taking the intersection
+            # area and dividing it by the sum of prediction + ground-truth
+            # areas - the interesection area
+            iou = interArea / float(boxAArea + boxBArea - interArea)
+            if iou >= nms_thresh:
+                condition = True
 
     if ndim == 3:
 
@@ -1892,18 +1896,22 @@ def Conditioncheck(boxB, boxA, ndim, nms_thresh):
         xB = min(boxA[3], boxB[3])
         yB = min(boxA[4], boxB[4])
         zB = min(boxA[5], boxB[5])
-        # compute the area of intersection rectangle
-        interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1) * max(0, zB - zA + 1)
-        # compute the area of both the prediction and ground-truth
-        # rectangles
-        boxAArea = (boxA[3] - boxA[0] + 1) * (boxA[4] - boxA[1] + 1) * (boxA[5] - boxA[2] + 1)
-        boxBArea = (boxB[3] - boxB[0] + 1) * (boxB[4] - boxB[1] + 1) * (boxB[5] - boxB[2] + 1)
-        # compute the intersection over union by taking the intersection
-        # area and dividing it by the sum of prediction + ground-truth
-        # areas - the interesection area
-        iou = interArea / float(boxAArea + boxBArea - interArea)
-        if iou >= nms_thresh:
+
+        if boxA[0] <= boxB[0] and boxA[3] >= boxB[3] and boxA[1] <= boxB[1] and boxA[4] >= boxB[4] and boxA[2] <= boxB[2] and boxA[5] >= boxB[5]: 
             condition = True
+        else:    
+            # compute the area of intersection rectangle
+            interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1) * max(0, zB - zA + 1)
+            # compute the area of both the prediction and ground-truth
+            # rectangles
+            boxAArea = (boxA[3] - boxA[0] + 1) * (boxA[4] - boxA[1] + 1) * (boxA[5] - boxA[2] + 1)
+            boxBArea = (boxB[3] - boxB[0] + 1) * (boxB[4] - boxB[1] + 1) * (boxB[5] - boxB[2] + 1)
+            # compute the intersection over union by taking the intersection
+            # area and dividing it by the sum of prediction + ground-truth
+            # areas - the interesection area
+            iou = interArea / float(boxAArea + boxBArea - interArea)
+            if iou >= nms_thresh:
+                condition = True
 
 
 
