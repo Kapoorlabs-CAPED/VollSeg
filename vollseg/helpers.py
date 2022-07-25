@@ -901,6 +901,51 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), image
 
 
+def VollSeg_nolabel_precondition(image, Finalimage):
+
+   
+    ndim = len(image.shape) 
+    if ndim == 3:
+        for i in range(image.shape[0]):
+              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE)
+
+    return Finalimage
+    
+def VollSeg_nolabel_expansion(image, Finalimage, Skeleton):
+    
+    for i in range(image.shape[0]):
+                   Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE) 
+                   Skeleton[i, :] = Skel(Finalimage[i,:])
+                   Skeleton[i, :] = Skeleton[i, :] > 0 
+                   
+    return Finalimage, Skeleton               
+
+def VollSeg_label_precondition(image, overall_mask, Finalimage):
+
+        ndim = len(image.shape)
+        if ndim == 3:
+          for i in range(image.shape[0]):
+              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
+          pixel_condition = (overall_mask == 0)
+          pixel_replace_condition = 0
+          Finalimage = image_conditionals(Finalimage,pixel_condition,pixel_replace_condition )  
+       
+        return Finalimage
+
+def VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton):
+
+    for i in range(image.shape[0]):
+                            Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
+                            Skeleton[i, :] = Skel(Finalimage[i,:])
+                            Skeleton[i, :] = Skeleton[i, :] > 0
+    pixel_condition = (overall_mask == 0)
+    pixel_replace_condition = 0
+    Finalimage = image_conditionals(Finalimage,pixel_condition,pixel_replace_condition )        
+    Skeleton = image_conditionals(Skeleton,pixel_condition,pixel_replace_condition )
+
+    return Finalimage, Skeleton 
+
+
 def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', ExpandLabels = True, noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0.3, slice_merge=False, dounet=True, erosion_iterations = 15):
 
     ndim = len(image.shape)    
@@ -970,21 +1015,16 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                     Binary[i, :] .astype('uint16'), max_size=max_size)    
             Finalimage = relabel_sequential(Binary)[0]
             Skeleton = np.zeros_like(Finalimage)
-            if ExpandLabels:
-                    for i in range(image.shape[0]):
-                            Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
-                            Skeleton[i, :] = Skel(Finalimage[i,:])
-                            Skeleton[i, :] = Skeleton[i, :] > 0
-            else:
-                for i in range(image.shape[0]):
-                   Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE) 
-                   Skeleton[i, :] = Skel(Finalimage[i,:])
-                   Skeleton[i, :] = Skeleton[i, :] > 0    
 
-        pixel_condition = (overall_mask == 0)
-        pixel_replace_condition = 0
-        Finalimage = image_conditionals(Finalimage,pixel_condition,pixel_replace_condition )        
-        Skeleton = image_conditionals(Skeleton,pixel_condition,pixel_replace_condition )
+
+            if ExpandLabels:
+                       
+                    Finalimage, Skeleton = VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton)   
+                    
+            else:
+                    Finalimage, Skeleton =  VollSeg_nolabel_expansion(image, Finalimage, Skeleton)    
+
+        
 
     elif roi_model is not None:
 
@@ -1488,7 +1528,6 @@ def image_pixel_duplicator(image, size):
                 j = 0   
             
 
-
         j = 0
         for i in range(0, ResizeImage.shape[0]):
             
@@ -1538,6 +1577,8 @@ def image_embedding(image, size):
            ResizeImage.append(np.pad(image[i,:], width, 'constant', constant_values = 0))   
         ResizeImage = np.asarray(ResizeImage)
     return ResizeImage
+
+
 def Integer_to_border(Label):
 
     BoundaryLabel = find_boundaries(Label, mode='outer')
@@ -1682,17 +1723,11 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
     Finalimage = relabel_sequential(Finalimage)[0]
-    if ndim == 3 and ExpandLabels:
-          for i in range(image.shape[0]):
-              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
-
-    if ndim == 3 and ExpandLabels == False:
-        for i in range(image.shape[0]):
-              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE)
-
-    pixel_condition = (overall_mask == 0)
-    pixel_replace_condition = 0
-    Finalimage = image_conditionals(Finalimage,pixel_condition,pixel_replace_condition )
+    
+    if ExpandLabels:
+        Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
+    else:
+        Finalimage = VollSeg_nolabel_precondition(image, Finalimage)
 
     return Finalimage
 
@@ -1712,8 +1747,6 @@ def Bbox_region(image):
 def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None):
 
 
-    shape = [image.shape[0], image.shape[1]]
-
     if prob_thresh is not None and nms_thresh is not None:
 
         star_labels,  SmallProbability, SmallDistance = model.predict_vollseg(
@@ -1724,11 +1757,6 @@ def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=
 
 
     grid = model.config.grid
-    star_labels_bin = star_labels > 0
-    pixel_condition = (star_labels_bin > 0)
-    pixel_replace_condition = 0.25
-    star_labels_prob = image_conditionals(star_labels_bin,pixel_condition,pixel_replace_condition)
-
     Probability = cv2.resize(SmallProbability, dsize=(
         SmallProbability.shape[1] * grid[1], SmallProbability.shape[0] * grid[0]))
     Distance = MaxProjectDist(SmallDistance, axis=-1)
@@ -1741,11 +1769,11 @@ def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=
 
     if UseProbability:
 
-        MaxProjectDistance = Probability[:star_labels_prob.shape[0],:star_labels_prob.shape[1]] 
+        MaxProjectDistance = Probability[:star_labels.shape[0],:star_labels.shape[1]] 
 
     else:
 
-        MaxProjectDistance = Distance[:star_labels_prob.shape[0],:star_labels_prob.shape[1]]
+        MaxProjectDistance = Distance[:star_labels.shape[0],:star_labels.shape[1]]
 
     if OverAllunet_mask is None:
         OverAllunet_mask = unet_mask
@@ -1776,13 +1804,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
         res = model.predict_vollseg(image.astype('float32'), axes = axes, n_tiles=n_tiles)
     star_labels, SmallProbability, SmallDistance = res
     print('Predictions Done')
-
-    star_labels_bin = star_labels > 0
     
-    pixel_condition = (star_labels_bin > 0)
-    pixel_replace_condition = 0.25
-    star_labels_prob = image_conditionals(star_labels_bin,pixel_condition,pixel_replace_condition )
-
     if UseProbability == False:
 
         SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
@@ -1803,17 +1825,17 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     if UseProbability:
 
         print('Using Probability maps')
-        MaxProjectDistance = Probability[:star_labels_prob.shape[0],:star_labels_prob.shape[1],:star_labels_prob.shape[2]]
+        MaxProjectDistance = Probability[:star_labels.shape[0],:star_labels.shape[1],:star_labels.shape[2]]
 
     else:
 
         print('Using Distance maps')
-        MaxProjectDistance = Distance[:star_labels_prob.shape[0],:star_labels_prob.shape[1],:star_labels_prob.shape[2]]
+        MaxProjectDistance = Distance[:star_labels.shape[0],:star_labels.shape[1],:star_labels.shape[2]]
 
     print('Doing Watershedding')
  
     if unet_mask is None:
-         unet_mask = star_labels_bin
+         unet_mask = star_labels > 0
 
     Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype(
         'uint16'), star_labels.astype('uint16'), unet_mask.astype('uint16'), seedpool)
@@ -1901,45 +1923,9 @@ def MidProjectDist(Image, axis=-1, slices=1):
     return MaxProject
 
 
-def multiplot(imageA, imageB, imageC, titleA, titleB, titleC, targetdir=None, File=None, plotTitle=None):
-    fig, axes = plt.subplots(1, 3, figsize=(15, 6))
-    ax = axes.ravel()
-    ax[0].imshow(imageA, cmap=cm.gray)
-    ax[0].set_title(titleA)
-    ax[0].set_axis_off()
-    ax[1].imshow(imageB, cmap=plt.cm.nipy_spectral)
-    ax[1].set_title(titleB)
-    ax[1].set_axis_off()
-    ax[2].imshow(imageC, cmap=plt.cm.nipy_spectral)
-    ax[2].set_title(titleC)
-    ax[2].set_axis_off()
-    plt.tight_layout()
-    plt.show()
-    for a in ax:
-        a.set_axis_off()
 
 
-def doubleplot(imageA, imageB, titleA, titleB, targetdir=None, File=None, plotTitle=None):
-    fig, axes = plt.subplots(1, 2, figsize=(15, 6))
-    ax = axes.ravel()
-    ax[0].imshow(imageA, cmap=cm.gray)
-    ax[0].set_title(titleA)
-    ax[0].set_axis_off()
-    ax[1].imshow(imageB, cmap=plt.cm.nipy_spectral)
-    ax[1].set_title(titleB)
-    ax[1].set_axis_off()
 
-    plt.tight_layout()
-    plt.show()
-    for a in ax:
-        a.set_axis_off()
-
-
-def _check_dtype_supported(ar):
-    # Should use `issubdtype` for bool below, but there's a bug in numpy 1.7
-    if not (ar.dtype == bool or np.issubdtype(ar.dtype, np.integer)):
-        raise TypeError("Only bool or integer image types are supported. "
-                        "Got %s." % ar.dtype)
 
 
 def normalizeFloatZeroOne(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32):
@@ -1961,50 +1947,6 @@ def normalizeFloatZeroOne(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.f
     return normalizer(x, mi, ma, eps=eps, dtype=dtype)
 
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
-
-
-def move_image_axes(x, fr, to, adjust_singletons=False):
-    """
-    x: ndarray
-    fr,to: axes string (see `axes_dict`)
-    """
-    fr = axes_check_and_normalize(fr, length=x.ndim)
-    to = axes_check_and_normalize(to)
-
-    fr_initial = fr
-    x_shape_initial = x.shape
-    adjust_singletons = bool(adjust_singletons)
-    if adjust_singletons:
-        # remove axes not present in 'to'
-        slices = [slice(None) for _ in x.shape]
-        for i, a in enumerate(fr):
-            if (a not in to) and (x.shape[i] == 1):
-                # remove singleton axis
-                slices[i] = 0
-                fr = fr.replace(a, '')
-        x = x[slices]
-        # add dummy axes present in 'to'
-        for i, a in enumerate(to):
-            if (a not in fr):
-                # add singleton axis
-                x = np.expand_dims(x, -1)
-                fr += a
-
-    if set(fr) != set(to):
-        _adjusted = '(adjusted to %s and %s) ' % (
-            x.shape, fr) if adjust_singletons else ''
-        raise ValueError(
-            'image with shape %s and axes %s %snot compatible with target axes %s.'
-            % (x_shape_initial, fr_initial, _adjusted, to)
-        )
-
-    ax_from, ax_to = axes_dict(fr), axes_dict(to)
-    if fr == to:
-        return x
-    return np.moveaxis(x, [ax_from[a] for a in fr], [ax_to[a] for a in fr])
-
-
-
 
 
 def normalizeZeroOne(x):
