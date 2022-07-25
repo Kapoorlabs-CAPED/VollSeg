@@ -1938,8 +1938,10 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
                 cord = BinaryCoordinates[i]
                 Clonebbox.remove(box)
                 inside = [iou3D(box, star, nms_thresh) for star in Clonebbox]
-                Clonebbox.append(box)
+                if not any(inside):
+                   Clonebbox.append(box)
 
+                 
                 if not any(inside):
                     CleanBinarybbox.append(box)
                     CleanBinaryCoordinates.append(cord)
