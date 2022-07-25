@@ -934,7 +934,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
         Binary = regions > 0
         overall_mask = Binary.copy()
         
-        if ndim == 3 and ExpandLabels:
+        if ndim == 3:
                 for i in range(image.shape[0]):
                     overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
@@ -976,6 +976,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                             Skeleton[i, :] = Skeleton[i, :] > 0
             else:
                 for i in range(image.shape[0]):
+                   Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 4) 
                    Skeleton[i, :] = Skel(Finalimage[i,:])
                    Skeleton[i, :] = Skeleton[i, :] > 0    
 
@@ -1661,7 +1662,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     Binary = regions > 0
     overall_mask = Binary.copy()
     ndim = len(image.shape)
-    if ndim == 3 and ExpandLabels:
+    if ndim == 3:
                 for i in range(image.shape[0]):
                     overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
@@ -1683,7 +1684,11 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     if ndim == 3 and ExpandLabels:
           for i in range(image.shape[0]):
               Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
-      
+
+    if ndim == 3 and ExpandLabels == False:
+        for i in range(image.shape[0]):
+              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 4)
+
     pixel_condition = (overall_mask == 0)
     pixel_replace_condition = 0
     Finalimage = image_conditionals(Finalimage,pixel_condition,pixel_replace_condition )
@@ -1845,8 +1850,8 @@ def Conditioncheck(centroid, boxA, p, ndim):
 
 
 def WatershedwithMask3D(Image, Label, mask, seedpool=True):
-    properties = measure.regionprops(Label, Image)
-    binaryproperties = measure.regionprops(label(mask), Image)
+    properties = measure.regionprops(Label)
+    binaryproperties = measure.regionprops(label(mask))
 
     Coordinates = [prop.centroid for prop in properties]
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
