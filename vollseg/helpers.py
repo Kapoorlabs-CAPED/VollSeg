@@ -1928,16 +1928,32 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
 
     Binarybbox = [prop.bbox for prop in binaryproperties]
     Coordinates = sorted(Coordinates, key=lambda k: [k[0], k[1], k[2]])
-
-    if seedpool:
-        if len(Binarybbox) > 0:
+    
+    #IOU for Unet
+    CleanBinarybbox = []
+    CleanBinaryCoordinates = []
+    Clonebbox = Binarybbox.copy()
+    if len(Binarybbox) > 0:
             for i in range(0, len(Binarybbox)):
 
                 box = Binarybbox[i]
+                cord = BinaryCoordinates[i]
+                Clonebbox.remove(box)
+                inside = [iou3D(box, star, nms_thresh) for star in Clonebbox]
+                Clonebbox.append(box)
+
+                if not any(inside):
+                    CleanBinarybbox.append(box)
+                    CleanBinaryCoordinates.append(cord)
+    if seedpool:
+        if len(CleanBinarybbox) > 0:
+            for i in range(0, len(CleanBinarybbox)):
+
+                box = CleanBinarybbox[i]
                 inside = [iou3D(box, star, nms_thresh) for star in Starbbox]
 
                 if not any(inside):
-                    Coordinates.append(BinaryCoordinates[i])
+                    Coordinates.append(CleanBinaryCoordinates[i])
 
     Coordinates.append((0, 0, 0))
 
