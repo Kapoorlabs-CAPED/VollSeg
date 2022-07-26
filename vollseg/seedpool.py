@@ -3,11 +3,10 @@
 
 class SeedPool(object):
 
-    def __init__(self, boxA, cordB, extent = 1):
+    def __init__(self, boxA, cordB):
 
         self.boxA = boxA 
         self.cordB = cordB
-        self.extent = extent
 
     def pooling(self):
         
@@ -27,7 +26,7 @@ class SeedPool(object):
     def Conditioncheck(self, p):
 
         include = True
-        vol =  self.extent * (self.boxA[p + self.ndim] - self.boxA[p]) / 2
+        vol = (self.boxA[p + self.ndim] - self.boxA[p]) / 2
         if self.cordB[p] >= self.boxA[p] -vol and self.cordB[p] <= self.boxA[p + self.ndim] + vol:
 
             include = False

@@ -289,7 +289,6 @@ def match_labels(ys, iou_threshold=0):
     matching objects retain their id, non matched objects will be assigned a new id
     Example
     -------
-
     import numpy as np
     from stardist.data import test_image_nuclei_2d
     from stardist.matching import match_labels
@@ -850,12 +849,20 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), image
 
 
+def VollSeg_nolabel_precondition(image, Finalimage):
 
+   
+    ndim = len(image.shape) 
+    if ndim == 3:
+        for i in range(image.shape[0]):
+              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE)
+
+    return Finalimage
     
 def VollSeg_nolabel_expansion(image, Finalimage, Skeleton):
     
     for i in range(image.shape[0]):
-                  
+                   Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE) 
                    Skeleton[i, :] = Skel(Finalimage[i,:])
                    Skeleton[i, :] = Skeleton[i, :] > 0 
                    
@@ -1665,7 +1672,8 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
 
     if ExpandLabels:
         Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
-   
+    else:
+        Finalimage = VollSeg_nolabel_precondition(image, Finalimage)
 
     return Finalimage
 
@@ -1800,9 +1808,6 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
     Binarybbox = [prop.bbox for prop in binaryproperties]
     
-    
-
-
     if seedpool:
         if len(Binarybbox) > 0:
             for i in range(0, len(Binarybbox)):
@@ -1833,7 +1838,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
     Binarybbox = [prop.bbox for prop in binaryproperties]
     Coordinates = sorted(Coordinates, key=lambda k: [k[0], k[1], k[2]])
-   
+    
     if seedpool:
         if len(Binarybbox) > 0:
             for i in range(0, len(Binarybbox)):
@@ -1882,9 +1887,7 @@ def MidProjectDist(Image, axis=-1, slices=1):
 
 def normalizeFloatZeroOne(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32):
     """Percentile based Normalization
-
     Normalize patches of image before feeding into the network
-
     Parameters
     ----------
     x : np array Image patch
@@ -1928,7 +1931,6 @@ def normalizeZero255(x):
 def normalizer(x, mi, ma, eps=1e-20, dtype=np.float32):
     """
     Number expression evaluation for normalization
-
     Parameters
     ----------
     x : np array of Image patch
@@ -1957,9 +1959,7 @@ def normalizer(x, mi, ma, eps=1e-20, dtype=np.float32):
 
 def normalizeFloat(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32):
     """Percentile based Normalization
-
     Normalize patches of image before feeding into the network
-
     Parameters
     ----------
     x : np array Image patch
@@ -1977,7 +1977,6 @@ def normalizeFloat(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32)
 def normalize_mi_ma(x, mi, ma, eps=1e-20, dtype=np.float32):
     """
     Number expression evaluation for normalization
-
     Parameters
     ----------
     x : np array of Image patch
@@ -1997,41 +1996,3 @@ def normalize_mi_ma(x, mi, ma, eps=1e-20, dtype=np.float32):
 
     return x
 
-
-def backend_channels_last():
-    import keras.backend as K
-    assert K.image_data_format() in ('channels_first', 'channels_last')
-    return K.image_data_format() == 'channels_last'
-
-
-def move_channel_for_backend(X, channel):
-    if backend_channels_last():
-        return np.moveaxis(X, channel, -1)
-    else:
-        return np.moveaxis(X, channel,  1)
-
-
-def axes_check_and_normalize(axes, length=None, disallowed=None, return_allowed=False):
-    """
-    S(ample), T(ime), C(hannel), Z, Y, X
-    """
-    allowed = 'STCZYX'
-    axes = str(axes).upper()
-    consume(a in allowed or _raise(ValueError(
-        "invalid axis '%s', must be one of %s." % (a, list(allowed)))) for a in axes)
-    disallowed is None or consume(a not in disallowed or _raise(
-        ValueError("disallowed axis '%s'." % a)) for a in axes)
-    consume(axes.count(a) == 1 or _raise(ValueError(
-        "axis '%s' occurs more than once." % a)) for a in axes)
-    length is None or len(axes) == length or _raise(
-        ValueError('axes (%s) must be of length %d.' % (axes, length)))
-    return (axes, allowed) if return_allowed else axes
-
-
-def axes_dict(axes):
-    """
-    from axes string to dict
-    """
-    axes, allowed = axes_check_and_normalize(axes, return_allowed=True)
-    return {a: None if axes.find(a) == -1 else axes.find(a) for a in allowed}
-    # return collections.namedt
