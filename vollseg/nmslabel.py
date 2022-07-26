@@ -1,5 +1,6 @@
 from skimage import measure
 import numpy as np
+from vollseg.utils import image_conditionals
 class NMSLabel(object):
 
     def __init__(self, image, nms_thresh):
@@ -23,7 +24,9 @@ class NMSLabel(object):
                 Labels = np.delete(Labels, suppress)
                 
         for (k,v) in self.supresslabel.items():
-                self.image[k] = v
+                pixel_condition = (self.image == k)
+                pixel_replace_condition = v
+                self.image = image_conditionals(self.image,pixel_condition,pixel_replace_condition )
 
         return self.image       
     def iou(self, boxA, boxB, labelA, labelB):
