@@ -10,7 +10,7 @@ from pickle import GLOBAL
 # import matplotlib.pyplot as plt
 import numpy as np
 import os
-import collections
+
 from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
@@ -38,6 +38,7 @@ import napari
 import glob
 from vollseg.matching import matching
 from vollseg.seedpool import SeedPool
+from vollseg.nmslabel import NMSLabel
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
 import diplib as dip
@@ -1826,7 +1827,7 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
 
     markers = morphology.dilation(markers_raw, morphology.disk(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
-
+    watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supresslabels()
     return watershedImage, markers
 
 
@@ -1840,6 +1841,8 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
     Coordinates = sorted(Coordinates, key=lambda k: [k[0], k[1], k[2]])
     
     if seedpool:
+
+
         if len(Binarybbox) > 0:
             for i in range(0, len(Binarybbox)):
 
@@ -1859,7 +1862,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
     markers = morphology.dilation(
         markers_raw.astype('uint16'), morphology.ball(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
-
+    watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supresslabels()
     return watershedImage, markers
 
 
