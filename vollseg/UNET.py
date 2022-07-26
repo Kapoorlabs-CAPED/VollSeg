@@ -4,18 +4,7 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import warnings
 import numpy as np
 from six import string_types
-
-from csbdeep.internals.probability import ProbabilisticPrediction
-from csbdeep.models.config import Config
-from csbdeep.models.base_model import BaseModel, suppress_without_basedir
-
-from csbdeep.utils import _raise, axes_check_and_normalize, axes_dict
-from csbdeep.utils.six import Path
-from csbdeep.utils.tf import export_SavedModel, IS_TF_1, keras_import, CARETensorBoardImage
-from csbdeep.version import __version__ as package_version
-from csbdeep.data import PercentileNormalizer, PadAndCropResizer
-from csbdeep.internals.predict import predict_tiled, tile_overlap, Progress, total_n_tiles
-from csbdeep.internals import nets, train
+from .CARE import CARE
 from .pretrained import get_registered_models, get_model_details, get_model_instance
 import sys
 import tensorflow as tf
@@ -26,7 +15,7 @@ import tensorflow as tf
 #     # tf.disable_v2_behavior()
 
 
-class UNET(BaseModel):
+class UNET(CARE):
     """Standard UNET network for image segmentation based on CARE network.
 
     Uses a convolutional neural network created by :func:`csbdeep.internals.nets.common_unet`.

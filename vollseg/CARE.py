@@ -5,18 +5,7 @@ import warnings
 import numpy as np
 from six import string_types
 
-from csbdeep.internals.probability import ProbabilisticPrediction
-from csbdeep.models.config import Config
-from csbdeep.models.base_model import BaseModel, suppress_without_basedir
-
-from csbdeep.utils import _raise, axes_check_and_normalize, axes_dict, move_image_axes
-from csbdeep.utils.six import Path
-from csbdeep.utils.tf import export_SavedModel, IS_TF_1, keras_import, CARETensorBoardImage
-from csbdeep.version import __version__ as package_version
-from csbdeep.data import Normalizer, NoNormalizer, PercentileNormalizer
-from csbdeep.data import Resizer, NoResizer, PadAndCropResizer
-from csbdeep.internals.predict import predict_tiled, tile_overlap, Progress, total_n_tiles
-from csbdeep.internals import nets, train
+from .CARE import CARE
 from .pretrained import get_registered_models, get_model_details, get_model_instance
 import sys
 import tensorflow as tf
@@ -27,7 +16,7 @@ import tensorflow as tf
 #     # tf.disable_v2_behavior()
 
 
-class CARE(BaseModel):
+class CARE(CARE):
     """Standard CARE network for image restoration and enhancement.
 
     Uses a convolutional neural network created by :func:`csbdeep.internals.nets.common_unet`.
