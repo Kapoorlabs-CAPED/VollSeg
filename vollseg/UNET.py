@@ -83,6 +83,4 @@ class UNET(CARE):
                   sys.stderr.flush()
               get_registered_models(cls, verbose=True)
 
-    @property
-    def _config_class(self):
-        return Config
+
