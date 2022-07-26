@@ -9,7 +9,7 @@ class NMSLabel(object):
     def supresslabels(self):
         properties = measure.regionprops(self.image)
         Bbox = [prop.bbox for prop in properties] 
-        Labels = [prop.labels for prop in properties]
+        Labels = [prop.label for prop in properties]
         last = len(Labels) - 1
         i = Labels[last]
         suppress = [last]
