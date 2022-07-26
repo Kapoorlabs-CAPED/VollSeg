@@ -7,6 +7,7 @@ class SeedPool(object):
 
         self.boxA = boxA 
         self.cordB = cordB
+        
 
     def pooling(self):
         

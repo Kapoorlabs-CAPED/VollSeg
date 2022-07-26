@@ -1814,7 +1814,7 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
             for i in range(0, len(Binarybbox)):
                 box = Binarybbox[i]
                 BinaryCoordinates.remove(BinaryCoordinates[i])
-                include = [SeedPool(box, star).pooling() for star in BinaryCoordinates]
+                include = [SeedPool(box, BinaryCoordinates[j]).pooling()  for j in range(len(BinaryCoordinates)) if j!=i]
             
                 if False not in include:
                     CleanBinarybbox.append(box)
@@ -1852,11 +1852,12 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
     Coordinates = sorted(Coordinates, key=lambda k: [k[0], k[1], k[2]])
     
     CleanBinarybbox = []
+    
     if len(Binarybbox) > 0:
             for i in range(0, len(Binarybbox)):
                 box = Binarybbox[i]
-                BinaryCoordinates.remove(BinaryCoordinates[i])
-                include = [SeedPool(box, star).pooling() for star in BinaryCoordinates]
+          
+                include = [SeedPool(box, BinaryCoordinates[j]).pooling()  for j in range(len(BinaryCoordinates)) if j!=i]
             
                 if False not in include:
                     CleanBinarybbox.append(box)
