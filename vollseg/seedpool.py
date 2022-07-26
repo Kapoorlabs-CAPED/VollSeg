@@ -10,13 +10,16 @@ class SeedPool(object):
 
     def pooling(self):
         
-          self.inside = self.iou3D()
+          self.iou3D()
 
+          return self.inside
+         
     def iou3D(self):
 
             self.ndim = len(self.cordB)
             
-            self.inside = all([self.Conditioncheck(p) for p in range(0, self.ndim)])
+            if False in [self.Conditioncheck(p) for p in range(0, self.ndim)]:
+                 self.inside = True        
            
     def Conditioncheck(self, p):
 
