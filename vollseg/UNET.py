@@ -4,7 +4,7 @@ from __future__ import print_function, unicode_literals, absolute_import, divisi
 import warnings
 import numpy as np
 from six import string_types
-from .CARE import CARE
+from csbdeep.models import CARE
 from .pretrained import get_registered_models, get_model_details, get_model_instance
 import sys
 import tensorflow as tf
