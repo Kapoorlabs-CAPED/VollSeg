@@ -1820,12 +1820,12 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
                 cord = BinaryCoordinates[i]
                 Clonebbox.remove(box)
                 inside = [SeedPool(box, star, nms_thresh).pooling() for star in Clonebbox]
-                if  False in inside:
+                if  False not in inside:
                     
                     Clonebbox.append(box)
             
                  
-                if False in inside:
+                if False not in inside:
                     
                     CleanBinarybbox.append(box)
                     CleanBinaryCoordinates.append(cord)
@@ -1836,7 +1836,7 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
                 box = CleanBinarybbox[i]
                 inside = [SeedPool(box, star, nms_thresh).pooling() for star in Starbbox]
 
-                if False in inside:
+                if False not in inside:
                     Coordinates.append(CleanBinaryCoordinates[i])
     Coordinates.append((0, 0))
     Coordinates = np.asarray(Coordinates)
@@ -1873,12 +1873,12 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
                 cord = BinaryCoordinates[i]
                 Clonebbox.remove(box)
                 inside = [SeedPool(box, star, nms_thresh).pooling() for star in Clonebbox]
-                if  False in inside:
+                if  False not in inside:
                     
                     Clonebbox.append(box)
             
                  
-                if False in inside:
+                if False not in inside:
                     
                     CleanBinarybbox.append(box)
                     CleanBinaryCoordinates.append(cord)
@@ -1889,7 +1889,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
                 box = CleanBinarybbox[i]
                 inside = [SeedPool(box, star, nms_thresh).pooling() for star in Starbbox]
 
-                if False in inside:
+                if False not in inside:
                     Coordinates.append(CleanBinaryCoordinates[i])
 
     Coordinates.append((0, 0, 0))
