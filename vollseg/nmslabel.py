@@ -1,6 +1,6 @@
 from skimage import measure
 import numpy as np
-
+import utils
 class NMSLabel(object):
 
     def __init__(self, image, nms_thresh):
