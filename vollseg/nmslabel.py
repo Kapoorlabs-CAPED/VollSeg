@@ -10,11 +10,11 @@ class NMSLabel(object):
         properties = measure.regionprops(self.image)
         Bbox = [prop.bbox for prop in properties] 
         Labels = [prop.label for prop in properties]
-        last = len(Labels) - 1
-        i = Labels[last]
-        suppress = [last]
+        
         while len(Labels) > 0:
-                
+                last = len(Labels) - 1
+                i = Labels[last]
+                suppress = [last] 
                 for pos in (range(0, last)):
                     # grab the current index
                         j = Labels[pos]
