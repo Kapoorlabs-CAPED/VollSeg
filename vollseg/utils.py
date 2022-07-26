@@ -1819,13 +1819,13 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
                 box = Binarybbox[i]
                 cord = BinaryCoordinates[i]
                 CloneBinaryCoordinates.remove(cord)
-                inside = [SeedPool(box, star).pooling() for star in CloneBinaryCoordinates]
-                if  False not in inside:
+                include = [SeedPool(box, star).pooling() for star in CloneBinaryCoordinates]
+                if  False not in include:
                     
                     CloneBinaryCoordinates.append(cord)
             
                  
-                if False not in inside:
+                if False not in include:
                     
                     CleanBinaryCoordinates.append(cord)
     if seedpool:
@@ -1833,9 +1833,9 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
             for i in range(0, len(CleanBinarybbox)):
 
                 box = CleanBinarybbox[i]
-                inside = [SeedPool(box, star).pooling() for star in Coordinates]
+                include = [SeedPool(box, star).pooling() for star in Coordinates]
 
-                if False not in inside:
+                if False not in include:
                     Coordinates.append(CleanBinaryCoordinates[i])
     Coordinates.append((0, 0))
     Coordinates = np.asarray(Coordinates)
@@ -1871,13 +1871,13 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
                 box = Binarybbox[i]
                 cord = BinaryCoordinates[i]
                 CloneBinaryCoordinates.remove(cord)
-                inside = [SeedPool(box, star).pooling() for star in CloneBinaryCoordinates]
-                if  False not in inside:
+                include = [SeedPool(box, star).pooling() for star in CloneBinaryCoordinates]
+                if  False not in include:
                     
                     CloneBinaryCoordinates.append(cord)
             
                  
-                if False not in inside:
+                if False not in include:
                     
                     CleanBinarybbox.append(box)
                     CleanBinaryCoordinates.append(cord)
@@ -1886,9 +1886,9 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
             for i in range(0, len(CleanBinarybbox)):
 
                 box = CleanBinarybbox[i]
-                inside = [SeedPool(box, star).pooling() for star in Coordinates]
+                include = [SeedPool(box, star).pooling() for star in Coordinates]
 
-                if False not in inside:
+                if False not in include:
                     Coordinates.append(CleanBinaryCoordinates[i])
 
     Coordinates.append((0, 0, 0))

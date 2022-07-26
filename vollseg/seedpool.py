@@ -12,14 +12,15 @@ class SeedPool(object):
         
           self.iou3D()
 
-          return self.inside
+          return self.include
          
     def iou3D(self):
 
             self.ndim = len(self.cordB)
             
+            self.include = False
             if False in [self.Conditioncheck(p) for p in range(0, self.ndim)]:
-                 self.inside = True        
+                 self.include = True        
            
     def Conditioncheck(self, p):
 
