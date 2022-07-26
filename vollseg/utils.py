@@ -686,30 +686,6 @@ def SuperWatershedwithMask(Image, Label, mask):
 # If there are neighbouring seeds we do not put more seeds
 
 
-def ConditioncheckNotum(centroid, boxA, p, ndim):
-
-    condition = False
-
-    if centroid[p] >= boxA[p] and centroid[p] <= boxA[p + ndim]:
-
-        condition = True
-
-    return condition
-
-
-def iouNotum(boxA, centroid):
-
-    ndim = len(centroid)
-    inside = False
-
-    Condition = [ConditioncheckNotum(centroid, boxA, p, ndim)
-                 for p in range(0, ndim)]
-
-    inside = all(Condition)
-
-    return inside
-
-
 
 
 def Region_embedding(image, region, sourceimage, RGB = False):
@@ -1543,14 +1519,12 @@ def image_pixel_duplicator(image, size):
 
 def image_conditionals(image, pixel_condition, pixel_replace_condition):
 
-    ndim = len(image.shape) 
+  
     indices = zip(*np.where(pixel_condition))
-    if ndim == 3:
-        for z, y, x in indices:
-            image[z, y, x] = pixel_replace_condition
-    if ndim == 2:
-        for y, x in indices:
-            image[y, x] = pixel_replace_condition        
+    for index in indices:
+        
+        image[index] = pixel_replace_condition
+     
     return image
 
 def image_embedding(image, size):
