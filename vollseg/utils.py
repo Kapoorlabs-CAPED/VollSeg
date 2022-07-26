@@ -1851,12 +1851,12 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
                 cord = BinaryCoordinates[i]
                 Clonebbox.remove(box)
                 inside = [SeedPool(box, star, nms_thresh).pooling() for star in Clonebbox]
-                if not any(inside):
+                if  any(inside):
                     
                     Clonebbox.append(box)
             
                  
-                if not any(inside):
+                if any(inside):
                     
                     CleanBinarybbox.append(box)
                     CleanBinaryCoordinates.append(cord)
@@ -1867,7 +1867,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
                 box = CleanBinarybbox[i]
                 inside = [SeedPool(box, star, nms_thresh).pooling() for star in Starbbox]
 
-                if not any(inside):
+                if any(inside):
                     Coordinates.append(CleanBinaryCoordinates[i])
 
     Coordinates.append((0, 0, 0))
