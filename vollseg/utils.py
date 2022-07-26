@@ -1800,22 +1800,14 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
     Binarybbox = [prop.bbox for prop in binaryproperties]
     
-    CleanBinarybbox = []
-    if len(Binarybbox) > 0:
-            for i in range(0, len(Binarybbox)):
-                box = Binarybbox[i]
-                BinaryCoordinates.remove(BinaryCoordinates[i])
-                include = [SeedPool(box, BinaryCoordinates[j], extent = 0).pooling()  for j in range(len(BinaryCoordinates)) if j!=i]
-            
-                if False not in include:
-                    CleanBinarybbox.append(box)
+    
 
 
     if seedpool:
-        if len(CleanBinarybbox) > 0:
-            for i in range(0, len(CleanBinarybbox)):
+        if len(Binarybbox) > 0:
+            for i in range(0, len(Binarybbox)):
 
-                box = CleanBinarybbox[i]
+                box = Binarybbox[i]
                 include = [SeedPool(box, star).pooling() for star in Coordinates]
 
                 if False not in include:
@@ -1841,25 +1833,12 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
     Binarybbox = [prop.bbox for prop in binaryproperties]
     Coordinates = sorted(Coordinates, key=lambda k: [k[0], k[1], k[2]])
-    
-    CleanBinarybbox = []
-    
-    if len(Binarybbox) > 0:
-            for i in range(0, len(Binarybbox)):
-                box = Binarybbox[i]
-          
-                include = [SeedPool(box, BinaryCoordinates[j], extent = 0).pooling()  for j in range(len(BinaryCoordinates)) if j!=i]
-            
-                if False not in include:
-                    CleanBinarybbox.append(box)
-                 
-
    
     if seedpool:
-        if len(CleanBinarybbox) > 0:
-            for i in range(0, len(CleanBinarybbox)):
+        if len(Binarybbox) > 0:
+            for i in range(0, len(Binarybbox)):
 
-                box = CleanBinarybbox[i]
+                box = Binarybbox[i]
                 include = [SeedPool(box, star).pooling() for star in Coordinates]
 
                 if False not in include:
