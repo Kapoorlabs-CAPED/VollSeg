@@ -25,7 +25,7 @@ class SeedPool(object):
 
     def Conditioncheck(self):
 
-        condition = False
+        condition = True
 
         if self.ndim == 2:
             xA = max(self.boxA[0], self.boxB[0])
@@ -46,8 +46,8 @@ class SeedPool(object):
                 # area and dividing it by the sum of prediction + ground-truth
                 # areas - the interesection area
                 iou = interArea / float(boxAArea + boxBArea - interArea)
-                if iou >= self.nms_thresh:
-                    condition = True
+                if iou <= self.nms_thresh:
+                    condition = False
 
         if self.ndim == 3:
 
@@ -74,8 +74,8 @@ class SeedPool(object):
                 # areas - the interesection area
                 iou = interArea / float(boxAArea + boxBArea - interArea)
                 
-                if iou >= self.nms_thresh:
-                    condition = True
+                if iou <= self.nms_thresh:
+                    condition = False
 
 
 

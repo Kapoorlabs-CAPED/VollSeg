@@ -654,35 +654,7 @@ def Skel(smart_seedsLabels):
     Skeleton = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
 
     return Skeleton
-def SuperWatershedwithMask(Image, Label, mask):
 
-    properties = measure.regionprops(Label, Image)
-    binaryproperties = measure.regionprops(label(mask), Image)
-
-    Coordinates = [prop.centroid for prop in properties]
-    BinaryCoordinates = [prop.centroid for prop in binaryproperties]
-    Binarybbox = [prop.bbox for prop in binaryproperties]
-
-    if len(Binarybbox) > 0:
-        for i in range(0, len(Binarybbox)):
-
-            box = Binarybbox[i]
-            inside = [iouNotum(box, star) for star in Coordinates]
-
-            if not any(inside):
-                Coordinates.append(BinaryCoordinates[i])
-    Coordinates = sorted(Coordinates, key=lambda k: [k[1], k[0]])
-    Coordinates.append((0, 0))
-    Coordinates = np.asarray(Coordinates)
-
-    coordinates_int = np.round(Coordinates).astype(int)
-    markers_raw = np.zeros_like(Image)
-    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
-
-    markers = morphology.dilation(markers_raw, morphology.disk(2))
-    watershedImage = watershed(-Image, markers, mask=mask.copy())
-
-    return watershedImage, markers
 # If there are neighbouring seeds we do not put more seeds
 
 
@@ -1719,9 +1691,12 @@ def Bbox_region(image):
 
 
 
-def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=None, UseProbability=True, prob_thresh=None, nms_thresh=None):
+def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=None, UseProbability=True, 
+prob_thresh=None, nms_thresh=None, seedpool = True):
 
-
+    if prob_thresh is None and nms_thresh is None:
+        prob_thresh = model.thresholds.prob
+        nms_thresh = model.thresholds.nms 
     if prob_thresh is not None and nms_thresh is not None:
 
         star_labels,  SmallProbability, SmallDistance = model.predict_vollseg(
@@ -1758,7 +1733,7 @@ def SuperSTARPrediction(image, model, n_tiles, unet_mask=None, OverAllunet_mask=
     if unet_mask is None:
         unet_mask = star_labels > 0
     Watershed, Markers = SuperWatershedwithMask(
-        MaxProjectDistance, star_labels.astype('uint16'), unet_mask.astype('uint16'))
+        MaxProjectDistance, star_labels.astype('uint16'), unet_mask.astype('uint16'), nms_thresh = nms_thresh, seedpool = seedpool)
     Watershed = fill_label_holes(Watershed.astype('uint16'))
 
     return Watershed, Markers, star_labels, MaxProjectDistance
@@ -1826,7 +1801,54 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 # Default method that works well with cells which are below a certain shape and do not have weak edges
 
+def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
 
+    properties = measure.regionprops(Label, Image)
+    binaryproperties = measure.regionprops(label(mask), Image)
+    Starbbox = [prop.bbox for prop in properties]
+    Coordinates = [prop.centroid for prop in properties]
+    BinaryCoordinates = [prop.centroid for prop in binaryproperties]
+    Binarybbox = [prop.bbox for prop in binaryproperties]
+    #IOU for Unet
+    CleanBinarybbox = []
+    CleanBinaryCoordinates = []
+    Clonebbox = Binarybbox.copy()
+    if len(Binarybbox) > 0:
+            for i in range(0, len(Binarybbox)):
+
+                box = Binarybbox[i]
+                cord = BinaryCoordinates[i]
+                Clonebbox.remove(box)
+                inside = [SeedPool(box, star, nms_thresh).pooling() for star in Clonebbox]
+                if  all(inside):
+                    
+                    Clonebbox.append(box)
+            
+                 
+                if all(inside):
+                    
+                    CleanBinarybbox.append(box)
+                    CleanBinaryCoordinates.append(cord)
+    if seedpool:
+        if len(CleanBinarybbox) > 0:
+            for i in range(0, len(CleanBinarybbox)):
+
+                box = CleanBinarybbox[i]
+                inside = [SeedPool(box, star, nms_thresh).pooling() for star in Starbbox]
+
+                if all(inside):
+                    Coordinates.append(CleanBinaryCoordinates[i])
+    Coordinates.append((0, 0))
+    Coordinates = np.asarray(Coordinates)
+
+    coordinates_int = np.round(Coordinates).astype(int)
+    markers_raw = np.zeros_like(Image)
+    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+
+    markers = morphology.dilation(markers_raw, morphology.disk(2))
+    watershedImage = watershed(-Image, markers, mask=mask.copy())
+
+    return watershedImage, markers
 
 
 def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
@@ -1851,12 +1873,12 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
                 cord = BinaryCoordinates[i]
                 Clonebbox.remove(box)
                 inside = [SeedPool(box, star, nms_thresh).pooling() for star in Clonebbox]
-                if  any(inside):
+                if  all(inside):
                     
                     Clonebbox.append(box)
             
                  
-                if any(inside):
+                if all(inside):
                     
                     CleanBinarybbox.append(box)
                     CleanBinaryCoordinates.append(cord)
@@ -1867,7 +1889,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
                 box = CleanBinarybbox[i]
                 inside = [SeedPool(box, star, nms_thresh).pooling() for star in Starbbox]
 
-                if any(inside):
+                if all(inside):
                     Coordinates.append(CleanBinaryCoordinates[i])
 
     Coordinates.append((0, 0, 0))
