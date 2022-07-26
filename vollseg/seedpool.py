@@ -26,8 +26,8 @@ class SeedPool(object):
     def Conditioncheck(self, p):
 
         include = True
-      
-        if self.cordB[p] >= self.boxA[p]  and self.cordB[p] <= self.boxA[p + self.ndim]:
+        vol =  (self.boxA[p + self.ndim] - self.boxA[p]) / 2
+        if self.cordB[p] >= self.boxA[p] -vol and self.cordB[p] <= self.boxA[p + self.ndim] + vol:
 
             include = False
 
