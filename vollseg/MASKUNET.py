@@ -58,20 +58,8 @@ class MASKUNET(CARE):
 
     def __init__(self, config, name=None, basedir='.'):
         """See class docstring."""
-        super(MASKUNET, self).__init__(config=config, name=name, basedir=basedir)
+        super(CARE, self).__init__(config=config, name=name, basedir=basedir)
 
-
-    def _build(self):
-        return nets.common_unet(
-            n_dim           = self.config.n_dim,
-            n_channel_out   = self.config.n_channel_out,
-            prob_out        = self.config.probabilistic,
-            residual        = self.config.unet_residual,
-            n_depth         = self.config.unet_n_depth,
-            kern_size       = self.config.unet_kern_size,
-            n_first         = self.config.unet_n_first,
-            last_activation = self.config.unet_last_activation,
-        )(self.config.unet_input_shape)
 
     @classmethod   
     def local_from_pretrained(cls, name_or_alias=None):
