@@ -34,7 +34,7 @@ class SeedPool(object):
             yB = min(self.boxA[3], self.boxB[3])
 
             if self.boxA[0] <= self.boxB[0] and self.boxA[2] >= self.boxB[2] and self.boxA[1] <= self.boxB[1] and self.boxA[3] >= self.boxB[3]: 
-                condition = True
+                condition = False
             else:    
                 # compute the area of intersection rectangle
                 interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
@@ -46,7 +46,7 @@ class SeedPool(object):
                 # area and dividing it by the sum of prediction + ground-truth
                 # areas - the interesection area
                 iou = interArea / float(boxAArea + boxBArea - interArea)
-                if iou <= self.nms_thresh:
+                if iou >= self.nms_thresh:
                     condition = False
 
         if self.ndim == 3:
@@ -58,9 +58,9 @@ class SeedPool(object):
             yB = min(self.boxA[4], self.boxB[4])
             zB = min(self.boxA[5], self.boxB[5])
             if self.boxA[0] <= self.boxB[0] and self.boxA[3] >= self.boxB[3] and self.boxA[1] <= self.boxB[1] and self.boxA[4] >= self.boxB[4] and self.boxA[2] <= self.boxB[2] and self.boxA[5] >= self.boxB[5]: 
-                condition = True
+                condition = False
             elif self.boxB[0] <= self.boxA[0] and self.boxB[3] >= self.boxA[3] and self.boxB[1] <= self.boxA[1] and self.boxB[4] >= self.boxA[4] and self.boxB[2] <= self.boxA[2] and self.boxB[5] >= self.boxA[5]:
-                condition = True
+                condition = False
                 
             else:    
                 # compute the area of intersection rectangle
@@ -74,7 +74,7 @@ class SeedPool(object):
                 # areas - the interesection area
                 iou = interArea / float(boxAArea + boxBArea - interArea)
                 
-                if iou <= self.nms_thresh:
+                if iou >= self.nms_thresh:
                     condition = False
 
 
