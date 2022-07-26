@@ -1805,38 +1805,20 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
 
     properties = measure.regionprops(Label, Image)
     binaryproperties = measure.regionprops(label(mask), Image)
-    Starbbox = [prop.bbox for prop in properties]
     Coordinates = [prop.centroid for prop in properties]
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
     Binarybbox = [prop.bbox for prop in binaryproperties]
-    #IOU for Unet
-    CleanBinarybbox = []
-    CleanBinaryCoordinates = []
-    CloneBinaryCoordinates = BinaryCoordinates.copy()
-    if len(Binarybbox) > 0:
+    
+ 
+    if seedpool:
+        if len(Binarybbox) > 0:
             for i in range(0, len(Binarybbox)):
 
                 box = Binarybbox[i]
-                cord = BinaryCoordinates[i]
-                CloneBinaryCoordinates.remove(cord)
-                include = [SeedPool(box, star).pooling() for star in CloneBinaryCoordinates]
-                if  False not in include:
-                    
-                    CloneBinaryCoordinates.append(cord)
-            
-                 
-                if False not in include:
-                    
-                    CleanBinaryCoordinates.append(cord)
-    if seedpool:
-        if len(CleanBinarybbox) > 0:
-            for i in range(0, len(CleanBinarybbox)):
-
-                box = CleanBinarybbox[i]
                 include = [SeedPool(box, star).pooling() for star in Coordinates]
 
                 if False not in include:
-                    Coordinates.append(CleanBinaryCoordinates[i])
+                    Coordinates.append(BinaryCoordinates[i])
     Coordinates.append((0, 0))
     Coordinates = np.asarray(Coordinates)
 
@@ -1856,40 +1838,19 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
 
     Coordinates = [prop.centroid for prop in properties]
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
-    Starbbox = [prop.bbox for prop in properties]
-
     Binarybbox = [prop.bbox for prop in binaryproperties]
     Coordinates = sorted(Coordinates, key=lambda k: [k[0], k[1], k[2]])
     
-    #IOU for Unet
-    CleanBinarybbox = []
-    CleanBinaryCoordinates = []
-    CloneBinaryCoordinates = BinaryCoordinates.copy()
-    if len(Binarybbox) > 0:
+   
+    if seedpool:
+        if len(Binarybbox) > 0:
             for i in range(0, len(Binarybbox)):
 
                 box = Binarybbox[i]
-                cord = BinaryCoordinates[i]
-                CloneBinaryCoordinates.remove(cord)
-                include = [SeedPool(box, star).pooling() for star in CloneBinaryCoordinates]
-                if  False not in include:
-                    
-                    CloneBinaryCoordinates.append(cord)
-            
-                 
-                if False not in include:
-                    
-                    CleanBinarybbox.append(box)
-                    CleanBinaryCoordinates.append(cord)
-    if seedpool:
-        if len(CleanBinarybbox) > 0:
-            for i in range(0, len(CleanBinarybbox)):
-
-                box = CleanBinarybbox[i]
                 include = [SeedPool(box, star).pooling() for star in Coordinates]
 
                 if False not in include:
-                    Coordinates.append(CleanBinaryCoordinates[i])
+                    Coordinates.append(BinaryCoordinates[i])
 
     Coordinates.append((0, 0, 0))
 
