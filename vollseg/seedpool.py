@@ -16,7 +16,7 @@ class SeedPool(object):
 
             self.ndim = len(self.cordB)
             
-            self.inside = any([self.Conditioncheck(p) for p in range(0, self.ndim)])
+            self.inside = all([self.Conditioncheck(p) for p in range(0, self.ndim)])
            
     def Conditioncheck(self, p):
 
