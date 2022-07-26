@@ -57,9 +57,9 @@ class SeedPool(object):
             xB = min(self.boxA[3], self.boxB[3])
             yB = min(self.boxA[4], self.boxB[4])
             zB = min(self.boxA[5], self.boxB[5])
-            if self.boxA[0] <= self.boxB[0] and self.boxA[3] >= self.boxB[3] and self.boxA[1] <= self.boxB[1] and self.boxA[4] >= self.boxB[4] and boxA[2] <= boxB[2] and boxA[5] >= boxB[5]: 
+            if self.boxA[0] <= self.boxB[0] and self.boxA[3] >= self.boxB[3] and self.boxA[1] <= self.boxB[1] and self.boxA[4] >= self.boxB[4] and self.boxA[2] <= self.boxB[2] and self.boxA[5] >= self.boxB[5]: 
                 condition = True
-            elif self.boxB[0] <= self.boxA[0] and self.boxB[3] >= self.boxA[3] and self.boxB[1] <= self.boxA[1] and self.boxB[4] >= self.boxA[4] and boxB[2] <= boxA[2] and boxB[5] >= boxA[5]:
+            elif self.boxB[0] <= self.boxA[0] and self.boxB[3] >= self.boxA[3] and self.boxB[1] <= self.boxA[1] and self.boxB[4] >= self.boxA[4] and self.boxB[2] <= self.boxA[2] and self.boxB[5] >= self.boxA[5]:
                 condition = True
                 
             else:    
