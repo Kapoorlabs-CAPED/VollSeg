@@ -6,7 +6,6 @@ Created on Mon Sep 30 14:38:04 2019
 @author: aimachine
 """
 
-from csbdeep.utils.utils import normalize_mi_ma
 import numpy as np
 import os
 import glob
@@ -20,7 +19,6 @@ from csbdeep.io import load_training_data
 from csbdeep.models import Config, CARE
 from skimage.measure import label
 from csbdeep.utils import Path, normalize
-from vollseg.helpers import normalizeZero255
 #from IPython.display import clear_output
 from stardist.models import Config2D, StarDist2D
 
@@ -35,13 +33,7 @@ import cv2
 def _raise(e):
     raise e
 
-def _fill_label_holes(lbl_img, **kwargs):
-    lbl_img_filled = np.zeros_like(lbl_img)
-    for l in (set(np.unique(lbl_img)) - set([0])):
-        mask = lbl_img==l
-        mask_filled = binary_fill_holes(mask,**kwargs)
-        lbl_img_filled[mask_filled] = l
-    return lbl_img_filled
+
 
 
 def fill_label_holes(lbl_img, **kwargs):

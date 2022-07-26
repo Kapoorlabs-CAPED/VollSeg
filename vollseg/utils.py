@@ -37,6 +37,7 @@ import pandas as pd
 import napari
 import glob
 from vollseg.matching import matching
+from vollseg.seedpool import SeedPool
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
 import diplib as dip
@@ -1851,73 +1852,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 # Default method that works well with cells which are below a certain shape and do not have weak edges
 
-def iou3D(boxA, boxB, nms_thresh):
 
-    ndim = len(boxB)//2
-    inside = False
-    inside = Conditioncheck(boxA, boxB, ndim, nms_thresh)
-    return inside
-
-
-
-
-def Conditioncheck(boxA, boxB, ndim, nms_thresh):
-
-    condition = False
-
-    if ndim == 2:
-        xA = max(boxA[0], boxB[0])
-        yA = max(boxA[1], boxB[1])
-        xB = min(boxA[2], boxB[2])
-        yB = min(boxA[3], boxB[3])
-
-        if boxA[0] <= boxB[0] and boxA[2] >= boxB[2] and boxA[1] <= boxB[1] and boxA[3] >= boxB[3]: 
-            condition = True
-        else:    
-            # compute the area of intersection rectangle
-            interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-            # compute the area of both the prediction and ground-truth
-            # rectangles
-            boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-            boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
-            # compute the intersection over union by taking the intersection
-            # area and dividing it by the sum of prediction + ground-truth
-            # areas - the interesection area
-            iou = interArea / float(boxAArea + boxBArea - interArea)
-            if iou >= nms_thresh:
-                condition = True
-
-    if ndim == 3:
-
-        xA = max(boxA[0], boxB[0])
-        yA = max(boxA[1], boxB[1])
-        zA = max(boxA[2], boxB[2])
-        xB = min(boxA[3], boxB[3])
-        yB = min(boxA[4], boxB[4])
-        zB = min(boxA[5], boxB[5])
-        if boxA[0] <= boxB[0] and boxA[3] >= boxB[3] and boxA[1] <= boxB[1] and boxA[4] >= boxB[4] and boxA[2] <= boxB[2] and boxA[5] >= boxB[5]: 
-            condition = True
-        elif boxB[0] <= boxA[0] and boxB[3] >= boxA[3] and boxB[1] <= boxA[1] and boxB[4] >= boxA[4] and boxB[2] <= boxA[2] and boxB[5] >= boxA[5]:
-            condition = True
-             
-        else:    
-            # compute the area of intersection rectangle
-            interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1) * max(0, zB - zA + 1)
-            # compute the area of both the prediction and ground-truth
-            # rectangles
-            boxAArea = (boxA[3] - boxA[0] + 1) * (boxA[4] - boxA[1] + 1) * (boxA[5] - boxA[2] + 1)
-            boxBArea = (boxB[3] - boxB[0] + 1) * (boxB[4] - boxB[1] + 1) * (boxB[5] - boxB[2] + 1)
-            # compute the intersection over union by taking the intersection
-            # area and dividing it by the sum of prediction + ground-truth
-            # areas - the interesection area
-            iou = interArea / float(boxAArea + boxBArea - interArea)
-            
-            if iou >= nms_thresh:
-                condition = True
-
-
-
-    return condition
 
 
 def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
@@ -1941,7 +1876,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
                 box = Binarybbox[i]
                 cord = BinaryCoordinates[i]
                 Clonebbox.remove(box)
-                inside = [iou3D(box, star, nms_thresh) for star in Clonebbox]
+                inside = [SeedPool(box, star, nms_thresh).pooling() for star in Clonebbox]
                 if not any(inside):
                     
                     Clonebbox.append(box)
@@ -1956,7 +1891,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
             for i in range(0, len(CleanBinarybbox)):
 
                 box = CleanBinarybbox[i]
-                inside = [iou3D(box, star, nms_thresh) for star in Starbbox]
+                inside = [SeedPool(box, star, nms_thresh).pooling() for star in Starbbox]
 
                 if not any(inside):
                     Coordinates.append(CleanBinaryCoordinates[i])

@@ -6,13 +6,8 @@
 
 import os
 import glob
-import sys
-import numpy as np
-from tqdm import tqdm
-from tifffile import imread, imwrite
-from vollseg import StarDist3D, UNET, VollSeg, MASKUNET
-os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
-from pathlib import Path
+from tifffile import imread
+from vollseg import StarDist3D, UNET, VollSeg, MASKUNET,CARE
 
 
 # In[ ]:
@@ -24,7 +19,6 @@ from pathlib import Path
 # In[2]:
 
 
-get_ipython().system('nvidia-smi')
 
 
 # In[3]:

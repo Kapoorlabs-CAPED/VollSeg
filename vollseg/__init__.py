@@ -1,5 +1,6 @@
 from .SmartSeeds3D import SmartSeeds3D
 from .SmartSeeds2D import SmartSeeds2D
+from .seedpool import SeedPool
 from .utils import *
 from .OptimizeThreshold import OptimizeThreshold
 from .Augmentation3D import Augmentation3D

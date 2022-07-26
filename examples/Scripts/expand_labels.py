@@ -4,7 +4,7 @@ import sys
 import numpy as np
 from tqdm import tqdm
 from tifffile import imread, imwrite
-from vollseg.helpers import expand_labels
+from vollseg.utils import expand_labels
 from pathlib import Path
 
 
