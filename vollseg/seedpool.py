@@ -19,18 +19,19 @@ class SeedPool(object):
             self.ndim = len(self.cordB)
             
             self.include = False
-            if False in [self.Conditioncheck(p) for p in range(0, self.ndim)]:
+            includelist = [self.Conditioncheck(p) for p in range(0, self.ndim)]
+            if True in includelist:
                  self.include = True        
            
     def Conditioncheck(self, p):
 
-        condition = True
+        include = True
       
         if self.cordB[p] >= self.boxA[p]  and self.cordB[p] <= self.boxA[p + self.ndim]:
 
-            condition = False
+            include = False
 
 
-        return condition    
+        return include    
 
     
