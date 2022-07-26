@@ -5,7 +5,7 @@ Created on Mon Mar  8 16:22:00 2021
 
 @author: vkapoor
 """
-from .helpers import SimplePrediction
+from .utils import SimplePrediction
 import numpy as np
 from tqdm import tqdm
 from csbdeep.utils import save_json

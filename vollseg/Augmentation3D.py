@@ -8,18 +8,12 @@ Created on Tue Dec  1 10:50:38 2020
 
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from tqdm import tqdm
-from glob import glob
-from tifffile import imread, imwrite
+
 import numpy as np
-import scipy
 import math
 import random
-
 from scipy.ndimage import shift, zoom
 from scipy.ndimage import rotate
-from scipy import ndimage
-from pathlib import Path
 from vollseg.helpers import image_pixel_duplicator, image_embedding, poisson_noise     
     
     
