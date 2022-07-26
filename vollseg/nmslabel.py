@@ -20,7 +20,7 @@ class NMSLabel(object):
                         j = Labels[pos]
                         self.iou(Bbox[last], Bbox[pos], i, j)
 
-                Labels = np.delete(suppress)
+                Labels = np.delete(Labels, suppress)
                 
         for (k,v) in self.supresslabel.items():
                 self.image[k] = v
