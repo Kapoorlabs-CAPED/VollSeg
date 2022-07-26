@@ -93,4 +93,7 @@ class UNET(BaseModel):
                   print("Could not find model with name or alias '%s'" % (name_or_alias), file=sys.stderr)
                   sys.stderr.flush()
               get_registered_models(cls, verbose=True)
-    
+
+    @property
+    def _config_class(self):
+        return Config
