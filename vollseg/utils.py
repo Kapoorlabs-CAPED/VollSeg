@@ -850,20 +850,12 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), image
 
 
-def VollSeg_nolabel_precondition(image, Finalimage):
 
-   
-    ndim = len(image.shape) 
-    if ndim == 3:
-        for i in range(image.shape[0]):
-              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE)
-
-    return Finalimage
     
 def VollSeg_nolabel_expansion(image, Finalimage, Skeleton):
     
     for i in range(image.shape[0]):
-                   Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE) 
+                  
                    Skeleton[i, :] = Skel(Finalimage[i,:])
                    Skeleton[i, :] = Skeleton[i, :] > 0 
                    
@@ -1673,8 +1665,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
 
     if ExpandLabels:
         Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
-    else:
-        Finalimage = VollSeg_nolabel_precondition(image, Finalimage)
+   
 
     return Finalimage
 
@@ -1814,7 +1805,7 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
             for i in range(0, len(Binarybbox)):
                 box = Binarybbox[i]
                 BinaryCoordinates.remove(BinaryCoordinates[i])
-                include = [SeedPool(box, BinaryCoordinates[j]).pooling()  for j in range(len(BinaryCoordinates)) if j!=i]
+                include = [SeedPool(box, BinaryCoordinates[j], extent = 0).pooling()  for j in range(len(BinaryCoordinates)) if j!=i]
             
                 if False not in include:
                     CleanBinarybbox.append(box)
@@ -1857,7 +1848,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
             for i in range(0, len(Binarybbox)):
                 box = Binarybbox[i]
           
-                include = [SeedPool(box, BinaryCoordinates[j]).pooling()  for j in range(len(BinaryCoordinates)) if j!=i]
+                include = [SeedPool(box, BinaryCoordinates[j], extent = 0).pooling()  for j in range(len(BinaryCoordinates)) if j!=i]
             
                 if False not in include:
                     CleanBinarybbox.append(box)
