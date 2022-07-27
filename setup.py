@@ -37,7 +37,7 @@ setup(
         "opencv-python" 
        
     ],
-    dependeny_links = ['https://github.com/bhoeckendorf/pyklb.git@skbuild'],
+    
     packages=setuptools.find_packages(),
     package_data={'vollseg': [ 'data/*','models/Carcinoma_cells/Carcinoma_cells/*', 'models/denoise_carcinoma/Denoise_carcinoma/*', 'models/Roi_Nuclei_Xenopus/Xenopus_Cell_Tissue_Segmentation/*' ]},
     classifiers=[
