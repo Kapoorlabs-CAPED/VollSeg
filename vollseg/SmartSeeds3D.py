@@ -28,7 +28,6 @@ import cv2
 from csbdeep.io import load_training_data
 from csbdeep.utils import axes_dict
 from csbdeep.models import Config, CARE
-from tifffile import imread
 from tensorflow.keras.utils import Sequence
 from csbdeep.data import RawData, create_patches
 from skimage.measure import label, regionprops
@@ -101,7 +100,7 @@ class SmartSeeds3D(object):
 
 
      def __init__(self, base_dir, npz_filename, model_name, model_dir, n_patches_per_image, raw_dir = 'Raw/', real_mask_dir = 'real_mask/', binary_mask_dir = 'binary_mask/',
-      val_raw_dir = 'val_raw/', val_real_mask_dir = 'val_real_mask/', n_channel_in = 1,  downsample_factor = 1, backbone = 'resnet', load_data_sequence = True, train_unet = True, train_star = True, generate_npz = True,
+      val_raw_dir = 'val_raw/', val_real_mask_dir = 'val_real_mask/', n_channel_in = 1, pattern = '*.tif' ,  downsample_factor = 1, backbone = 'resnet', load_data_sequence = True, train_unet = True, train_star = True, generate_npz = True,
       validation_split = 0.01, erosion_iterations = 2, patch_x=256, patch_y=256, patch_z = 16, grid_x = 1, grid_y = 1, annisotropy = (1,1,1),  use_gpu = True,  batch_size = 4, depth = 3, kern_size = 3, startfilter = 48, n_rays = 16, epochs = 400, learning_rate = 0.0001):
 
          
@@ -128,6 +127,7 @@ class SmartSeeds3D(object):
          self.depth = depth
          self.n_channel_in = n_channel_in
          self.n_rays = n_rays
+         self.pattern = pattern
          self.erosion_iterations = erosion_iterations
          self.kern_size = kern_size
          self.patch_x = patch_x
@@ -179,13 +179,13 @@ class SmartSeeds3D(object):
          
          
 
-                    Raw = sorted(glob.glob(self.base_dir + self.raw_dir + '*.tif'))
+                    Raw = sorted(glob.glob(self.base_dir + self.raw_dir + self.pattern))
                     Path(self.base_dir + self.binary_mask_dir).mkdir(exist_ok=True)
                     Path(self.base_dir + self.real_mask_dir).mkdir(exist_ok=True)
-                    RealMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + '*.tif'))
-                    ValRaw = sorted(glob.glob(self.base_dir + self.val_raw_dir + '*.tif'))        
-                    ValRealMask = sorted(glob.glob(self.base_dir + self.val_real_mask_dir + '*.tif'))
-                    Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*.tif'))
+                    RealMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + self.pattern))
+                    ValRaw = sorted(glob.glob(self.base_dir + self.val_raw_dir + self.pattern))        
+                    ValRealMask = sorted(glob.glob(self.base_dir + self.val_real_mask_dir + self.pattern))
+                    Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + self.pattern))
                     
                       
                  
@@ -194,7 +194,7 @@ class SmartSeeds3D(object):
                     if self.train_star and  len(Mask) > 0 and len(RealMask) < len(Mask):
                         
                         print('Making labels')
-                        Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*.tif'))
+                        Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + self.pattern))
                         
                         for fname in Mask:
                     
@@ -205,7 +205,7 @@ class SmartSeeds3D(object):
                                image = image * 255
                            Binaryimage = label(image) 
                     
-                           imwrite((self.base_dir + self.real_mask_dir + Name + '.tif'), Binaryimage.astype('uint16'))
+                           imwrite((self.base_dir + self.real_mask_dir + Name + self.pattern), Binaryimage.astype('uint16'))
                            
                 
                     
@@ -214,7 +214,7 @@ class SmartSeeds3D(object):
                         print('Generating Binary images')
                
                                
-                        RealfilesMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + '*tif'))  
+                        RealfilesMask = sorted(glob.glob(self.base_dir + self.real_mask_dir + self.pattern))  
                 
                 
                         for fname in RealfilesMask:
@@ -226,7 +226,7 @@ class SmartSeeds3D(object):
                     
                             Binaryimage = image > 0
                     
-                            imwrite((self.base_dir + self.binary_mask_dir + Name + '.tif'), Binaryimage.astype('uint16'))
+                            imwrite((self.base_dir + self.binary_mask_dir + Name + self.pattern), Binaryimage.astype('uint16'))
                             
                     if self.generate_npz:
                         
