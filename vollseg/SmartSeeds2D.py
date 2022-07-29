@@ -99,7 +99,7 @@ class SmartSeeds2D(object):
 
      def __init__(self, base_dir, npz_filename, model_name, model_dir, n_patches_per_image, raw_dir = '/Raw/', real_mask_dir = '/real_mask/', binary_mask_dir = '/binary_mask/',
      binary_erode_mask_dir = '/binary_erode_mask/',  val_raw_dir = '/val_raw/', val_real_mask_dir = '/val_real_mask/',
-     downsample_factor = 1, startfilter = 48, RGB = False, pattern = '.tif', validation_split = 0.01, n_channel_in = 1,erosion_iterations = 2,
+     downsample_factor = 1, startfilter = 48, RGB = False, axes = 'YX', axis_norm = (0,1), pattern = '.tif', validation_split = 0.01, n_channel_in = 1,erosion_iterations = 2,
      train_seed_unet = True, train_unet = True, train_star = True, load_data_sequence = False, grid = (1,1),  generate_npz = True, patch_x=256, patch_y=256,  use_gpu = True,unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
          
          
@@ -124,6 +124,7 @@ class SmartSeeds2D(object):
          self.epochs = epochs
          self.learning_rate = learning_rate
          self.depth = depth
+         self.axes = axes
          self.n_channel_in = n_channel_in
          self.erosion_iterations = erosion_iterations
          self.n_rays = n_rays
@@ -131,6 +132,7 @@ class SmartSeeds2D(object):
          self.patch_x = patch_x
          self.patch_y = patch_y
          self.RGB = RGB
+         self.axis_norm = axis_norm
          self.pattern = pattern
          self.validation_split = validation_split
          self.startfilter = startfilter
@@ -256,7 +258,7 @@ class SmartSeeds2D(object):
                              source_dirs = [self.raw_dir],
                              target_dir  = self.binary_mask_dir,
                              pattern = self.search_pattern,
-                             axes        = 'YXC',
+                             axes        = self.axes,
                               )
                            
                              X, Y, XY_axes = create_patches_reduced_target (
@@ -264,7 +266,7 @@ class SmartSeeds2D(object):
                              patch_size          = (self.patch_y,self.patch_x, None),
                              n_patches_per_image = self.n_patches_per_image,
                              patch_filter = None,
-                             target_axes         = 'YX',
+                             target_axes         = self.axes,
                              reduction_axes      = 'C',
                              save_file           = self.base_dir + self.npz_filename + '.npz',
                              
@@ -283,7 +285,7 @@ class SmartSeeds2D(object):
                                     patch_size          = (self.patch_y,self.patch_x, None),
                                     n_patches_per_image = self.n_patches_per_image,
                                     patch_filter = None,
-                                    target_axes         = 'YX',
+                                    target_axes         = self.axes,
                                     reduction_axes      = 'C',
                                     save_file           = self.base_dir + self.npz_filename + "Erode" + '.npz',
                                     )
@@ -297,7 +299,7 @@ class SmartSeeds2D(object):
                                     source_dirs = [self.raw_dir],
                                     target_dir  = self.binary_mask_dir,
                                     pattern = self.search_pattern,
-                                    axes        = 'YX',
+                                    axes        = self.axes,
                                     )
                                     
                                     X, Y, XY_axes = create_patches (
@@ -313,7 +315,7 @@ class SmartSeeds2D(object):
                                     source_dirs = [self.raw_dir],
                                     target_dir  = self.binary_erode_mask_dir,
                                     pattern = self.search_pattern,
-                                    axes        = 'YX',
+                                    axes        = self.axes,
                                     )
                                     
                                     X, Y, XY_axes = create_patches (
@@ -330,7 +332,7 @@ class SmartSeeds2D(object):
                     if self.train_star: 
                                 print('Training StarDistModel model')
                      
-                                self.axis_norm = (0,1)   # normalize channels independently
+                                
                                     
                                 if self.load_data_sequence == False:
                                      assert len(Raw) > 1, "not enough training data"
