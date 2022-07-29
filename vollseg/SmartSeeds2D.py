@@ -291,7 +291,7 @@ class SmartSeeds2D(object):
                           
                           
                       else:
-                              if self.train_unet: 
+                         
                                     raw_data = RawData.from_folder (
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
@@ -306,7 +306,7 @@ class SmartSeeds2D(object):
                                     patch_filter = None,
                                     save_file           = self.base_dir + self.npz_filename + '.npz',
                                     )
-                              if self.train_seed_unet:
+                             
                                     raw_data = RawData.from_folder (
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
@@ -418,10 +418,6 @@ class SmartSeeds2D(object):
                                     
                                     model = CARE(config , name = 'unet_' + self.model_name, basedir = self.model_dir)
                                     
-                                    if self.copy_model_dir is not None:   
-                                      if os.path.exists(self.copy_model_dir + 'unet_' + self.copy_model_name + '/' + 'weights_now.h5') and os.path.exists(self.model_dir + 'UNET' + self.model_name + '/' + 'weights_now.h5') == False:
-                                         print('Loading copy model')
-                                         model.load_weights(self.copy_model_dir + 'unet_' + self.copy_model_name + '/' + 'weights_now.h5')   
                                     
                                     if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5'):
                                         print('Loading checkpoint model')
