@@ -137,6 +137,7 @@ class SmartSeeds2D(object):
          self.batch_size = batch_size
          self.use_gpu = use_gpu
          self.grid = grid
+         self.search_pattern = '*' + self.pattern
          self.unet_n_first = unet_n_first 
          self.n_patches_per_image =  n_patches_per_image
          
@@ -178,26 +179,26 @@ class SmartSeeds2D(object):
      def Train(self):
          
                     Raw_path = Path(self.base_dir + self.raw_dir)
-                    Raw = list(Raw_path.glob('*' + self.pattern))
+                    Raw = list(Raw_path.glob(self.search_pattern))
 
                     Val_Raw_path = Path(self.base_dir + self.val_raw_dir)
-                    ValRaw = list(Val_Raw_path.glob('*' + self.pattern))
+                    ValRaw = list(Val_Raw_path.glob(self.search_pattern))
                     
                     Mask_path = Path(self.base_dir + self.binary_mask_dir)
                     Mask_path.mkdir(exist_ok=True)
-                    Mask = list(Mask_path.glob('*' + self.pattern))
+                    Mask = list(Mask_path.glob(self.search_pattern))
 
                     Real_Mask_path = Path(self.base_dir + self.real_mask_dir)
                     Real_Mask_path.mkdir(exist_ok=True)
-                    RealMask = list(Real_Mask_path.glob('*' + self.pattern))
+                    RealMask = list(Real_Mask_path.glob(self.search_pattern))
     
                     Val_Real_Mask_path = Path(self.base_dir + self.val_real_mask_dir)
                     Val_Real_Mask_path.mkdir(exist_ok=True)
-                    ValRealMask = list(Val_Real_Mask_path.glob('*' + self.pattern))
+                    ValRealMask = list(Val_Real_Mask_path.glob(self.search_pattern))
 
                     Erode_Mask_path = Path(self.base_dir + self.binary_erode_mask_dir)
                     Erode_Mask_path.mkdir(exist_ok=True)
-                    ErodeMask = list(Erode_Mask_path.glob('*' + self.pattern))
+                    ErodeMask = list(Erode_Mask_path.glob(self.search_pattern))
                     
                     print('Instance segmentation masks:', len(RealMask))
                     print('Semantic segmentation masks:', len(Mask))
@@ -254,7 +255,7 @@ class SmartSeeds2D(object):
                              basepath    = self.base_dir,
                              source_dirs = [self.raw_dir],
                              target_dir  = self.binary_mask_dir,
-                             pattern = self.pattern,
+                             pattern = self.search_pattern,
                              axes        = 'YXC',
                               )
                            
@@ -273,7 +274,7 @@ class SmartSeeds2D(object):
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
                                     target_dir  = self.binary_erode_mask_dir,
-                                    pattern = self.pattern,
+                                    pattern = self.search_pattern,
                                     axes        = 'YXC',
                                     )
                                 
@@ -295,7 +296,7 @@ class SmartSeeds2D(object):
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
                                     target_dir  = self.binary_mask_dir,
-                                    pattern = self.pattern,
+                                    pattern = self.search_pattern,
                                     axes        = 'YX',
                                     )
                                     
@@ -311,7 +312,7 @@ class SmartSeeds2D(object):
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
                                     target_dir  = self.binary_erode_mask_dir,
-                                    pattern = self.pattern,
+                                    pattern = self.search_pattern,
                                     axes        = 'YX',
                                     )
                                     

@@ -138,6 +138,7 @@ class SmartSeeds3D(object):
          self.validation_split = validation_split
          self.batch_size = batch_size
          self.use_gpu = use_gpu
+         self.search_pattern = '*' + self.pattern
          self.startfilter = startfilter
          self.n_patches_per_image =  n_patches_per_image
          self.load_data_sequence = load_data_sequence
@@ -180,22 +181,22 @@ class SmartSeeds3D(object):
          
 
                     Raw_path = Path(self.base_dir + self.raw_dir)
-                    Raw = list(Raw_path.glob('*' + self.pattern))
+                    Raw = list(Raw_path.glob(self.search_pattern))
 
                     Val_Raw_path = Path(self.base_dir + self.val_raw_dir)
-                    ValRaw = list(Val_Raw_path.glob('*' + self.pattern))
+                    ValRaw = list(Val_Raw_path.glob(self.search_pattern))
                     
                     Mask_path = Path(self.base_dir + self.binary_mask_dir)
                     Mask_path.mkdir(exist_ok=True)
-                    Mask = list(Mask_path.glob('*' + self.pattern))
+                    Mask = list(Mask_path.glob(self.search_pattern))
 
                     Real_Mask_path = Path(self.base_dir + self.real_mask_dir)
                     Real_Mask_path.mkdir(exist_ok=True)
-                    RealMask = list(Real_Mask_path.glob('*' + self.pattern))
+                    RealMask = list(Real_Mask_path.glob(self.search_pattern))
     
                     Val_Real_Mask_path = Path(self.base_dir + self.val_real_mask_dir)
                     Val_Real_Mask_path.mkdir(exist_ok=True)
-                    ValRealMask = list(Val_Real_Mask_path.glob('*' + self.pattern))
+                    ValRealMask = list(Val_Real_Mask_path.glob(self.search_pattern))
 
                  
                     print('Instance segmentation masks:', len(RealMask))
@@ -243,7 +244,7 @@ class SmartSeeds3D(object):
                       basepath    = self.base_dir,
                       source_dirs = [self.raw_dir],
                       target_dir  = self.binary_mask_dir,
-                      pattern = self.pattern,
+                      pattern = self.search_pattern,
                       axes        = 'ZYX',
                        )
                     
