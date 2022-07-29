@@ -25,13 +25,10 @@ setup(
     install_requires=[
         
         "pandas",
-
         "stardist",
-
         "scipy",
         "tifffile",
         "matplotlib",
-        "imagecodecs",
         "napari",
         "diplib",
         "opencv-python" 
