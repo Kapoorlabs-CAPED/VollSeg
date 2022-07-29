@@ -258,7 +258,7 @@ class SmartSeeds2D(object):
                              source_dirs = [self.raw_dir],
                              target_dir  = self.binary_mask_dir,
                              pattern = self.search_pattern,
-                             axes        = self.axes,
+                             axes        = 'YXC',
                               )
                            
                              X, Y, XY_axes = create_patches_reduced_target (
