@@ -177,20 +177,27 @@ class SmartSeeds2D(object):
 
      def Train(self):
          
-                   
-                    Raw = sorted(glob.glob(self.base_dir + self.raw_dir +'*' +  self.pattern))
-                    Path(self.base_dir + self.binary_mask_dir).mkdir(exist_ok=True)
-                    Path(self.base_dir + self.binary_erode_mask_dir).mkdir(exist_ok=True)
-                    Path(self.base_dir + self.real_mask_dir).mkdir(exist_ok=True)
-                    RealMask = sorted(glob.glob(self.base_dir + self.real_mask_dir +'*' +  self.pattern))
-                    ValRaw = sorted(glob.glob(self.base_dir + self.val_raw_dir +'*' +  self.pattern))        
-                    ValRealMask = sorted(glob.glob(self.base_dir + self.val_real_mask_dir +'*' +  self.pattern))
-                    Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir +'*' +  self.pattern))
-                    ErodeMask = sorted(glob.glob(self.base_dir + self.binary_erode_mask_dir +'*' +  self.pattern))
-                    
-                    
+                    Raw_path = Path(self.base_dir + self.raw_dir)
+                    Raw = list(Raw_path.glob('*' + self.pattern))
 
+                    Val_Raw_path = Path(self.base_dir + self.val_raw_dir)
+                    ValRaw = list(Val_Raw_path.glob('*' + self.pattern))
+                    
+                    Mask_path = Path(self.base_dir + self.binary_mask_dir)
+                    Mask_path.mkdir(exist_ok=True)
+                    Mask = list(Mask_path.glob('*' + self.pattern))
 
+                    Real_Mask_path = Path(self.base_dir + self.real_mask_dir)
+                    Real_Mask_path.mkdir(exist_ok=True)
+                    RealMask = list(Real_Mask_path.glob('*' + self.pattern))
+    
+                    Val_Real_Mask_path = Path(self.base_dir + self.val_real_mask_dir)
+                    Val_Real_Mask_path.mkdir(exist_ok=True)
+                    ValRealMask = list(Val_Real_Mask_path.glob('*' + self.pattern))
+
+                    Erode_Mask_path = Path(self.base_dir + self.binary_erode_mask_dir)
+                    Erode_Mask_path.mkdir(exist_ok=True)
+                    ErodeMask = list(Erode_Mask_path.glob('*' + self.pattern))
                     
                     print('Instance segmentation masks:', len(RealMask))
                     print('Semantic segmentation masks:', len(Mask))
@@ -247,6 +254,7 @@ class SmartSeeds2D(object):
                              basepath    = self.base_dir,
                              source_dirs = [self.raw_dir],
                              target_dir  = self.binary_mask_dir,
+                             pattern = self.pattern,
                              axes        = 'YXC',
                               )
                            
@@ -265,6 +273,7 @@ class SmartSeeds2D(object):
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
                                     target_dir  = self.binary_erode_mask_dir,
+                                    pattern = self.pattern,
                                     axes        = 'YXC',
                                     )
                                 
@@ -286,6 +295,7 @@ class SmartSeeds2D(object):
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
                                     target_dir  = self.binary_mask_dir,
+                                    pattern = self.pattern,
                                     axes        = 'YX',
                                     )
                                     
@@ -301,6 +311,7 @@ class SmartSeeds2D(object):
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
                                     target_dir  = self.binary_erode_mask_dir,
+                                    pattern = self.pattern,
                                     axes        = 'YX',
                                     )
                                     
