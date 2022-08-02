@@ -10,7 +10,7 @@ from pickle import GLOBAL
 # import matplotlib.pyplot as plt
 import numpy as np
 import os
-
+from six import string_types
 from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
@@ -1999,3 +1999,27 @@ def normalize_mi_ma(x, mi, ma, eps=1e-20, dtype=np.float32):
 
     return x
 
+
+
+
+def plot_train_history(history, savedir, modelname, *keys,**kwargs):
+    """Plot (Keras) training history returned by :func:`CARE.train`."""
+    import matplotlib.pyplot as plt
+
+    logy = kwargs.pop('logy',False)
+
+    if all(( isinstance(k,string_types) for k in keys )):
+        w, keys = 1, [keys]
+    else:
+        w = len(keys)
+
+    plt.gcf()
+    for i, group in enumerate(keys):
+        plt.subplot(1,w,i+1)
+        for k in ([group] if isinstance(group,string_types) else group):
+            plt.plot(history.epoch,history.history[k],'.-',label=k,**kwargs)
+            if logy:
+                plt.gca().set_yscale('log', nonposy='clip')
+        plt.xlabel('epoch')
+        plt.legend(loc='best')
+    plt.savefig(savedir + '/' + modelname + 'train_accuracy' + '.png', dpi = 600)    

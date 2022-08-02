@@ -19,9 +19,11 @@ from csbdeep.io import load_training_data
 from csbdeep.models import Config, CARE
 from skimage.measure import label
 from csbdeep.utils import Path, normalize
+from keras.utils import plot_model
+from .utils import plot_train_history
 #from IPython.display import clear_output
 from stardist.models import Config2D, StarDist2D
-
+import csbdeep
 from tensorflow.keras.utils import Sequence
 from tqdm import tqdm
 from skimage.measure import label, regionprops
@@ -264,7 +266,6 @@ class SmartSeeds2D(object):
                              raw_data            = raw_data,
                              patch_size          = (self.patch_y,self.patch_x, None),
                              n_patches_per_image = self.n_patches_per_image,
-                             patch_filter = None,
                              target_axes         = 'YX',
                              reduction_axes      = 'C',
                              save_file           = self.base_dir + self.npz_filename + '.npz',
@@ -282,7 +283,7 @@ class SmartSeeds2D(object):
                                     raw_data            = raw_data,
                                     patch_size          = (self.patch_y,self.patch_x, None),
                                     n_patches_per_image = self.n_patches_per_image,
-                                    patch_filter = None,
+                                   
                                     target_axes         = 'YX',
                                     reduction_axes      = 'C',
                                     save_file           = self.base_dir + self.npz_filename + "Erode" + '.npz',
@@ -303,7 +304,6 @@ class SmartSeeds2D(object):
                                     raw_data            = raw_data,
                                     patch_size          = (self.patch_y,self.patch_x),
                                     n_patches_per_image = self.n_patches_per_image,
-                                    patch_filter = None,
                                     save_file           = self.base_dir + self.npz_filename + '.npz',
                                     )
                              
@@ -318,12 +318,80 @@ class SmartSeeds2D(object):
                                     raw_data            = raw_data,
                                     patch_size          = (self.patch_y,self.patch_x),
                                     n_patches_per_image = self.n_patches_per_image,
-                                    patch_filter = None,
                                     save_file           = self.base_dir + self.npz_filename + "Erode" + '.npz',
                                     )
                     
                   
 
+                    # Training UNET model
+                    if self.train_unet:
+                                    print('Training UNET model')
+                                    load_path = self.base_dir + self.npz_filename  + '.npz'
+                
+                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split= self.validation_split, verbose=True)
+                                    c = axes_dict(axes)['C']
+                                    n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
+                                    
+                                    config = Config(axes, n_channel_in, n_channel_out, unet_n_depth= self.depth,train_epochs= self.epochs, train_batch_size = self.batch_size, unet_kern_size = self.kern_size,unet_n_first = self.unet_n_first, train_learning_rate = self.learning_rate, train_reduce_lr={'patience': 5, 'factor': 0.5})
+                                    print(config)
+                                    vars(config)
+                                    
+                                    model = CARE(config , name = 'unet_' + self.model_name, basedir = self.model_dir)
+                                    
+                                    plot_model(model, to_file = self.model_dir + 'unet_' + self.model_name  +'.png', 
+                                    show_shapes = True, show_layer_names=True)
+                                    
+                                    if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5'):
+                                        print('Loading checkpoint model')
+                                        model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5')
+                                        
+                                    if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_last.h5'):
+                                        print('Loading checkpoint model')
+                                        model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_last.h5')
+                                        
+                                    if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_best.h5'):
+                                        print('Loading checkpoint model')
+                                        model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_best.h5')    
+                               
+                                    
+                                        
+                                    history = model.train(X,Y, validation_data=(X_val,Y_val))
+                                    plot_train_history(hist = history, savedir = self.model_dir + 'unet_', modelname = self.model_name, ['loss','val_loss'],['mse','val_mse','mae','val_mae'])
+                                    
+                     # Training UNET model
+                    if self.train_seed_unet:
+                                    print('Training Seed UNET model')
+                                    load_path = self.base_dir + self.npz_filename + "Erode" + '.npz'
+                
+                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split= self.validation_split, verbose=True)
+                                    c = axes_dict(axes)['C']
+                                    n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
+                                    
+                                    config = Config(axes, n_channel_in, n_channel_out, unet_n_depth= self.depth,train_epochs= self.epochs, train_batch_size = self.batch_size, unet_kern_size = self.kern_size,unet_n_first = self.unet_n_first, train_learning_rate = self.learning_rate, train_reduce_lr={'patience': 5, 'factor': 0.5})
+                                    print(config)
+                                    vars(config)
+                                    
+                                    model = CARE(config , name = 'seed_unet_' + self.model_name, basedir = self.model_dir)
+                                    plot_model(model, to_file = self.model_dir + 'seed_unet_' + self.model_name  +'.png', 
+                                    show_shapes = True, show_layer_names=True)
+                                    
+                                    
+                                    if os.path.exists(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_now.h5'):
+                                        print('Loading checkpoint model')
+                                        model.load_weights(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_now.h5')
+                                        
+                                    if os.path.exists(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_last.h5'):
+                                        print('Loading checkpoint model')
+                                        model.load_weights(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_last.h5')
+                                        
+                                    if os.path.exists(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_best.h5'):
+                                        print('Loading checkpoint model')
+                                        model.load_weights(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_best.h5')    
+                               
+                                    
+                                        
+                                    history = model.train(X,Y, validation_data=(X_val,Y_val)) 
+                                    plot_train_history(hist = history, savedir = self.model_dir + 'seed_unet_', modelname = self.model_name, ['loss','val_loss'],['mse','val_mse','mae','val_mae'])
 
                     if self.train_star: 
                                 print('Training StarDistModel model')
@@ -388,7 +456,9 @@ class SmartSeeds2D(object):
                              
                             
                                 Starmodel = StarDist2D(conf, name=self.model_name, basedir=self.model_dir)
-                                
+                                plot_model(Starmodel, to_file = self.model_dir  + self.model_name  +'.png', 
+                                    show_shapes = True, show_layer_names=True)
+
                                 if os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5'):
                                     print('Loading checkpoint model')
                                     Starmodel.load_weights(self.model_dir + self.model_name + '/' + 'weights_now.h5')
@@ -401,73 +471,10 @@ class SmartSeeds2D(object):
                                     print('Loading checkpoint model')
                                     Starmodel.load_weights(self.model_dir + self.model_name + '/' + 'weights_best.h5')    
                              
-                                Starmodel.train(self.X_trn, (self.Y_trn), validation_data=(self.X_val,(self.Y_val)), epochs = self.epochs)
+                                Starhistory = Starmodel.train(self.X_trn, (self.Y_trn), validation_data=(self.X_val,(self.Y_val)), epochs = self.epochs)
+                                plot_train_history(hist = Starhistory, savedir = self.model_dir, modelname = self.model_name, ['loss','val_loss'],['dist_relevant_mae','val_dist_relevant_mae','dist_relevant_mse','val_dist_relevant_mse'])
                                 Starmodel.optimize_thresholds(self.X_val, self.Y_val)
-                   # Training UNET model
-                    if self.train_unet:
-                                    print('Training UNET model')
-                                    load_path = self.base_dir + self.npz_filename  + '.npz'
-                
-                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split= self.validation_split, verbose=True)
-                                    c = axes_dict(axes)['C']
-                                    n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
-                                    
-                                    config = Config(axes, n_channel_in, n_channel_out, unet_n_depth= self.depth,train_epochs= self.epochs, train_batch_size = self.batch_size, unet_kern_size = self.kern_size,unet_n_first = self.unet_n_first, train_learning_rate = self.learning_rate, train_reduce_lr={'patience': 5, 'factor': 0.5})
-                                    print(config)
-                                    vars(config)
-                                    
-                                    model = CARE(config , name = 'unet_' + self.model_name, basedir = self.model_dir)
-                                    
-                                    
-                                    if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5'):
-                                        print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5')
-                                        
-                                    if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_last.h5'):
-                                        print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_last.h5')
-                                        
-                                    if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_best.h5'):
-                                        print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_best.h5')    
-                               
-                                    
-                                        
-                                    history = model.train(X,Y, validation_data=(X_val,Y_val))
-                                    
-                                    
-                     # Training UNET model
-                    if self.train_seed_unet:
-                                    print('Training Seed UNET model')
-                                    load_path = self.base_dir + self.npz_filename + "Erode" + '.npz'
-                
-                                    (X,Y), (X_val,Y_val), axes = load_training_data(load_path, validation_split= self.validation_split, verbose=True)
-                                    c = axes_dict(axes)['C']
-                                    n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
-                                    
-                                    config = Config(axes, n_channel_in, n_channel_out, unet_n_depth= self.depth,train_epochs= self.epochs, train_batch_size = self.batch_size, unet_kern_size = self.kern_size,unet_n_first = self.unet_n_first, train_learning_rate = self.learning_rate, train_reduce_lr={'patience': 5, 'factor': 0.5})
-                                    print(config)
-                                    vars(config)
-                                    
-                                    model = CARE(config , name = 'seed_unet_' + self.model_name, basedir = self.model_dir)
-                                    
-                                    
-                                    
-                                    if os.path.exists(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_now.h5'):
-                                        print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_now.h5')
-                                        
-                                    if os.path.exists(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_last.h5'):
-                                        print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_last.h5')
-                                        
-                                    if os.path.exists(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_best.h5'):
-                                        print('Loading checkpoint model')
-                                        model.load_weights(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_best.h5')    
-                               
-                                    
-                                        
-                                    history = model.train(X,Y, validation_data=(X_val,Y_val))                
+                                   
                  
                  
 def ReadFloat(fname):
@@ -478,9 +485,9 @@ def ReadFloat(fname):
 def read_int(fname):
 
     return imread(fname).astype('uint16')           
-         
-         
-         
+
+
+
          
 def DownsampleData(image, downsample_factor):
                     

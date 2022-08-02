@@ -33,6 +33,8 @@ from csbdeep.data import RawData, create_patches
 from skimage.measure import label, regionprops
 from scipy import ndimage
 from tqdm import tqdm
+from keras.utils import plot_model
+from .utils import plot_train_history
 import matplotlib.pyplot as plt
 from pathlib import Path
 from tifffile import imread, imwrite
@@ -270,7 +272,8 @@ class SmartSeeds3D(object):
                             vars(config)
                             
                             model = CARE(config , name = 'unet_' + self.model_name, basedir = self.model_dir)
-                                 
+                            plot_model(model, to_file = self.model_dir + 'unet_' + self.model_name  +'.png', 
+                                    show_shapes = True, show_layer_names=True)     
                            
                             
                             if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5'):
