@@ -74,8 +74,7 @@ class Augmentation2DC(object):
 
     def build(self,
               data=None,
-              label=None,
-              batch_size=None):
+              label=None):
         """
         Arguments:
         build generator to augment input data according to initialization
@@ -84,8 +83,7 @@ class Augmentation2DC(object):
             The shape of input data should have 3 dimension(batch, x, y, c).
         label : Integer label images
             The shape of this labels should match the shape of data (batch, x, y).
-        batch_size: int
-            The size of data to generate at one batch.
+  
         Return:
             generator
         """
@@ -98,7 +96,7 @@ class Augmentation2DC(object):
 
         self.data = data
         self.label = label
-        self.batch_size = batch_size
+      
         self.data_dim = data.ndim
         self.data_shape = data.shape
         self.data_size = self.data_shape[0]
@@ -185,34 +183,25 @@ class Augmentation2DC(object):
         # build and return generator with specified callback function
         if callback:
             return self._return_generator(callback, parse_dict)
-        if callback_poisson:
-             return self._return_generator_poisson(callback_poisson, parse_dict)   
+       
         else:
             raise ValueError('No generator returned. Arguments are not set properly.')
 
     def _return_generator(self, callback, parse_dict):
         """return generator according to callback"""
-        self.idx_list = [i for i in range(self.data_size)]
-        np.random.shuffle(self.idx_list)
-        rp_num = self.data_size // self.batch_size
-        cnt = 0
+      
+       
 
-        while True:
-            target_idx = self.idx_list[cnt * self.batch_size: (cnt + 1) * self.batch_size]
-            target_data = self.data[target_idx]
-            target_label = self.label[target_idx]
-
-            # data augmentation by callback function
-            ret_data = [callback(target_data[i], parse_dict, append = False) for i in range(self.batch_size)]
-            ret_label =  [callback(target_label[i], parse_dict) for i in range(self.batch_size)]
+        target_data = self.data[0]
+        target_label = self.label[0]
+        i = 0
+        # data augmentation by callback function
+        ret_data = callback(target_data[i], parse_dict, append = False) 
+        ret_label =  callback(target_label[i], parse_dict) 
          
-            if cnt < rp_num - 1:
-                cnt += 1
-            elif cnt == rp_num - 1:
-                cnt = 0
-                np.random.shuffle(self.idx_list)
+       
 
-                yield ret_data, ret_label
+        yield ret_data, ret_label
 
 
 
