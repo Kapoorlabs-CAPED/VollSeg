@@ -19,7 +19,6 @@ from csbdeep.io import load_training_data
 from csbdeep.models import Config, CARE
 from skimage.measure import label
 from csbdeep.utils import Path, normalize
-from keras.utils import plot_model
 from .utils import plot_train_history
 #from IPython.display import clear_output
 from stardist.models import Config2D, StarDist2D
@@ -338,8 +337,6 @@ class SmartSeeds2D(object):
                                     
                                     model = CARE(config , name = 'unet_' + self.model_name, basedir = self.model_dir)
                                     
-                                    plot_model(model, to_file = self.model_dir + 'unet_' + self.model_name  +'.png', 
-                                    show_shapes = True, show_layer_names=True)
                                     
                                     if os.path.exists(self.model_dir + 'unet_' + self.model_name + '/' + 'weights_now.h5'):
                                         print('Loading checkpoint model')
@@ -372,8 +369,7 @@ class SmartSeeds2D(object):
                                     vars(config)
                                     
                                     model = CARE(config , name = 'seed_unet_' + self.model_name, basedir = self.model_dir)
-                                    plot_model(model, to_file = self.model_dir + 'seed_unet_' + self.model_name  +'.png', 
-                                    show_shapes = True, show_layer_names=True)
+                                   
                                     
                                     
                                     if os.path.exists(self.model_dir + 'seed_unet_' + self.model_name + '/' + 'weights_now.h5'):
@@ -456,8 +452,7 @@ class SmartSeeds2D(object):
                              
                             
                                 Starmodel = StarDist2D(conf, name=self.model_name, basedir=self.model_dir)
-                                plot_model(Starmodel, to_file = self.model_dir  + self.model_name  +'.png', 
-                                    show_shapes = True, show_layer_names=True)
+                               
 
                                 if os.path.exists(self.model_dir + self.model_name + '/' + 'weights_now.h5'):
                                     print('Loading checkpoint model')
