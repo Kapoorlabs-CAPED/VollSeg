@@ -356,7 +356,7 @@ class SmartSeeds2D(object):
                                     
                                         
                                     history = model.train(X,Y, validation_data=(X_val,Y_val))
-                                    plot_train_history(hist = history, savedir = self.model_dir + 'unet_', modelname = self.model_name, ['loss','val_loss'],['mse','val_mse','mae','val_mae'])
+                                    plot_train_history(history, self.model_dir + 'unet_', self.model_name, ['loss','val_loss'],['mse','val_mse','mae','val_mae'])
                                     
                      # Training UNET model
                     if self.train_seed_unet:
@@ -391,7 +391,7 @@ class SmartSeeds2D(object):
                                     
                                         
                                     history = model.train(X,Y, validation_data=(X_val,Y_val)) 
-                                    plot_train_history(hist = history, savedir = self.model_dir + 'seed_unet_', modelname = self.model_name, ['loss','val_loss'],['mse','val_mse','mae','val_mae'])
+                                    plot_train_history(history,  self.model_dir + 'seed_unet_', self.model_name, ['loss','val_loss'],['mse','val_mse','mae','val_mae'])
 
                     if self.train_star: 
                                 print('Training StarDistModel model')
@@ -472,7 +472,7 @@ class SmartSeeds2D(object):
                                     Starmodel.load_weights(self.model_dir + self.model_name + '/' + 'weights_best.h5')    
                              
                                 Starhistory = Starmodel.train(self.X_trn, (self.Y_trn), validation_data=(self.X_val,(self.Y_val)), epochs = self.epochs)
-                                plot_train_history(hist = Starhistory, savedir = self.model_dir, modelname = self.model_name, ['loss','val_loss'],['dist_relevant_mae','val_dist_relevant_mae','dist_relevant_mse','val_dist_relevant_mse'])
+                                plot_train_history(Starhistory, self.model_dir, self.model_name, ['loss','val_loss'],['dist_relevant_mae','val_dist_relevant_mae','dist_relevant_mse','val_dist_relevant_mse'])
                                 Starmodel.optimize_thresholds(self.X_val, self.Y_val)
                                    
                  
