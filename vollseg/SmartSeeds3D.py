@@ -301,7 +301,7 @@ class SmartSeeds3D(object):
 
                                      X_train = list(map(read_float,Raw))
                                      Y_train = list(map(read_int,RealMask))
-                                     self.Y = [DownsampleData(y.astype('uint16'), self.downsample_factor) for y in tqdm(Y_train)]
+                                     self.Y = [label(DownsampleData(y, self.downsample_factor)) for y in tqdm(Y_train)]
                                      self.X = [normalize(DownsampleData(x, self.downsample_factor),1,99.8,axis=self.axis_norm) for x in tqdm(X_train)]
                                      n_val = max(1, int(round(self.validation_split * len(ind))))
                                      ind_train, ind_val = ind[:-n_val], ind[-n_val:]
