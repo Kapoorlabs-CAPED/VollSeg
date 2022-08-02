@@ -6,6 +6,7 @@ from .nmslabel import NMSLabel
 from .OptimizeThreshold import OptimizeThreshold
 from .Augmentation3D import Augmentation3D
 from .Augmentation2D import Augmentation2D
+from .Augmentation2DC import Augmentation2DC
 from .inrimage import *
 from .pretrained import register_model, register_aliases, clear_models_and_aliases
 from .UNET import  UNET 
