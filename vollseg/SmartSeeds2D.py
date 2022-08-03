@@ -101,7 +101,7 @@ class SmartSeeds2D(object):
      def __init__(self, base_dir, npz_filename, model_name, model_dir, n_patches_per_image, raw_dir = '/Raw/', real_mask_dir = '/real_mask/', binary_mask_dir = '/binary_mask/',
      binary_erode_mask_dir = '/binary_erode_mask/',  val_raw_dir = '/val_raw/', val_real_mask_dir = '/val_real_mask/',
      downsample_factor = 1, startfilter = 48, RGB = False, axes = 'YX', axis_norm = (0,1), pattern = '.tif', validation_split = 0.01, n_channel_in = 1,erosion_iterations = 2,
-     train_seed_unet = True, train_unet = True, train_star = True, load_data_sequence = False, grid = (1,1),  generate_npz = True, patch_x=256, patch_y=256,  use_gpu = True,unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
+     train_seed_unet = False, train_unet = False, train_star = False, load_data_sequence = False, grid = (1,1),  generate_npz = False, patch_x=256, patch_y=256,  use_gpu = False, unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
          
          
          

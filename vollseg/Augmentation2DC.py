@@ -196,7 +196,7 @@ class Augmentation2DC(object):
         target_label = self.label[0]
         i = 0
         # data augmentation by callback function
-        ret_data = callback(target_data[i], parse_dict, append = False) 
+        ret_data = callback(target_data[i], parse_dict, channels = True) 
         ret_label =  callback(target_label[i], parse_dict) 
          
        
@@ -207,23 +207,52 @@ class Augmentation2DC(object):
 
         
 
-    def _flip_data(self, data, parse_dict, append = True):
+    def _flip_data(self, data, parse_dict, channels = False):
         """flip array along specified axis(x, y)"""
-        if append:
-         data = np.expand_dims(data,0)
-        return np.flip(data, parse_dict['flip_axis'])
+        data = np.expand_dims(data,0)
 
-    def _shift_data(self, data, parse_dict, append = True):
+        if channels:
+        
+          num_channels = data.shape[-1]
+          data_channels = data
+          for i in range(num_channels):
+
+             data_channels[...,i] = np.flip(data[...,i], parse_dict['flip_axis'])
+          
+
+        else:
+
+            data_channels = np.flip(data, parse_dict['flip_axis'])
+
+      
+        return data_channels
+
+    def _shift_data(self, data, parse_dict, channels = False):
         """shift array by specified range along specified axis(x, y)"""
  
-        if append:
-         data = np.expand_dims(data,0)
+        data = np.expand_dims(data,0)
         shift_lst = [0] * self.data_dim
         shift_lst[parse_dict['shift_axis']] = math.floor(
             parse_dict['shift_range'] * self.data_shape[parse_dict['shift_axis']])
 
-        return shift(data, shift=shift_lst, cval=0)[0,...]
-    def _zoom_data(self, data, parse_dict, append = True):
+        if channels:
+        
+          num_channels = data.shape[-1]
+          data_channels = data
+          for i in range(num_channels):
+
+             data_channels[...,i] = shift(data[...,i], shift=shift_lst, cval=0)[0,...]
+          
+
+        else:
+
+            data_channels = shift(data, shift=shift_lst, cval=0)[0,...]
+
+      
+        return data_channels
+
+
+    def _zoom_data(self, data, parse_dict, channels = False):
         """zoom array by specified range along specified axis(x, y). After zoomed, the voxel size is the same as
         before"""
         # functions to calculate target range of arrays(outside of the target range is not used to zoom)
@@ -231,43 +260,82 @@ class Augmentation2DC(object):
         f1 = lambda d: math.floor((d / 2) * (1 + 1 / parse_dict['zoom_range']))
         f2 = lambda d: math.ceil((d / 2) * (1 - 1 / parse_dict['zoom_range']))
         data_shape = data.shape
-        if append:
-         data = np.expand_dims(data,0)
-        if parse_dict['zoom_range'] > 1.0:
-            # expand
-            z_win1 = list(map(f1, self.data_shape[1:]))
-            z_win2 = list(map(f2, self.data_shape[1:]))
+        data = np.expand_dims(data,0)
+        if channels:
+                if parse_dict['zoom_range'] > 1.0:
+                    # expand
+                    z_win1 = list(map(f1, self.data_shape[1:]))
+                    z_win2 = list(map(f2, self.data_shape[1:]))
 
-            if parse_dict['zoom_axis'] is None:
-                # same for all axis
-                target_data = data[:, z_win2[0]:z_win1[0], z_win2[1]:z_win1[1]]
-            else:
-                # only one axis
-                if parse_dict['zoom_axis'] == 1:
-                    target_data = data[:, z_win2[0]:z_win1[0], :]
-                elif parse_dict['zoom_axis'] == 2:
-                    target_data = data[:, :, z_win2[1]:z_win1[1]]
+                    if parse_dict['zoom_axis'] is None:
+                        # same for all axis
+                        target_data = data[:, z_win2[0]:z_win1[0], z_win2[1]:z_win1[1],:]
+                    else:
+                        # only one axis
+                        if parse_dict['zoom_axis'] == 1:
+                            target_data = data[:, z_win2[0]:z_win1[0], :,:]
+                        elif parse_dict['zoom_axis'] == 2:
+                            target_data = data[:, :, z_win2[1]:z_win1[1],:]
+                else:
+                    # shrink
+                    target_data = data
+
+                if parse_dict['zoom_axis'] is None:
+                    zoom_lst = [1] + [parse_dict['zoom_range']] * (self.data_dim - 1)
+                else:
+                    zoom_lst = [1] * self.data_dim
+                    zoom_lst[parse_dict['zoom_axis']] = parse_dict['zoom_range']
+
+                zoomed = zoom(target_data, zoom=zoom_lst, cval=0)
+                temp = [[math.floor((i - j) / 2), math.ceil((i - j) / 2)] for i, j in zip(self.data_shape[1:], zoomed.shape[1:])]
+
+                cast_zoomed = np.zeros(data_shape)
+                cast_zoomed[
+                temp[0][0]:self.data_shape[1] - temp[0][1],
+                temp[1][0]:self.data_shape[2] - temp[1][1],:]= zoomed
+        
+       
+
         else:
-            # shrink
-            target_data = data
+ 
+            if parse_dict['zoom_range'] > 1.0:
+                    # expand
+                    z_win1 = list(map(f1, self.data_shape[1:]))
+                    z_win2 = list(map(f2, self.data_shape[1:]))
 
-        if parse_dict['zoom_axis'] is None:
-            zoom_lst = [1] + [parse_dict['zoom_range']] * (self.data_dim - 1)
-        else:
-            zoom_lst = [1] * self.data_dim
-            zoom_lst[parse_dict['zoom_axis']] = parse_dict['zoom_range']
+                    if parse_dict['zoom_axis'] is None:
+                        # same for all axis
+                        target_data = data[:, z_win2[0]:z_win1[0], z_win2[1]:z_win1[1]]
+                    else:
+                        # only one axis
+                        if parse_dict['zoom_axis'] == 1:
+                            target_data = data[:, z_win2[0]:z_win1[0], :]
+                        elif parse_dict['zoom_axis'] == 2:
+                            target_data = data[:, :, z_win2[1]:z_win1[1]]
+                else:
+                    # shrink
+                    target_data = data
 
-        zoomed = zoom(target_data, zoom=zoom_lst, cval=0)
-        temp = [[math.floor((i - j) / 2), math.ceil((i - j) / 2)] for i, j in zip(self.data_shape[1:], zoomed.shape[1:])]
+                if parse_dict['zoom_axis'] is None:
+                    zoom_lst = [1] + [parse_dict['zoom_range']] * (self.data_dim - 1)
+                else:
+                    zoom_lst = [1] * self.data_dim
+                    zoom_lst[parse_dict['zoom_axis']] = parse_dict['zoom_range']
 
-        cast_zoomed = np.zeros(data_shape)
-        cast_zoomed[
-        temp[0][0]:self.data_shape[1] - temp[0][1],
-        temp[1][0]:self.data_shape[2] - temp[1][1]]= zoomed
+                zoomed = zoom(target_data, zoom=zoom_lst, cval=0)
+                temp = [[math.floor((i - j) / 2), math.ceil((i - j) / 2)] for i, j in zip(self.data_shape[1:], zoomed.shape[1:])]
+
+                cast_zoomed = np.zeros(data_shape)
+               
+                cast_zoomed[
+                    temp[0][0]:self.data_shape[1] - temp[0][1],
+                    temp[1][0]:self.data_shape[2] - temp[1][1]]= zoomed
+
+     
 
         return cast_zoomed
 
-    def _rotate_data(self, data, parse_dict, append = True):
+    def _rotate_data(self, data, parse_dict, channels = False):
         """rotate array by specified range along specified axis(x, y or z)"""
         if parse_dict['rotate_axis'] == 1:
             ax_tup = (1, 2)
