@@ -293,7 +293,7 @@ class Augmentation2DC(object):
                 cast_zoomed[
                 temp[0][0]:self.data_shape[1] - temp[0][1],
                 temp[1][0]:self.data_shape[2] - temp[1][1],:]= zoomed
-        
+                return cast_zoomed
        
 
         else:
@@ -312,7 +312,7 @@ class Augmentation2DC(object):
                             target_data = data[:, z_win2[0]:z_win1[0], :]
                         elif parse_dict['zoom_axis'] == 2:
                             target_data = data[:, :, z_win2[1]:z_win1[1]]
-                else:
+            else:
                     # shrink
                     target_data = data
 
@@ -330,10 +330,10 @@ class Augmentation2DC(object):
                 cast_zoomed[
                     temp[0][0]:self.data_shape[1] - temp[0][1],
                     temp[1][0]:self.data_shape[2] - temp[1][1]]= zoomed
-
+                return cast_zoomed
      
 
-        return cast_zoomed
+    
 
     def _rotate_data(self, data, parse_dict, channels = False):
         """rotate array by specified range along specified axis(x, y or z)"""
@@ -343,16 +343,55 @@ class Augmentation2DC(object):
             ax_tup = (2, 1)
         else:
             raise ValueError('rotate axis should be 1, 2')
-        if append:
-         data = np.expand_dims(data,0)
-        return rotate(data, axes=ax_tup, angle=parse_dict['rotate_angle'], cval=0.0, reshape=False)
+        data = np.expand_dims(data,0)
+        if channels:
+        
+          num_channels = data.shape[-1]
+          data_channels = data
+          for i in range(num_channels):
+
+             data_channels[...,i] = rotate(data[...,i], axes=ax_tup, angle=parse_dict['rotate_angle'], cval=0.0, reshape=False)
+          
+
+        else:
+
+            data_channels = rotate(data, axes=ax_tup, angle=parse_dict['rotate_angle'], cval=0.0, reshape=False)
+
+
+        return data_channels
 
     def _duplicate_data(self, data, parse_dict):
 
         size =  parse_dict['size']    
-        return image_pixel_duplicator(data, size)
+        if channels:
+        
+          num_channels = data.shape[-1]
+          data_channels = data
+          for i in range(num_channels):
+
+             data_channels[...,i] = image_pixel_duplicator(data[...,i], size)
+          
+
+        else:
+
+            data_channels = image_pixel_duplicator(data, size)
+        
+        return data_channels 
 
     def _embed_data(self, data, parse_dict):
 
         size_zero =  parse_dict['size_zero']    
-        return image_embedding(data, size_zero)    
+        if channels:
+        
+          num_channels = data.shape[-1]
+          data_channels = data
+          for i in range(num_channels):
+
+             data_channels[...,i] = image_embedding(data[...,i], size_zero)
+          
+
+        else:
+
+            data_channels = image_embedding(data, size_zero)
+        
+        return data_channels 
