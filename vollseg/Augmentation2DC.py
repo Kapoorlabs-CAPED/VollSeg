@@ -313,8 +313,8 @@ class Augmentation2DC(object):
                         elif parse_dict['zoom_axis'] == 2:
                             target_data = data[:, :, z_win2[1]:z_win1[1]]
             else:
-                    # shrink
-                    target_data = data
+                # shrink
+                target_data = data
 
                 if parse_dict['zoom_axis'] is None:
                     zoom_lst = [1] + [parse_dict['zoom_range']] * (self.data_dim - 1)
