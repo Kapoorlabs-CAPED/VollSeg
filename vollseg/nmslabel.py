@@ -11,7 +11,7 @@ class NMSLabel(object):
         properties = measure.regionprops(self.image)
         Bbox = [prop.bbox for prop in properties] 
         Labels = [prop.label for prop in properties]
-        
+        self.supresslabel = {}
         while len(Labels) > 0:
                 last = len(Labels) - 1
                 i = Labels[last]
@@ -32,7 +32,7 @@ class NMSLabel(object):
     def iou(self, boxA, boxB, labelA, labelB):
 
         ndim = len(self.image.shape)
-        self.supresslabel = {}
+        
         if ndim == 2:
                 xA = max(boxA[0], boxB[0])
                 yA = max(boxA[1], boxB[1])
