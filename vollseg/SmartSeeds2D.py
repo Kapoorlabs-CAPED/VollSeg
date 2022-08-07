@@ -249,24 +249,25 @@ class SmartSeeds2D(object):
                     
                     if self.generate_npz:
                       if self.RGB:
-                          
-                             raw_data = RawData.from_folder (
-                             basepath    = self.base_dir,
-                             source_dirs = [self.raw_dir],
-                             target_dir  = self.binary_mask_dir,
-                             axes        = 'YXC',
-                              )
-                           
-                             X, Y, XY_axes = create_patches_reduced_target (
-                             raw_data            = raw_data,
-                             patch_size          = (self.patch_y,self.patch_x, None),
-                             n_patches_per_image = self.n_patches_per_image,
-                             target_axes         = 'YX',
-                             reduction_axes      = 'C',
-                             save_file           = self.base_dir + self.npz_filename + '.npz',
-                             
-                             )
+                             if self.train_unet
+                                    raw_data = RawData.from_folder (
+                                    basepath    = self.base_dir,
+                                    source_dirs = [self.raw_dir],
+                                    target_dir  = self.binary_mask_dir,
+                                    axes        = 'YXC',
+                                    )
+                                
+                                    X, Y, XY_axes = create_patches_reduced_target (
+                                    raw_data            = raw_data,
+                                    patch_size          = (self.patch_y,self.patch_x, None),
+                                    n_patches_per_image = self.n_patches_per_image,
+                                    target_axes         = 'YX',
+                                    reduction_axes      = 'C',
+                                    save_file           = self.base_dir + self.npz_filename + '.npz',
+                                    
+                                    )
                              if self.train_seed_unet:
+                                    print('Eroded Masks')
                                     raw_data = RawData.from_folder (
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
