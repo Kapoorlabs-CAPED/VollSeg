@@ -249,7 +249,7 @@ class SmartSeeds2D(object):
                     
                     if self.generate_npz:
                       if self.RGB:
-                             if self.train_unet
+                             if self.train_unet:
                                     raw_data = RawData.from_folder (
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
