@@ -898,6 +898,12 @@ def VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton):
 def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', ExpandLabels = True, noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0.3, slice_merge=False, dounet=True, erosion_iterations = 15):
 
     ndim = len(image.shape)    
+    if len(n_tiles)!=ndim:
+        if ndim == 3:
+            n_tiles = (n_tiles[-3], n_tiles[-2], n_tiles[-1])
+        if ndim == 2:
+            n_tiles = (n_tiles[-2], n_tiles[-1])    
+
     if roi_model is None:
         if RGB:
             if n_tiles is not None:
