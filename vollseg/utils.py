@@ -442,7 +442,8 @@ def NotumSeededQueen(save_dir, fname, denoising_model, projection_model, unet_mo
                               min_size=min_size, n_tiles=(n_tiles[1], n_tiles[2]), UseProbability=UseProbability)
 
 
-def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarModel, min_size=5, n_tiles=(2, 2),donormalize = True, lower_perc = 1.0, upper_perc = 99.8, UseProbability=True):
+def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarModel, min_size=5, n_tiles=(2, 2),donormalize = True, lower_perc = 1.0,
+ upper_perc = 99.8, UseProbability=True):
 
     print('Generating SmartSeed results')
 
@@ -793,7 +794,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         Mask = Binary.copy() 
             
         Mask = Region_embedding(image, roi_bbox, Mask, RGB = RGB)
-
+        Mask_patch = Mask.copy()
     elif noise_model is not None and dounet == False:
 
         Mask = np.zeros(patch.shape)
@@ -810,11 +811,12 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         Mask = remove_small_objects(
             Mask.astype('uint16'), min_size=min_size_mask)
         Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
-        Mask_patch = Mask.copy()
+        
         if RGB:
                 Mask = Mask[:, :, 0]
                 Mask_patch = Mask_patch[:,:,0]
         Mask = Region_embedding(image, roi_bbox, Mask, RGB = RGB)
+        Mask_patch = Mask.copy()    
     # Smart Seed prediction
     print('Stardist segmentation on Image')
     if RGB:
