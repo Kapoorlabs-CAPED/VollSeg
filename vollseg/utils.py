@@ -774,15 +774,23 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         if unet_model is not None:
             print('UNET segmentation on Image')
 
-            Mask = UNETPrediction3D(
-                patch, unet_model, n_tiles, axes, iou_threshold=nms_thresh, ExpandLabels = ExpandLabels)
-            Mask = remove_small_objects(
-                Mask.astype('uint16'), min_size=min_size_mask)
-            Mask = remove_big_objects(Mask.astype('uint16'), max_size=max_size)
-            Mask_patch = Mask.copy()
+            Segmented = unet_model.predict(image.astype('float32'), axes, n_tiles=n_tiles)
+            else:
+                Segmented = image
             if RGB:
-                    Mask = Mask[:, :, 0]
-                    Mask_patch = Mask_patch[:,:,0]
+                Segmented = Segmented[:, :, 0]
+
+            try:
+                thresholds = threshold_multiotsu(Segmented, classes=2)
+
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(Segmented, bins=thresholds)
+            except:
+
+                regions = Segmented
+            Binary = regions > 0
+            Mask = Binary.copy() 
+            
             Mask = Region_embedding(image, roi_bbox, Mask, RGB = RGB)
 
     elif noise_model is not None and dounet == False:
