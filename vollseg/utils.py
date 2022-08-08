@@ -471,7 +471,7 @@ def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarM
         image = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
     # Smart Seed prediction
     smart_seeds, _, star_labels, ProbImage = SuperSTARPrediction(
-        image, StarModel, n_tiles, unet_mask=Mask, OverAllunet_mask=OverAllMask, UseProbability=UseProbability)
+        image, StarModel, n_tiles, unet_mask=Mask, OverAllunet_mask=OverAllMask, UseProbability=UseProbability, seedpool = seedpool)
 
     smart_seedsLabels = smart_seeds.copy()
 
@@ -606,7 +606,7 @@ def NotumSegmentation2D(save_dir, image, fname, mask_model, star_model, min_size
         image = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
     # Smart Seed prediction
     smart_seeds, _, star_labels, ProbImage = SuperSTARPrediction(
-        image, star_model, n_tiles, unet_mask=OverAllMask, OverAllunet_mask=OverAllMask, UseProbability=UseProbability)
+        image, star_model, n_tiles, unet_mask=OverAllMask, OverAllunet_mask=OverAllMask, UseProbability=UseProbability, seedpool = seedpool)
 
     smart_seedsLabels = smart_seeds.copy()
 
@@ -707,7 +707,8 @@ def Region_embedding(image, region, sourceimage, RGB = False):
 
 
 def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  prob_thresh=None, nms_thresh=None, axes='YX', min_size_mask=5, min_size=5,
-              max_size=10000000, dounet=True, n_tiles=(2, 2), ExpandLabels = True,  donormalize=True, lower_perc=1, upper_perc=99.8, UseProbability=True, RGB=False, seedpool=True):
+              max_size=10000000, dounet=True, n_tiles=(2, 2), ExpandLabels = True,  donormalize=True, lower_perc=1, upper_perc=99.8, UseProbability=True, RGB=False, 
+              seedpool=True):
 
     print('Generating SmartSeed results')
 
@@ -825,7 +826,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
     else:
         patch_star = patch
     smart_seeds, Markers, star_labels, proabability_map = SuperSTARPrediction(
-        patch_star, star_model, n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+        patch_star, star_model, n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, seedpool = seedpool)
     smart_seeds = remove_small_objects(
         smart_seeds.astype('uint16'), min_size=min_size)
     smart_seeds = remove_big_objects(
