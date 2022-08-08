@@ -633,8 +633,10 @@ def NotumSegmentation2D(save_dir, image, fname, mask_model, star_model, min_size
     imwrite((MASKResults + Name + '.tif'), OverAllMask.astype('uint8'))
 
 
-def SmartSkel(smart_seedsLabels, ProbImage):
+def SmartSkel(smart_seedsLabels, ProbImage, RGB = False):
 
+    if RGB:
+        smart_seedsLabels[...,:] = smart_seedsLabels[...,0:1]
     SegimageB = find_boundaries(smart_seedsLabels)
     invertProbimage = 1 - ProbImage
     image_max = np.add(invertProbimage, SegimageB)
@@ -647,7 +649,10 @@ def SmartSkel(smart_seedsLabels, ProbImage):
 
     return Skeleton
 
-def Skel(smart_seedsLabels):
+def Skel(smart_seedsLabels, RGB = False):
+
+    if RGB:
+        smart_seedsLabels[...,:] = smart_seedsLabels[...,0:1]
 
     image_max = find_boundaries(smart_seedsLabels)
     
@@ -818,7 +823,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         smart_seeds.astype('uint16'), min_size=min_size)
     smart_seeds = remove_big_objects(
         smart_seeds.astype('uint16'), max_size=max_size)
-    Skeleton = SmartSkel(smart_seeds, proabability_map)
+    Skeleton = SmartSkel(smart_seeds, proabability_map, RGB)
     Skeleton = Skeleton > 0
     # For avoiding pixel level error
     if Mask is not None:
@@ -860,11 +865,11 @@ def VollSeg_nolabel_precondition(image, Finalimage):
 
     return Finalimage
     
-def VollSeg_nolabel_expansion(image, Finalimage, Skeleton):
+def VollSeg_nolabel_expansion(image, Finalimage, Skeleton, RGB):
     
     for i in range(image.shape[0]):
                    Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE) 
-                   Skeleton[i, :] = Skel(Finalimage[i,:])
+                   Skeleton[i, :] = Skel(Finalimage[i,:], RGB)
                    Skeleton[i, :] = Skeleton[i, :] > 0 
                    
     return Finalimage, Skeleton               
@@ -881,11 +886,11 @@ def VollSeg_label_precondition(image, overall_mask, Finalimage):
        
         return Finalimage
 
-def VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton):
+def VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton, RGB):
 
     for i in range(image.shape[0]):
                             Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
-                            Skeleton[i, :] = Skel(Finalimage[i,:])
+                            Skeleton[i, :] = Skel(Finalimage[i,:], RGB)
                             Skeleton[i, :] = Skeleton[i, :] > 0
     pixel_condition = (overall_mask == 0)
     pixel_replace_condition = 0
@@ -953,7 +958,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                 Binary.astype('uint16'), max_size=max_size)
             Binary = fill_label_holes(Binary)
             Finalimage = relabel_sequential(Binary)[0]
-            Skeleton = Skel(Finalimage)
+            Skeleton = Skel(Finalimage, RGB)
             Skeleton = Skeleton > 0
         if ndim == 3 and slice_merge:
             for i in range(image.shape[0]):
@@ -974,10 +979,10 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
             if ExpandLabels:
                        
-                    Finalimage, Skeleton = VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton)   
+                    Finalimage, Skeleton = VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton, RGB)   
                     
             else:
-                    Finalimage, Skeleton =  VollSeg_nolabel_expansion(image, Finalimage, Skeleton)    
+                    Finalimage, Skeleton =  VollSeg_nolabel_expansion(image, Finalimage, Skeleton, RGB)    
 
         
 
