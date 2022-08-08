@@ -636,7 +636,7 @@ def NotumSegmentation2D(save_dir, image, fname, mask_model, star_model, min_size
 def SmartSkel(smart_seedsLabels, ProbImage, RGB = False):
 
     if RGB:
-        smart_seedsLabels[...,:] = smart_seedsLabels[...,0:1]
+        smart_seedsLabels[...,:] = smart_seedsLabels[...,0]
     SegimageB = find_boundaries(smart_seedsLabels)
     invertProbimage = 1 - ProbImage
     image_max = np.add(invertProbimage, SegimageB)
@@ -652,8 +652,7 @@ def SmartSkel(smart_seedsLabels, ProbImage, RGB = False):
 def Skel(smart_seedsLabels, RGB = False):
 
     if RGB:
-        smart_seedsLabels[...,:] = smart_seedsLabels[...,0:1]
-
+        smart_seedsLabels[...,:] = smart_seedsLabels[...,0]
     image_max = find_boundaries(smart_seedsLabels)
     
     Skeleton = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
