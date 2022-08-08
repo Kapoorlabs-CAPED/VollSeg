@@ -350,7 +350,7 @@ class SmartSeeds2D(object):
                                     
                                         
                                     history = model.train(X,Y, validation_data=(X_val,Y_val))
-                                    plot_train_history(history, self.model_dir + 'unet_', self.model_name, ['loss','val_loss'],['mse','val_mse','mae','val_mae'])
+                                    plot_train_history(history, self.model_dir, 'unet_' + self.model_name, ['loss','val_loss'],['mse','val_mse','mae','val_mae'])
                                     
                      # Training UNET model
                     if self.train_seed_unet:
@@ -384,7 +384,7 @@ class SmartSeeds2D(object):
                                     
                                         
                                     history = model.train(X,Y, validation_data=(X_val,Y_val)) 
-                                    plot_train_history(history,  self.model_dir + 'seed_unet_', self.model_name, ['loss','val_loss'],['mse','val_mse','mae','val_mae'])
+                                    plot_train_history(history,  self.model_dir, 'seed_unet_' + self.model_name, ['loss','val_loss'],['mse','val_mse','mae','val_mae'])
 
                     if self.train_star: 
                                 print('Training StarDistModel model')
