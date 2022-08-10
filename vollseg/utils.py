@@ -1865,10 +1865,10 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
         for i in range(0, len(Starbbox)):
 
             box = Starbbox[i]
-            label = Starlabel[i]
+            starlabel = Starlabel[i]
             include = [UnetStarMask(box, unet).masking() for unet in BinaryCoordinates] 
             if False not in include:
-                indices = zip(*np.where(Label = label))
+                indices = zip(*np.where(Label = starlabel))
                 for index in indices:
         
                       mask[index] = 1
@@ -1913,10 +1913,10 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
         for i in range(0, len(Starbbox)):
 
             box = Starbbox[i]
-            label = Starlabel[i]
+            starlabel = Starlabel[i]
             include = [UnetStarMask(box, unet).masking() for unet in BinaryCoordinates] 
             if False not in include:
-                indices = zip(*np.where(Label = label))
+                indices = zip(*np.where(Label = starlabel))
                 for index in indices:
                       mask[index] = 1
     binaryproperties = measure.regionprops(label(mask))
