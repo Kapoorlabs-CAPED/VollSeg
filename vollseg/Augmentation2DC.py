@@ -367,9 +367,10 @@ class Augmentation2DC(object):
         
           num_channels = data.shape[-1]
           data_channels = data
+          
           for i in range(num_channels):
 
-             data_channels[...,i] = image_pixel_duplicator(data[...,i], size)
+             data_channels[:,:,i] = image_pixel_duplicator(data[:,:,i], size)
           
 
         else:
@@ -387,7 +388,7 @@ class Augmentation2DC(object):
           data_channels = data
           for i in range(num_channels):
 
-             data_channels[...,i] = image_embedding(data[...,i], size_zero)
+             data_channels[:,:,i] = image_embedding(data[:,:,i], size_zero)
           
 
         else:
