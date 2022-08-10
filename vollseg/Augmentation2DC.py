@@ -363,6 +363,7 @@ class Augmentation2DC(object):
     def _duplicate_data(self, data, parse_dict, channels = False):
 
         size =  parse_dict['size']    
+        print(data.shape)
         data_channels = image_pixel_duplicator(data, size)
         
         return data_channels 
