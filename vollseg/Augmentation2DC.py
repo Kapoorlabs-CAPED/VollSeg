@@ -360,7 +360,7 @@ class Augmentation2DC(object):
 
         return data_channels
 
-    def _duplicate_data(self, data, parse_dict):
+    def _duplicate_data(self, data, parse_dict, channels = False):
 
         size =  parse_dict['size']    
         if channels:
@@ -378,7 +378,7 @@ class Augmentation2DC(object):
         
         return data_channels 
 
-    def _embed_data(self, data, parse_dict):
+    def _embed_data(self, data, parse_dict, channels = False):
 
         size_zero =  parse_dict['size_zero']    
         if channels:
