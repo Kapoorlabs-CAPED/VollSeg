@@ -1497,9 +1497,7 @@ def image_pixel_duplicator(image, size):
                         else:
                             j = 0  
 
-               else:
-
-                    ResizeImage = image            
+                      
 
     if ndim == 2:
 
@@ -1533,9 +1531,7 @@ def image_pixel_duplicator(image, size):
                             j = j + 1
                         else:
                             j = 0  
-            else:
-
-                 ResizeImage = image
+           
 
               
 
