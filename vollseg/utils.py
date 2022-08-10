@@ -38,6 +38,7 @@ import napari
 import glob
 from vollseg.matching import matching
 from vollseg.seedpool import SeedPool
+from vollseg.unetstarmask import UnetStarMask
 from vollseg.nmslabel import NMSLabel
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
@@ -1853,11 +1854,28 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
 
     properties = measure.regionprops(Label, Image)
-    binaryproperties = measure.regionprops(label(mask), Image)
     Coordinates = [prop.centroid for prop in properties]
+    binaryproperties = measure.regionprops(label(mask), Image)
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
     Binarybbox = [prop.bbox for prop in binaryproperties]
     
+    Starbbox = [prop.bbox for prop in properties]
+    Starlabel = [prop.label for prop in properties]
+    if len(Starbbox) > 0:
+        for i in range(0, len(Starbbox)):
+
+            box = Starbbox[i]
+            label = Starlabel[i]
+            include = [UnetStarMask(box, unet).masking() for unet in BinaryCoordinates] 
+            if False not in include:
+                indices = zip(*np.where(Label = label))
+                for index in indices:
+        
+                      mask[index] = 1
+
+    binaryproperties = measure.regionprops(label(mask), Image)
+    BinaryCoordinates = [prop.centroid for prop in binaryproperties]
+    Binarybbox = [prop.bbox for prop in binaryproperties]
     if seedpool:
         if len(Binarybbox) > 0:
             for i in range(0, len(Binarybbox)):
@@ -1882,13 +1900,29 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
 
 def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
     properties = measure.regionprops(Label)
-    binaryproperties = measure.regionprops(label(mask))
+    
 
     Coordinates = [prop.centroid for prop in properties]
+    binaryproperties = measure.regionprops(label(mask))
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
     Binarybbox = [prop.bbox for prop in binaryproperties]
     Coordinates = sorted(Coordinates, key=lambda k: [k[0], k[1], k[2]])
-    
+    Starbbox = [prop.bbox for prop in properties]
+    Starlabel = [prop.label for prop in properties]
+    if len(Starbbox) > 0:
+        for i in range(0, len(Starbbox)):
+
+            box = Starbbox[i]
+            label = Starlabel[i]
+            include = [UnetStarMask(box, unet).masking() for unet in BinaryCoordinates] 
+            if False not in include:
+                indices = zip(*np.where(Label = label))
+                for index in indices:
+                      mask[index] = 1
+    binaryproperties = measure.regionprops(label(mask))
+    BinaryCoordinates = [prop.centroid for prop in binaryproperties]
+    Binarybbox = [prop.bbox for prop in binaryproperties]
+
     if seedpool:
 
 
