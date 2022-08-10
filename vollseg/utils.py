@@ -1454,9 +1454,21 @@ def image_pixel_duplicator(image, size):
     assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'
     
     ndim = len(size)
-    if ndim == 3:
 
-               if image.shape[0] <= size[0] and image.shape[1] <= size[1] and image.shape[2] <= size[2] :  
+
+
+    if ndim == 3:
+                    size_y = size[0]
+                    size_x = size[1]
+                    size_z = size[2]
+                    if size_y <= image.shape[0]:
+                        size_y =  image.shape[0]
+                    if size_x <= image.shape[1]:
+                        size_x =  image.shape[1]
+                    if size_z <= image.shape[2]:
+                        size_z =  image.shape[2]    
+
+                    size = (size_y, size_x, size_z)
                     ResizeImage = np.zeros(size)
                     j = 0
                     for i in range(0, ResizeImage.shape[1]):
@@ -1491,7 +1503,17 @@ def image_pixel_duplicator(image, size):
 
     if ndim == 2:
 
-            if image.shape[0] < size[0] and image.shape[1] < size[1]:  
+
+                    size_y = size[0]
+                    size_x = size[1]
+                    if size_y <= image.shape[0]:
+                        size_y =  image.shape[0]
+                    if size_x <= image.shape[1]:
+                        size_x =  image.shape[1]
+                      
+
+                    size = (size_y, size_x)
+
                     ResizeImage = np.zeros(size)
                     j = 0
                     for i in range(0, ResizeImage.shape[1]):

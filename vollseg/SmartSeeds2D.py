@@ -17,7 +17,7 @@ from scipy.ndimage import find_objects
 from csbdeep.data import RawData, create_patches, create_patches_reduced_target 
 from csbdeep.io import load_training_data
 from csbdeep.models import Config, CARE
-from skimage.measure import label
+
 from csbdeep.utils import Path, normalize
 from .utils import plot_train_history
 #from IPython.display import clear_output
