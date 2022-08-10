@@ -1452,60 +1452,70 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
 def image_pixel_duplicator(image, size):
 
     assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'
-    for i in range(len(size)):
-       assert image.shape[i] <= size[i] , f'The image size should be smaller than the volume it is to be extended in'
-
-    ResizeImage = np.zeros(size)
+    
     ndim = len(size)
     if ndim == 3:
 
-        j = 0
-        for i in range(0, ResizeImage.shape[1]):
-            
-            if j < image.shape[1]:
-                ResizeImage[:image.shape[0],i,:image.shape[2]] = image[:image.shape[0],j,:image.shape[2]]
-                j = j + 1
-            else:
-                j = 0   
-            
-        j = 0
-        for i in range(0, ResizeImage.shape[2]):
-            
-            if j < image.shape[2]:
-                ResizeImage[:,:,i] = ResizeImage[:,:,j]
-                j = j + 1
-            else:
-                j = 0     
+               if image.shape[0] <= size[0] and image.shape[1] <= size[1] and image.shape[2] <= size[2] :  
+                    ResizeImage = np.zeros(size)
+                    j = 0
+                    for i in range(0, ResizeImage.shape[1]):
+                        
+                        if j < image.shape[1]:
+                            ResizeImage[:image.shape[0],i,:image.shape[2]] = image[:image.shape[0],j,:image.shape[2]]
+                            j = j + 1
+                        else:
+                            j = 0   
+                        
+                    j = 0
+                    for i in range(0, ResizeImage.shape[2]):
+                        
+                        if j < image.shape[2]:
+                            ResizeImage[:,:,i] = ResizeImage[:,:,j]
+                            j = j + 1
+                        else:
+                            j = 0     
 
-        j = 0
-        for i in range(0, ResizeImage.shape[0]):
-            
-            if j < image.shape[0]:
-                ResizeImage[i,:,:] = ResizeImage[j,:,:]
-                j = j + 1
-            else:
-                j = 0  
+                    j = 0
+                    for i in range(0, ResizeImage.shape[0]):
+                        
+                        if j < image.shape[0]:
+                            ResizeImage[i,:,:] = ResizeImage[j,:,:]
+                            j = j + 1
+                        else:
+                            j = 0  
+
+               else:
+
+                    ResizeImage = image            
 
     if ndim == 2:
 
-        j = 0
-        for i in range(0, ResizeImage.shape[1]):
-            
-            if j < image.shape[1]:
-                ResizeImage[:image.shape[0],i] = image[:image.shape[0],j]
-                j = j + 1
-            else:
-                j = 0   
-            
+            if image.shape[0] < size[0] and image.shape[1] < size[1]:  
+                    ResizeImage = np.zeros(size)
+                    j = 0
+                    for i in range(0, ResizeImage.shape[1]):
+                        
+                        if j < image.shape[1]:
+                            ResizeImage[:image.shape[0],i] = image[:image.shape[0],j]
+                            j = j + 1
+                        else:
+                            j = 0   
+                        
 
-        j = 0
-        for i in range(0, ResizeImage.shape[0]):
-            
-            if j < image.shape[0]:
-                ResizeImage[i,:] = ResizeImage[j,:]
-                j = j + 1
+                    j = 0
+                    for i in range(0, ResizeImage.shape[0]):
+                        
+                        if j < image.shape[0]:
+                            ResizeImage[i,:] = ResizeImage[j,:]
+                            j = j + 1
+                        else:
+                            j = 0  
             else:
-                j = 0  
+
+                 ResizeImage = image
+
+              
 
     return ResizeImage
 
