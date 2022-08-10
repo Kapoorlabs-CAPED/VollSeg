@@ -359,29 +359,7 @@ def remove_big_objects(ar, max_size=6400, connectivity=1, in_place=False):
     return out
 
 
-def multiplotline(plotA, plotB, plotC, titleA, titleB, titleC, targetdir=None, File=None, plotTitle=None):
-    fig, axes = plt.subplots(1, 3, figsize=(15, 6))
-    ax = axes.ravel()
-    ax[0].plot(plotA)
-    ax[0].set_title(titleA)
 
-    ax[1].plot(plotB)
-    ax[1].set_title(titleB)
-
-    ax[2].plot(plotC)
-    ax[2].set_title(titleC)
-
-    plt.tight_layout()
-
-    if plotTitle is not None:
-        Title = plotTitle
-    else:
-        Title = 'MultiPlot'
-    if targetdir is not None and File is not None:
-        plt.savefig(targetdir + Title + File + '.png')
-    if targetdir is not None and File is None:
-        plt.savefig(targetdir + Title + File + '.png')
-    plt.show()
 
 
 def BinaryDilation(Image, iterations=1):
@@ -407,98 +385,8 @@ def CCLabels(fname, max_size=15000):
     return AugmentedLabel
 
 
-def NotumQueen(save_dir, fname, denoising_model, projection_model, mask_model, star_model, min_size=5, n_tiles=(1, 1, 1), UseProbability=True):
-
-    Path(save_dir).mkdir(exist_ok=True)
-    projection_results = save_dir + 'Projected/'
-    Path(projection_results).mkdir(exist_ok=True)
-    Name = os.path.basename(os.path.splitext(fname)[0])
-    print('Denoising Image')
-    image = imread(fname)
-    image = denoising_model.predict(image.astype('float32'), 'ZYX', n_tiles=n_tiles)
-    image = projection_model.predict(
-        image.astype('float32'), 'YX', n_tiles=(n_tiles[1], n_tiles[2]))
-
-    imwrite((projection_results + Name + '.tif'), image.astype('float32'))
-
-    NotumSegmentation2D(save_dir, image, fname, mask_model, star_model, min_size=min_size, n_tiles=(
-        n_tiles[1], n_tiles[2]), UseProbability=UseProbability)
 
 
-def NotumSeededQueen(save_dir, fname, denoising_model, projection_model, unet_model, mask_model, star_model, min_size=5, n_tiles=(1, 1, 1), UseProbability=True):
-
-    Path(save_dir).mkdir(exist_ok=True)
-    projection_results = save_dir + 'Projected/'
-    Path(projection_results).mkdir(exist_ok=True)
-    Name = os.path.basename(os.path.splitext(fname)[0])
-    print('Denoising Image')
-    image = imread(fname)
-    image = denoising_model.predict(image.astype('float32'), 'ZYX', n_tiles=n_tiles)
-    image = projection_model.predict(
-        image.astype('float32'), 'YX', n_tiles=(n_tiles[1], n_tiles[2]))
-
-    imwrite((projection_results + Name + '.tif'), image.astype('float32'))
-
-    SeededNotumSegmentation2D(save_dir, image, fname, unet_model, mask_model, star_model,
-                              min_size=min_size, n_tiles=(n_tiles[1], n_tiles[2]), UseProbability=UseProbability)
-
-
-def SeededNotumSegmentation2D(SaveDir, image, fname, UnetModel, MaskModel, StarModel, min_size=5, n_tiles=(2, 2),donormalize = True, lower_perc = 1.0,
- upper_perc = 99.8, UseProbability=True):
-
-    print('Generating SmartSeed results')
-
-    MASKResults = SaveDir + 'OverAllMask/'
-    unet_results = SaveDir + 'UnetMask/'
-    star_labelsResults = SaveDir + 'StarDistMask/'
-    smart_seedsResults = SaveDir + 'smart_seedsMask/'
-    smart_seedsLabelResults = SaveDir + 'smart_seedsLabels/'
-    ProbResults = SaveDir + 'Probability/'
-
-    Path(SaveDir).mkdir(exist_ok=True)
-    Path(smart_seedsResults).mkdir(exist_ok=True)
-    Path(star_labelsResults).mkdir(exist_ok=True)
-    Path(unet_results).mkdir(exist_ok=True)
-    Path(MASKResults).mkdir(exist_ok=True)
-    Path(smart_seedsLabelResults).mkdir(exist_ok=True)
-    Path(ProbResults).mkdir(exist_ok=True)
-    # Read Image
-    Name = os.path.basename(os.path.splitext(fname)[0])
-
-    # U-net prediction
-
-    OverAllMask = SuperUNETPrediction(image, MaskModel, n_tiles, 'YX')
-    Mask = SuperUNETPrediction(image, UnetModel, n_tiles, 'YX')
-    if donormalize:
-        image = normalize(image, lower_perc, upper_perc, axis=(0, 1, 2)) 
-    # Smart Seed prediction
-    smart_seeds, _, star_labels, ProbImage = SuperSTARPrediction(
-        image, StarModel, n_tiles, unet_mask=Mask, OverAllunet_mask=OverAllMask, UseProbability=UseProbability, seedpool = seedpool)
-
-    smart_seedsLabels = smart_seeds.copy()
-
-    # For avoiding pixel level error
-    OverAllMask = CleanMask(star_labels, OverAllMask)
-    smart_seedsLabels = np.multiply(smart_seedsLabels, OverAllMask)
-    SegimageB = find_boundaries(smart_seedsLabels)
-    invertProbimage = 1 - ProbImage
-    image_max = np.add(invertProbimage, SegimageB)
-
-    pixel_condition = (image_max < 1.2)
-    pixel_replace_condition = 0
-    image_max = image_conditionals(image_max,pixel_condition,pixel_replace_condition )
-
-    smart_seeds = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
-
-
-    # Save results, we only need smart seeds finale results but hey!
-    imwrite((ProbResults + Name + '.tif'), ProbImage.astype('float32'))
-    imwrite((smart_seedsResults + Name + '.tif'), smart_seeds.astype('uint8'))
-    imwrite((smart_seedsLabelResults + Name + '.tif'),
-            smart_seedsLabels.astype('uint16'))
-    imwrite((star_labelsResults + Name + '.tif'), star_labels.astype('uint16'))
-    imwrite((unet_results + Name + '.tif'), Mask.astype('uint8'))
-    imwrite((MASKResults + Name + '.tif'), OverAllMask.astype('uint8'))
 
 
 def CreateTrackMate_CSV(Label, Name, savedir):
@@ -1868,7 +1756,7 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool=True):
             starlabel = Starlabel[i]
             include = [UnetStarMask(box, unet).masking() for unet in BinaryCoordinates] 
             if False not in include:
-                indices = zip(*np.where(Label = starlabel))
+                indices = zip(*np.where(Label == starlabel))
                 for index in indices:
         
                       mask[index] = 1
@@ -1916,7 +1804,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
             starlabel = Starlabel[i]
             include = [UnetStarMask(box, unet).masking() for unet in BinaryCoordinates] 
             if False not in include:
-                indices = zip(*np.where(Label = starlabel))
+                indices = zip(*np.where(Label == starlabel))
                 for index in indices:
                       mask[index] = 1
     binaryproperties = measure.regionprops(label(mask))
