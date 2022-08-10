@@ -363,36 +363,13 @@ class Augmentation2DC(object):
     def _duplicate_data(self, data, parse_dict, channels = False):
 
         size =  parse_dict['size']    
-        if channels:
-        
-          num_channels = data.shape[-1]
-          data_channels = data
-          
-          for i in range(num_channels):
-
-             data_channels[:,:,i] = image_pixel_duplicator(data[:,:,i], size)
-          
-
-        else:
-
-            data_channels = image_pixel_duplicator(data, size)
+        data_channels = image_pixel_duplicator(data, size)
         
         return data_channels 
 
     def _embed_data(self, data, parse_dict, channels = False):
 
         size_zero =  parse_dict['size_zero']    
-        if channels:
-        
-          num_channels = data.shape[-1]
-          data_channels = data
-          for i in range(num_channels):
-
-             data_channels[:,:,i] = image_embedding(data[:,:,i], size_zero)
-          
-
-        else:
-
-            data_channels = image_embedding(data, size_zero)
+        data_channels = image_embedding(data, size_zero)
         
         return data_channels 
