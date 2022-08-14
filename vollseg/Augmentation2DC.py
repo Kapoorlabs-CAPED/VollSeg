@@ -214,12 +214,10 @@ class Augmentation2DC(object):
         target_data = self.data
         target_label = self.label
         
-        print(target_data.shape, target_label.shape)
         # data augmentation by callback function
         ret_data = callback_poisson(target_data, parse_dict, channels = True) 
         ret_label =  callback_poisson(target_label, parse_dict) 
          
-        print(ret_data.shape, ret_label.shape)
 
         return ret_data, ret_label            
 
