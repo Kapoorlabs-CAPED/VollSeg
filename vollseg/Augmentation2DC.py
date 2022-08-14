@@ -198,12 +198,12 @@ class Augmentation2DC(object):
       
        
 
-        target_data = self.data[0]
-        target_label = self.label[0]
-        i = 0
+        target_data = self.data
+        target_label = self.label
+        
         # data augmentation by callback function
-        ret_data = callback(target_data[i], parse_dict, channels = True) 
-        ret_label =  callback(target_label[i], parse_dict) 
+        ret_data = callback(target_data, parse_dict, channels = True) 
+        ret_label =  callback(target_label, parse_dict) 
          
        
 
@@ -223,16 +223,11 @@ class Augmentation2DC(object):
             target_label = self.label[target_idx]
 
             # data augmentation by callback function
-            ret_data = [callback(target_data[i], parse_dict) for i in range(self.batch_size)]
-            ret_label =  [target_label[i] for i in range(self.batch_size)]
-         
-            if cnt < rp_num - 1:
-                cnt += 1
-            elif cnt == rp_num - 1:
-                cnt = 0
-                np.random.shuffle(self.idx_list)
+            ret_data = callback(target_data, parse_dict) 
+            ret_label =  target_label
+        
 
-                yield ret_data, ret_label            
+            yield ret_data, ret_label            
 
 
     def _noise_data(self , data, parse_dict, channels = False):
