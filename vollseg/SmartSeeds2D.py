@@ -405,8 +405,8 @@ class SmartSeeds2D(object):
                                      X_train = list(map(ReadFloat,Raw))
                                      Y_train = list(map(read_int,RealMask))
                                           
-                                     self.Y = [label(np.reshape(DownsampleData(y, self.downsample_factor), self.def_label_shape  )) for y in tqdm(Y_train)]
-                                     self.X = [normalize(np.reshape(DownsampleData(x, self.downsample_factor) , self.def_shape),1,99.8,axis=self.axis_norm) for x in tqdm(X_train)]
+                                     self.Y = [label(DownsampleData(y, self.downsample_factor)) for y in tqdm(Y_train)]
+                                     self.X = [normalize(DownsampleData(x, self.downsample_factor),1,99.8,axis=self.axis_norm) for x in tqdm(X_train)]
                                      n_val = max(1, int(round(self.validation_split * len(ind))))
                                      ind_train, ind_val = ind[:-n_val], ind[-n_val:]
 
@@ -467,7 +467,7 @@ class SmartSeeds2D(object):
                                     print('Loading checkpoint model')
                                     Starmodel.load_weights(self.model_dir + self.model_name + '/' + 'weights_best.h5')    
                              
-                                Starhistory = Starmodel.train(self.X_trn, (self.Y_trn), validation_data=(self.X_val,(self.Y_val)), epochs = self.epochs)
+                                Starhistory = Starmodel.train(self.X_trn, self.Y_trn, validation_data=(self.X_val,self.Y_val), epochs = self.epochs)
                                 plot_train_history(Starhistory, self.model_dir, self.model_name, ['loss','val_loss'],['dist_relevant_mae','val_dist_relevant_mae','dist_relevant_mse','val_dist_relevant_mse'])
                                 Starmodel.optimize_thresholds(self.X_val, self.Y_val)
                                    
