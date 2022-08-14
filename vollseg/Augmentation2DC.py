@@ -34,8 +34,8 @@ class Augmentation2DC(object):
                  rotate_axis=None,
                  rotate_angle=None, 
                  size = None,
-                 size_zero = None
-             
+                 size_zero = None,
+                 mu = None
                  ):
         """
         Arguments:
@@ -70,7 +70,7 @@ class Augmentation2DC(object):
         self.rotate_angle = rotate_angle
         self.size = size
         self.size_zero = size_zero
-  
+        self.mu = mu
 
     def build(self,
               data=None,
@@ -104,6 +104,7 @@ class Augmentation2DC(object):
 
         parse_dict = {}
         callback = None
+        callback_poisson = None
       
         #pixel_duplicator
         if self.size is not None:
@@ -115,7 +116,10 @@ class Augmentation2DC(object):
             parse_dict['size_zero'] = self.size_zero   
 
        
-
+        #poisson_noise
+        if self.mu is not None:
+            callback_poisson = self._noise_data
+            parse_dict['mu'] = self.mu
 
         # flip
         if self.flip_axis is not None:
@@ -183,6 +187,8 @@ class Augmentation2DC(object):
         # build and return generator with specified callback function
         if callback:
             return self._return_generator(callback, parse_dict)
+        if callback_poisson:
+             return self._return_generator_poisson(callback_poisson, parse_dict)
        
         else:
             raise ValueError('No generator returned. Arguments are not set properly.')
@@ -204,7 +210,48 @@ class Augmentation2DC(object):
         yield ret_data, ret_label
 
 
+    def _return_generator_poisson(self, callback, parse_dict):
+        """return generator according to callback"""
+        self.idx_list = [i for i in range(self.data_size)]
+        np.random.shuffle(self.idx_list)
+        rp_num = self.data_size // self.batch_size
+        cnt = 0
 
+        while True:
+            target_idx = self.idx_list[cnt * self.batch_size: (cnt + 1) * self.batch_size]
+            target_data = self.data[target_idx]
+            target_label = self.label[target_idx]
+
+            # data augmentation by callback function
+            ret_data = [callback(target_data[i], parse_dict) for i in range(self.batch_size)]
+            ret_label =  [target_label[i] for i in range(self.batch_size)]
+         
+            if cnt < rp_num - 1:
+                cnt += 1
+            elif cnt == rp_num - 1:
+                cnt = 0
+                np.random.shuffle(self.idx_list)
+
+                yield ret_data, ret_label            
+
+
+    def _noise_data(self , data, parse_dict, channels = False):
+
+            if channels:
+        
+                num_channels = data.shape[-1]
+                data_channels = data
+                for i in range(num_channels):
+
+                    data_channels[:,:,i] = poisson_noise(data[:,:,i], parse_dict['mu'])
+                
+
+                else:
+
+                    data_channels = poisson_noise(data, parse_dict['mu'])
+
+      
+            return data_channels
         
 
     def _flip_data(self, data, parse_dict, channels = False):
@@ -217,7 +264,7 @@ class Augmentation2DC(object):
           data_channels = data
           for i in range(num_channels):
 
-             data_channels[...,i] = np.flip(data[...,i], parse_dict['flip_axis'])
+             data_channels[:,:,i] = np.flip(data[:,:,i], parse_dict['flip_axis'])
           
 
         else:
@@ -241,7 +288,7 @@ class Augmentation2DC(object):
           data_channels = data
           for i in range(num_channels):
 
-             data_channels[...,i] = shift(data[...,i], shift=shift_lst, cval=0)[0,...]
+             data_channels[:,:,i] = shift(data[:,:,i], shift=shift_lst, cval=0)[0,...]
           
 
         else:
@@ -350,7 +397,7 @@ class Augmentation2DC(object):
           data_channels = data
           for i in range(num_channels):
 
-             data_channels[...,i] = rotate(data[...,i], axes=ax_tup, angle=parse_dict['rotate_angle'], cval=0.0, reshape=False)
+             data_channels[:,:,i] = rotate(data[:,:,i], axes=ax_tup, angle=parse_dict['rotate_angle'], cval=0.0, reshape=False)
           
 
         else:
