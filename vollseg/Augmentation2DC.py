@@ -212,22 +212,16 @@ class Augmentation2DC(object):
 
     def _return_generator_poisson(self, callback, parse_dict):
         """return generator according to callback"""
-        self.idx_list = [i for i in range(self.data_size)]
-        np.random.shuffle(self.idx_list)
-        rp_num = self.data_size // self.batch_size
-        cnt = 0
-
-        while True:
-            target_idx = self.idx_list[cnt * self.batch_size: (cnt + 1) * self.batch_size]
-            target_data = self.data[target_idx]
-            target_label = self.label[target_idx]
-
-            # data augmentation by callback function
-            ret_data = callback(target_data, parse_dict) 
-            ret_label =  target_label
+        target_data = self.data
+        target_label = self.label
         
+        # data augmentation by callback function
+        ret_data = callback(target_data, parse_dict, channels = True) 
+        ret_label =  callback(target_label, parse_dict) 
+         
+       
 
-            yield ret_data, ret_label            
+        yield ret_data, ret_label            
 
 
     def _noise_data(self , data, parse_dict, channels = False):
