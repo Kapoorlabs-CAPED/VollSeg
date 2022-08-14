@@ -219,7 +219,7 @@ class Augmentation2DC(object):
         ret_data = callback_poisson(target_data, parse_dict, channels = True) 
         ret_label =  callback_poisson(target_label, parse_dict) 
          
-        print(np.asarray(next(ret_data)).shape, np.asarrat(next(ret_label)).shape)
+        print(ret_data.shape, ret_label.shape)
 
         yield ret_data, ret_label            
 
