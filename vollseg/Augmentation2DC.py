@@ -235,7 +235,7 @@ class Augmentation2DC(object):
                     data_channels[:,:,i] = poisson_noise(data[:,:,i], parse_dict['mu'])
                 
 
-                else:
+            else:
 
                     data_channels = poisson_noise(data, parse_dict['mu'])
 
