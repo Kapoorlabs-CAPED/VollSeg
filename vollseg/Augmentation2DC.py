@@ -99,8 +99,7 @@ class Augmentation2DC(object):
       
         self.data_dim = data.ndim
         self.data_shape = data.shape
-        self.data_size = self.data_shape[0]
-        self.idx_list = None
+       
 
         parse_dict = {}
         callback = None
@@ -210,16 +209,17 @@ class Augmentation2DC(object):
         yield ret_data, ret_label
 
 
-    def _return_generator_poisson(self, callback, parse_dict):
+    def _return_generator_poisson(self, callback_poisson, parse_dict):
         """return generator according to callback"""
         target_data = self.data
         target_label = self.label
         
+        print(target_data.shape, target_label.shape)
         # data augmentation by callback function
-        ret_data = callback(target_data, parse_dict, channels = True) 
-        ret_label =  callback(target_label, parse_dict) 
+        ret_data = callback_poisson(target_data, parse_dict, channels = True) 
+        ret_label =  callback_poisson(target_label, parse_dict) 
          
-       
+        print(np.asarray(next(ret_data)).shape, np.asarrat(next(ret_label)).shape)
 
         yield ret_data, ret_label            
 
