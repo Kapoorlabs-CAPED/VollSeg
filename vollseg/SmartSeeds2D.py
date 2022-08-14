@@ -99,7 +99,7 @@ class SmartSeeds2D(object):
 
 
      def __init__(self, base_dir, model_name, model_dir,npz_filename = None, n_patches_per_image = 1, raw_dir = '/Raw/', real_mask_dir = '/real_mask/', binary_mask_dir = '/binary_mask/',
-     binary_erode_mask_dir = '/binary_erode_mask/',  val_raw_dir = '/val_raw/', val_real_mask_dir = '/val_real_mask/',
+     binary_erode_mask_dir = '/binary_erode_mask/',  val_raw_dir = '/val_raw/', val_real_mask_dir = '/val_real_mask/',def_shape = None, def_label_shape = None,
      downsample_factor = 1, startfilter = 48, RGB = False, axes = 'YX', axis_norm = (0,1), pattern = '.tif', validation_split = 0.01, n_channel_in = 1,erosion_iterations = 2,
      train_seed_unet = False, train_unet = False, train_star = False, load_data_sequence = False, grid = (1,1),  generate_npz = False, patch_x=256, patch_y=256,  use_gpu = False, unet_n_first = 64,  batch_size = 1, depth = 3, kern_size = 7, n_rays = 16, epochs = 400, learning_rate = 0.0001):
          
@@ -126,6 +126,9 @@ class SmartSeeds2D(object):
          self.learning_rate = learning_rate
          self.depth = depth
          self.axes = axes
+         self.def_shape = def_shape
+         self.def_label_shape = def_label_shape
+         self.def_
          self.n_channel_in = n_channel_in
          self.erosion_iterations = erosion_iterations
          self.n_rays = n_rays
@@ -401,13 +404,9 @@ class SmartSeeds2D(object):
 
                                      X_train = list(map(ReadFloat,Raw))
                                      Y_train = list(map(read_int,RealMask))
-                                     if self.n_channel_in > 1:
-                                        def_shape = (self.patch_y,self.patch_x, self.n_channel_in)
-                                     else:
-                                        def_shape = (self.patch_y,self.patch_x)
-                                     def_label_shape = (self.patch_y,self.patch_x)      
-                                     self.Y = [label(np.reshape(DownsampleData(y, self.downsample_factor), def_label_shape  )) for y in tqdm(Y_train)]
-                                     self.X = [normalize(np.reshape(DownsampleData(x, self.downsample_factor) , def_shape),1,99.8,axis=self.axis_norm) for x in tqdm(X_train)]
+                                          
+                                     self.Y = [label(np.reshape(DownsampleData(y, self.downsample_factor), self.def_label_shape  )) for y in tqdm(Y_train)]
+                                     self.X = [normalize(np.reshape(DownsampleData(x, self.downsample_factor) , self.def_shape),1,99.8,axis=self.axis_norm) for x in tqdm(X_train)]
                                      n_val = max(1, int(round(self.validation_split * len(ind))))
                                      ind_train, ind_val = ind[:-n_val], ind[-n_val:]
 
