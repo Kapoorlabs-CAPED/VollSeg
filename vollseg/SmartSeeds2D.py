@@ -128,7 +128,7 @@ class SmartSeeds2D(object):
          self.axes = axes
          self.def_shape = def_shape
          self.def_label_shape = def_label_shape
-         self.def_
+        
          self.n_channel_in = n_channel_in
          self.erosion_iterations = erosion_iterations
          self.n_rays = n_rays
