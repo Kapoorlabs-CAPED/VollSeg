@@ -206,7 +206,7 @@ class Augmentation2DC(object):
          
        
 
-        yield ret_data, ret_label
+        return ret_data, ret_label
 
 
     def _return_generator_poisson(self, callback_poisson, parse_dict):
@@ -221,7 +221,7 @@ class Augmentation2DC(object):
          
         print(ret_data.shape, ret_label.shape)
 
-        yield ret_data, ret_label            
+        return ret_data, ret_label            
 
 
     def _noise_data(self , data, parse_dict, channels = False):
