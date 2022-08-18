@@ -25,6 +25,8 @@ class TemporalAug(object):
     """
     def __init__(self,
                  rotate_angle=None, 
+                 vertical_flip = None,
+                 horizontal_flip = None,
                  alpha= 1,
                  alpha_affine=None,
                  mean = 0,
@@ -66,6 +68,8 @@ class TemporalAug(object):
         self.rotate_angle = rotate_angle
         self.mean = mean 
         self.sigma = sigma
+        self.vertical_flip = vertical_flip
+        self.horizontal_flip = horizontal_flip
         self.distribution = distribution
         self.brightness_limit = brightness_limit
         self.contrast_limit = contrast_limit
@@ -108,6 +112,19 @@ class TemporalAug(object):
         parse_dict = {}
         callback_geometric = None
         callback_intensity = None
+
+
+        #Vertical flip
+        if (self.vertical_flip is not None):
+            callback_geometric = self._vertical_flip 
+            parse_dict['vertical_flip'] = True
+
+
+        #Horizontal flip
+        if (self.horizontal_flip is not None):
+             callback_geometric = self._horizontal_flip
+             parse_dict['horizontal_flip'] = True
+   
 
         # elastic deformation
         if (self.alpha_affine is not None):
@@ -194,6 +211,22 @@ class TemporalAug(object):
 
         return ret_image, ret_labelimage
 
+
+    def _horizontal_flip(self, image, parse_dict):
+        """ Flip the image horizontally"""
+        flip_transform = transforms.HorizontalFlip()
+        aug_image = transform_block(image, flip_transform) 
+                            
+        return aug_image
+
+    def _vertical_flip(self, image, parse_dict):
+        """ Flip the image vertically"""
+        flip_transform = transforms.VerticalFlip()
+        aug_image = transform_block(image, flip_transform) 
+                            
+        return aug_image
+         
+  
 
     def _elastic_deform_image(self, image, parse_dict):
         """ Elastically deform the image """
