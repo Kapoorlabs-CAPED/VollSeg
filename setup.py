@@ -32,7 +32,8 @@ setup(
         "napari",
         "diplib",
         "opencv-python",
-        "photutils" 
+        "photutils", 
+        "albumentations"
        
     ],
     
