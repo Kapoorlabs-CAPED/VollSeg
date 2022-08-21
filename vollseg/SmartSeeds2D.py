@@ -230,7 +230,7 @@ class SmartSeeds2D(object):
                         with concurrent.futures.ThreadPoolExecutor(max_workers = nthreads) as executor:
                                 futures = []
                                 for fname in RealMask:
-                                    futures.append(executor.submit(eroder, file = fname))
+                                    futures.append(executor.submit(eroder, fname = fname))
                                 for future in concurrent.futures.as_completed(futures):
                                             newimage, name = future.result()
                                             if newimage is not None:
@@ -245,7 +245,7 @@ class SmartSeeds2D(object):
                         with concurrent.futures.ThreadPoolExecutor(max_workers = nthreads) as executor:
                             futures = []
                             for fname in RealMask:
-                                futures.append(executor.submit(binarer, file = fname))
+                                futures.append(executor.submit(binarer, fname = fname))
                             for future in concurrent.futures.as_completed(futures):
                                         newimage, name = future.result()
                                         if newimage is not None:
