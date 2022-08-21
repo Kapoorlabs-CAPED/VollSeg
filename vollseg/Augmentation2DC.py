@@ -8,7 +8,7 @@ Created on Wed August 17 12:57:26 2022
 
 from importlib.metadata import distribution
 import numpy as np
-
+from albumentations.augmentations.geometric.transforms import ElasticTransform
 from albumentations import transforms    
 from scipy import ndimage
 import pandas as pd
@@ -234,7 +234,7 @@ class Augmentation2DC(object):
         alpha = parse_dict['alpha']
         alpha_affine = parse_dict['alpha_affine']
         sigma = parse_dict['sigma']
-        elastic_transform = transforms.ElasticTransform(alpha = alpha, alpha_affine = alpha_affine, sigma = sigma)
+        elastic_transform = ElasticTransform(alpha = alpha, alpha_affine = alpha_affine, sigma = sigma)
         aug_image = transform_block(image, elastic_transform) 
                         
         return aug_image
