@@ -320,7 +320,7 @@ def matrix_transform_block(image, matrix):
         if len(image.shape) == 3:
                 channels = image.shape[-1]
                 for i in range(channels):
-                    aug_image[i,:,:] =  ndimage.affine_transform(image[i,:,:],matrix)
+                    aug_image[:,:,i] =  ndimage.affine_transform(image[:,:,i],matrix)
 
         if len(image.shape) == 2:
                     aug_image =  ndimage.affine_transform(image,matrix)  
