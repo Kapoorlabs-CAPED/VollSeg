@@ -230,7 +230,7 @@ class SmartSeeds2D(object):
                         with concurrent.futures.ThreadPoolExecutor(max_workers = nthreads) as executor:
                                 futures = []
                                 for fname in RealMask:
-                                    futures.append(executor.submit(eroder, fname = fname))
+                                    futures.append(executor.submit(eroder, fname, self.erosion_iterations))
                                 for future in concurrent.futures.as_completed(futures):
                                             newimage, name = future.result()
                                             if newimage is not None:
@@ -245,7 +245,7 @@ class SmartSeeds2D(object):
                         with concurrent.futures.ThreadPoolExecutor(max_workers = nthreads) as executor:
                             futures = []
                             for fname in RealMask:
-                                futures.append(executor.submit(binarer, fname = fname))
+                                futures.append(executor.submit(binarer, fname))
                             for future in concurrent.futures.as_completed(futures):
                                         newimage, name = future.result()
                                         if newimage is not None:
@@ -485,11 +485,11 @@ def read_int(fname):
     return imread(fname).astype('uint16')           
 
 
-def eroder(fname):
+def eroder(fname, erosion_iterations):
 
     image = imread(fname)
     if self.erosion_iterations > 0:
-        image = erode_labels(image.astype('uint16'), self.erosion_iterations)
+        image = erode_labels(image.astype('uint16'), erosion_iterations)
     name = os.path.basename(os.path.splitext(fname)[0])
     Binaryimage = image > 0
     return Binaryimage, name
