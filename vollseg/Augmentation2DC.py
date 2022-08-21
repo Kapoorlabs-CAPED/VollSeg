@@ -6,7 +6,6 @@ Created on Wed August 17 12:57:26 2022
 @author: kapoorlab
 """
 
-from importlib.metadata import distribution
 import numpy as np
 from albumentations.augmentations.geometric.transforms import ElasticTransform
 from albumentations import transforms    
@@ -149,11 +148,11 @@ class Augmentation2DC(object):
         if (self.distribution is not None):
 
             callback_intensity = self._noise_image  
-            if distribution == 'Gaussian':
+            if self.distribution == 'Gaussian':
                 parse_dict['Gaussian'] = 'Gaussian'
-            if distribution == 'Poisson':
+            if self.distribution == 'Poisson':
                 parse_dict['Poisson'] = 'Poisson'
-            if distribution == 'Both':
+            if self.distribution == 'Both':
                 parse_dict['Both'] = 'Both' 
 
             parse_dict['mean'] = self.mean
