@@ -35,7 +35,7 @@ class TemporalAug(object):
                  brightness_limit=None,
                  contrast_limit=None,
                  brightness_by_max=True,
-                 always_apply=False,
+                 always_apply=True,
                  prob_bright_contrast=0.5,
                  multiplier=(0.9, 1.1),
                  ):
@@ -138,7 +138,7 @@ class TemporalAug(object):
             callback_geometric = self._rotate_image
 
             if self.rotate_angle == 'random':
-                parse_dict['rotate_angle'] = int(np.random.uniform(-180, 180))
+                parse_dict['rotate_angle'] = np.radians(int(np.random.uniform(-180, 180)))
             elif type(self.rotate_angle) == int:
                 parse_dict['rotate_angle'] = np.radians(self.rotate_angle)
             else:
