@@ -9,12 +9,13 @@ Created on Wed August 17 12:57:26 2022
 from importlib.metadata import distribution
 import numpy as np
 
-from scipy.ndimage import rotate
 from albumentations import transforms    
 from scipy import ndimage
 import pandas as pd
 from photutils.datasets import make_noise_image
-class TemporalAug(object):
+
+
+class Augmentation2DC(object):
 
 
 
