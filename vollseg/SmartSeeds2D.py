@@ -17,7 +17,7 @@ from scipy.ndimage import find_objects
 from csbdeep.data import RawData, create_patches, create_patches_reduced_target 
 from csbdeep.io import load_training_data
 from csbdeep.models import Config, CARE
-
+import concurrent
 from csbdeep.utils import Path, normalize
 from .utils import plot_train_history
 #from IPython.display import clear_output
@@ -226,29 +226,30 @@ class SmartSeeds2D(object):
                     if self.train_seed_unet and len(RealMask) > 0  and len(ErodeMask) < len(RealMask):
                         print('Generating Eroded Binary images')
                                
-                
-                        for fname in RealMask:
-                    
-                            image = imread(fname)
-                            if self.erosion_iterations > 0:
-                               image = erode_labels(image.astype('uint16'), self.erosion_iterations)
-                            Name = os.path.basename(os.path.splitext(fname)[0])
-                            Binaryimage = image > 0
-                            imwrite((self.base_dir + self.binary_erode_mask_dir + Name + self.pattern), Binaryimage.astype('uint16'))
+                        with concurrent.futures.ThreadPoolExecutor(max_workers = nthreads) as executor:
+                                futures = []
+                                for fname in RealMask:
+                                    futures.append(executor.submit(eroder, file = fname))
+                                for future in concurrent.futures.as_completed(futures):
+                                            newimage, name = future.result()
+                                            if newimage is not None:
+                                                imwrite((self.base_dir + self.binary_erode_mask_dir + name + self.pattern), newimage.astype('uint16'))
+                            
+                                
 
                     if self.train_unet and len(RealMask) > 0  and len(Mask) < len(RealMask):
                         print('Generating Binary images')
                                
                 
-                        for fname in RealMask:
-                    
-                            image = imread(fname)
-                    
-                            Name = os.path.basename(os.path.splitext(fname)[0])
-                    
-                            Binaryimage = image > 0
-                    
-                            imwrite((self.base_dir + self.binary_mask_dir + Name + self.pattern), Binaryimage.astype('uint16'))
+                        with concurrent.futures.ThreadPoolExecutor(max_workers = nthreads) as executor:
+                            futures = []
+                            for fname in RealMask:
+                                futures.append(executor.submit(binarer, file = fname))
+                            for future in concurrent.futures.as_completed(futures):
+                                        newimage, name = future.result()
+                                        if newimage is not None:
+                                            imwrite((self.base_dir + self.binary_erode_mask_dir + name + self.pattern), newimage.astype('uint16'))
+                        
                     
                     if self.generate_npz:
                       if self.RGB:
@@ -483,6 +484,21 @@ def read_int(fname):
     return imread(fname).astype('uint16')           
 
 
+def eroder(fname):
+
+    image = imread(fname)
+    if self.erosion_iterations > 0:
+        image = erode_labels(image.astype('uint16'), self.erosion_iterations)
+    name = os.path.basename(os.path.splitext(fname)[0])
+    Binaryimage = image > 0
+    return Binaryimage, name
+
+def binarer(fname):
+
+    image = imread(fname)
+    name = os.path.basename(os.path.splitext(fname)[0])
+    Binaryimage = image > 0
+    return Binaryimage, name
 
          
 def DownsampleData(image, downsample_factor):
