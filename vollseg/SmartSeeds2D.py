@@ -184,6 +184,7 @@ class SmartSeeds2D(object):
 
      def Train(self):
          
+                    nthreads = os.cpu_count()
                     Raw_path = Path(self.base_dir + self.raw_dir)
                     Raw = list(Raw_path.glob(self.search_pattern))
 
