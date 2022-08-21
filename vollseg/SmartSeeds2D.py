@@ -488,7 +488,7 @@ def read_int(fname):
 def eroder(fname, erosion_iterations):
 
     image = imread(fname)
-    if self.erosion_iterations > 0:
+    if erosion_iterations > 0:
         image = erode_labels(image.astype('uint16'), erosion_iterations)
     name = os.path.basename(os.path.splitext(fname)[0])
     Binaryimage = image > 0
