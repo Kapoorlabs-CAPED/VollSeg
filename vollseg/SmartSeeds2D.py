@@ -249,7 +249,7 @@ class SmartSeeds2D(object):
                             for future in concurrent.futures.as_completed(futures):
                                         newimage, name = future.result()
                                         if newimage is not None:
-                                            imwrite((self.base_dir + self.binary_erode_mask_dir + name + self.pattern), newimage.astype('uint16'))
+                                            imwrite((self.base_dir + self.binary_mask_dir + name + self.pattern), newimage.astype('uint16'))
                         
                     
                     if self.generate_npz:
