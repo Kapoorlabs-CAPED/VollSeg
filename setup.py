@@ -31,7 +31,7 @@ setup(
         "matplotlib",
         "napari",
         "diplib",
-        "opencv-python",
+        "opencv-python-headless",
         "photutils", 
         "albumentations"
        
