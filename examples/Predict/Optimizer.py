@@ -11,7 +11,6 @@ os.environ["CUDA_VISIBLE_DEVICES"]="0"
 import glob
 import sys
 sys.path.append('../')
-import cv2
 import numpy as np
 from tqdm import tqdm
 from stardist.models import StarDist3D

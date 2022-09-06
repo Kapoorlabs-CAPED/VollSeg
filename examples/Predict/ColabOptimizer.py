@@ -24,7 +24,6 @@ get_ipython().system('pip install vollseg')
 
 
 import glob
-import cv2
 import numpy as np
 from tqdm import tqdm
 from csbdeep.models import Config, CARE
