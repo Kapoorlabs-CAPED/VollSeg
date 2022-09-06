@@ -31,8 +31,6 @@ setup(
         "matplotlib",
         "napari",
         "diplib",
-        "photutils", 
-        "albumentations"
        
     ],
     
