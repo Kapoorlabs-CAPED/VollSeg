@@ -14,7 +14,7 @@ from six import string_types
 from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
-import cv2
+from scipy.ndimage import zoom
 from skimage.morphology import remove_small_objects
 from matplotlib import cm
 from scipy import spatial
@@ -1414,7 +1414,7 @@ def DownsampleData(image, DownsampleFactor):
         smallimage = np.zeros([image.shape[0],  height, width])
         for i in range(0, image.shape[0]):
             # resize image
-            smallimage[i, :] = cv2.resize(
+            smallimage[i, :] = zoom(
                 image[i, :].astype('float32'), dim)
 
         return smallimage
@@ -1574,10 +1574,10 @@ prob_thresh=None, nms_thresh=None, seedpool = True):
 
 
     grid = model.config.grid
-    Probability = cv2.resize(SmallProbability, dsize=(
+    Probability = zoom(SmallProbability, dsize=(
         SmallProbability.shape[1] * grid[1], SmallProbability.shape[0] * grid[0]))
     Distance = MaxProjectDist(SmallDistance, axis=-1)
-    Distance = cv2.resize(Distance, dsize=(
+    Distance = zoom(Distance, dsize=(
         Distance.shape[1] * grid[1], Distance.shape[0] * grid[0]))
 
     pixel_condition = (Probability < GLOBAL_THRESH)
@@ -1636,10 +1636,10 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
     # We only allow for the grid parameter to be 1 along the Z axis
     for i in range(0, SmallProbability.shape[0]):
-        Probability[i, :] = cv2.resize(SmallProbability[i, :], dsize=(
+        Probability[i, :] = zoom(SmallProbability[i, :], dsize=(
             SmallProbability.shape[2] * grid[2], SmallProbability.shape[1] * grid[1]))
         if UseProbability == False:
-            Distance[i, :] = cv2.resize(SmallDistance[i, :], dsize=(
+            Distance[i, :] = zoom(SmallDistance[i, :], dsize=(
                 SmallDistance.shape[2] * grid[2], SmallDistance.shape[1] * grid[1]))
 
     if UseProbability:

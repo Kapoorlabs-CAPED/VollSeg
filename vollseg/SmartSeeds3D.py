@@ -24,7 +24,6 @@ from scipy.ndimage.measurements import find_objects
 from scipy.ndimage import  binary_dilation
 from csbdeep.utils import normalize
 import glob
-import cv2
 from csbdeep.io import load_training_data
 from csbdeep.utils import axes_dict
 from csbdeep.models import Config, CARE
@@ -38,6 +37,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from tifffile import imread, imwrite
 from csbdeep.utils import  plot_history
+from scipy.ndimage import zoom
+
 def _raise(e):
     raise e
 
@@ -433,7 +434,7 @@ def DownsampleData(image, downsample_factor):
                     smallimage = np.zeros([image.shape[0],  height,width])
                     for i in range(0, image.shape[0]):
                           # resize image
-                          smallimage[i,:] = cv2.resize(image[i,:].astype('float32'), dim)         
+                          smallimage[i,:] = zoom(image[i,:].astype('float32'), dim)         
          
                     return smallimage
          

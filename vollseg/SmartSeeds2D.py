@@ -28,7 +28,7 @@ from tqdm import tqdm
 from skimage.measure import label, regionprops
 from scipy import ndimage
 from pathlib import Path
-import cv2
+from scipy.ndimage import zoom
     
     
 def _raise(e):
@@ -510,7 +510,7 @@ def DownsampleData(image, downsample_factor):
                     width = int(image.shape[1] * scale_percent / 100)
                     height = int(image.shape[0] * scale_percent / 100)
                     dim = (width, height)
-                    image = cv2.resize(image.astype('float32'), dim)         
+                    image = zoom(image.astype('float32'), dim)         
          
                     return image
                   
