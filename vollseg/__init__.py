@@ -5,8 +5,6 @@ from .unetstarmask import UnetStarMask
 from .utils import *
 from .nmslabel import NMSLabel
 from .OptimizeThreshold import OptimizeThreshold
-from .Augmentation3D import Augmentation3D
-from .Augmentation2D import Augmentation2D
 from .inrimage import *
 from .pretrained import register_model, register_aliases, clear_models_and_aliases
 from .UNET import  UNET 
