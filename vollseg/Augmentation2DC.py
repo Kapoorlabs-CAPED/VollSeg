@@ -7,11 +7,11 @@ Created on Wed August 17 12:57:26 2022
 """
 
 import numpy as np
-from albumentations.augmentations.geometric.transforms import ElasticTransform
-from albumentations import transforms    
+#from albumentations.augmentations.geometric.transforms import ElasticTransform
+#from albumentations import transforms    
 from scipy import ndimage
 import pandas as pd
-from photutils.datasets import make_noise_image
+#from photutils.datasets import make_noise_image
 
 
 class Augmentation2DC(object):
