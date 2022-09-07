@@ -45,7 +45,6 @@ from qtpy.QtWidgets import QComboBox, QPushButton
 import diplib as dip
 from skimage.filters import threshold_multiotsu
 from scipy.ndimage.measurements import find_objects
-from photutils.datasets import make_noise_image
 Boxname = 'ImageIDBox'
 GLOBAL_THRESH = 1.0E-2
 GLOBAL_ERODE = 8
@@ -240,23 +239,6 @@ def SimplePrediction(x, UnetModel, StarModel, n_tiles=(2, 2), UseProbability=Tru
     smart_seeds = smart_seeds.astype('uint16')
 
     return smart_seeds
-
-
-def poisson_noise(x, mu):
-    x = x.astype('float32')
-    shape = x.shape
-    
-    
-    
-    gaussiannoise = make_noise_image(shape, distribution='gaussian', mean=0.,
-                          stddev=mu)
-    poissonnoise = make_noise_image(shape, distribution='poisson', mean=mu)
-
-    x = x + gaussiannoise + poissonnoise
-
-    return x
-
-
 
 
 
