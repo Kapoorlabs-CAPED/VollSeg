@@ -15,6 +15,7 @@ from scipy.optimize import minimize_scalar
 import datetime
 from csbdeep.utils import _raise
 from skimage.measure import label
+from vollseg import VollSeg
 
 class OptimizeThreshold(object):
     
@@ -98,12 +99,12 @@ n_tiles= self.n_tiles, UseProbability=self.UseProbability, dounet=self.dounet, s
                             if self.noise_model is None and self.star_model is not None:
                                 Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton=res
                             
-                            elif noise_model is not None and star_model is not None:
+                            elif self.noise_model is not None and self.star_model is not None:
                                 Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image=res
                                 
-                            elif star_model is None:
+                            elif self.star_model is None:
                                 
-                                raise ValueError(f'StarDist model can not be {star_model} for evaluating optimized threshold')
+                                raise ValueError(f'StarDist model can not be {self.star_model} for evaluating optimized threshold')
 
                             stats_voll   = matching_dataset(Y, Sizedsmart_seeds, thresh=self.iou_threshs, show_progress=False, parallel=True)
                             values_voll[prob_thresh] = value_voll = np.mean([s._asdict()[measure] for s in stats_voll])

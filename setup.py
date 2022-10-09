@@ -1,4 +1,3 @@
-import setuptools
 from setuptools import find_packages, setup
 
 from os import path
@@ -34,7 +33,7 @@ setup(
        
     ],
     
-    packages=setuptools.find_packages(),
+    packages = find_packages(),
     package_data={'vollseg': [ 'data/*','models/Carcinoma_cells/Carcinoma_cells/*', 'models/denoise_carcinoma/Denoise_carcinoma/*', 'models/Roi_Nuclei_Xenopus/Xenopus_Cell_Tissue_Segmentation/*' ]},
     classifiers=[
         'Development Status :: 3 - Alpha',
