@@ -1384,25 +1384,7 @@ def Integer_to_border(Label):
     return Binary
 
 
-def DownsampleData(image, DownsampleFactor):
 
-    if DownsampleFactor != 1:
-        print('Downsampling Image in XY by', DownsampleFactor)
-        # percent of original size
-        scale_percent = int(100/DownsampleFactor)
-        width = int(image.shape[2] * scale_percent / 100)
-        height = int(image.shape[1] * scale_percent / 100)
-        dim = (width, height)
-        smallimage = np.zeros([image.shape[0],  height, width])
-        for i in range(0, image.shape[0]):
-            # resize image
-            smallimage[i, :] = zoom(
-                image[i, :].astype('float32'), zoom = dim)
-
-        return smallimage
-    else:
-
-        return image
 
 
 def SuperUNETPrediction(image, model, n_tiles, axis):
@@ -1557,10 +1539,10 @@ prob_thresh=None, nms_thresh=None, seedpool = True):
 
     grid = model.config.grid
     Probability = zoom(SmallProbability, zoom=(
-        SmallProbability.shape[1] * grid[1], SmallProbability.shape[0] * grid[0]))
+        grid[1], grid[0]))
     Distance = MaxProjectDist(SmallDistance, axis=-1)
     Distance = zoom(Distance, zoom=(
-        Distance.shape[1] * grid[1], Distance.shape[0] * grid[0]))
+        grid[1], grid[0]))
 
     pixel_condition = (Probability < GLOBAL_THRESH)
     pixel_replace_condition = 0
@@ -1619,10 +1601,10 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     # We only allow for the grid parameter to be 1 along the Z axis
     for i in range(0, SmallProbability.shape[0]):
         Probability[i, :] = zoom(SmallProbability[i, :], zoom=(
-            SmallProbability.shape[2] * grid[2], SmallProbability.shape[1] * grid[1]))
+            grid[2], grid[1]))
         if UseProbability == False:
             Distance[i, :] = zoom(SmallDistance[i, :], zoom=(
-                SmallDistance.shape[2] * grid[2], SmallDistance.shape[1] * grid[1]))
+                grid[2], grid[1]))
 
     if UseProbability:
 
