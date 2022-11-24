@@ -981,10 +981,22 @@ def VollCellSeg(image: np.ndarray,
         
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None:
         
+        if 'T' not in axes:   
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
             cellpose_base = np.max(flows[0], axis = -1)
             vollcellseg = CellPoseWater(cellpose_base, Sizedsmart_seeds, SizedMask, nms_thresh)
-        
+        if 'T' in axes:
+                
+            Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
+            cellpose_base = []
+            vollcellseg = []
+            for time in range(image_membrane.shape[0]):
+                cellpose_base_time = np.max(flows[0], axis = -1)[time,:,:,:]
+                vollcellseg_time = CellPoseWater(cellpose_base_time, Sizedsmart_seeds[time,:,:,:], SizedMask[time,:,:,:], nms_thresh)
+                cellpose_base.append(cellpose_base_time)
+                vollcellseg.append(vollcellseg_time)
+            cellpose_base = np.asarray(cellpose_base)
+            vollcellseg = np.asarray(vollcellseg_time)    
         
         
     elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
