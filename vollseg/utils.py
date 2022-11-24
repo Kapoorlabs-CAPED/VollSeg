@@ -865,7 +865,13 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
 
 def VollCellSeg(image: np.ndarray, 
-                diameter_cellpose_um: float = 34.6,
+                diameter_cellpose: float = 34.6,
+                stitch_threshold: float = 0.5,
+                channel_membrane: int = 0,
+                channel_nuclei: int = 1,
+                flow_threshold: float = 0.4, 
+                cellprob_threshold: float = 0.0,
+                anisotropy = None,
                 star_model = None, 
                 unet_model = None,
                 roi_model = None,
@@ -874,38 +880,46 @@ def VollCellSeg(image: np.ndarray,
                 custom_cellpose_model: bool = False, 
                 pretrained_cellpose_model_path: str = None,
                 cellpose_model_name = 'cyto2',
-                axes='ZYX',  
-                prob_thresh=None, 
-                ExpandLabels = False, 
-                nms_thresh=None, 
-                min_size_mask=100, 
-                min_size=100, 
-                max_size=10000000,
-                n_tiles=(1, 1, 1), 
-                UseProbability=True,  
-                donormalize=True, 
-                lower_perc=1, 
-                upper_perc=99.8, 
-                dounet=True, 
-                seedpool=True, 
-                save_dir=None, 
-                Name='Result',  
-                startZ=0, 
-                slice_merge=False, 
-                iou_threshold=0.3, 
-                RGB=False):
+                axes: str ='ZYX',  
+                prob_thresh: float =None, 
+                ExpandLabels: bool = False, 
+                nms_thresh: float=None, 
+                min_size_mask: int =100, 
+                min_size: int =100, 
+                max_size: int =10000000,
+                n_tiles: tuple = (1, 1, 1), 
+                UseProbability: bool =True,  
+                donormalize: bool =True, 
+                lower_perc: float = 1.0, 
+                upper_perc: float =99.8, 
+                dounet: bool = True, 
+                seedpool: bool = True, 
+                save_dir: str = None, 
+                Name : str ='Result',  
+                startZ : int = 0, 
+                slice_merge : bool = False, 
+                iou_threshold: float = 0.3, 
+                RGB: bool =False):
     
     assert len(image.shape) >= 4, f'A 3D + channel or a 3D + time + channel image is required, input image has shape{image.shape}'
-    if cellpose_model is not None:
+    
+                        
+                            
+    if len(image.shape) == 4 and 'T' not in axes:
+            image_membrane = image[:,channel_membrane,:,:]
+            image_nuclei = image[:,channel_nuclei,:,:]
+            
+            
+            if cellpose_model is not None:
                 
                 if not custom_cellpose_model:
                     cellpose_model = models.Cellpose(gpu=True, model_type = cellpose_model_name)
+                    cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy)
+                    masks, flows, styles, diams = cellres 
                 else:   
-                    cellpose_model = models.CellposeModel(gpu=True, pretrained_model = pretrained_cellpose_model_path, net_avg=False)
-                    
-    if len(image.shape) == 4 and 'T' not in axes:
-            image_membrane = image[:,0,:,:]
-            image_nuclei = image[:,1,:,:]
+                    cellpose_model = models.CellposeModel(gpu=True, pretrained_model = pretrained_cellpose_model_path)
+                    cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy)                  
+                    masks, flows, styles = cellres
             
             if star_model is not None:
                 res = VollSeg3D(image_nuclei,  unet_model, star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
@@ -915,11 +929,30 @@ def VollCellSeg(image: np.ndarray,
                 
     if len(image.shape) > 4 and 'T' in axes:
            
-            image_membrane = image[:,:,0,:,:]
-            image_nuclei = image[:,:,1,:,:]
-            if star_model is not None:
-              if len(n_tiles) == 4:
+            if len(n_tiles) == 4:
                   n_tiles = (n_tiles[1], n_tiles[2], n_tiles[3])
+            image_membrane = image[:,:,channel_membrane,:,:]
+            image_nuclei = image[:,:,channel_nuclei,:,:]
+            if cellpose_model is not None:
+                
+                if not custom_cellpose_model:
+                    cellpose_model = models.Cellpose(gpu=True, model_type = cellpose_model_name)
+                    cellres = tuple(
+                     zip(
+                        *tuple(cellpose_model.eval(_x, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy)
+                               for _x in tqdm(image_nuclei))))
+                    masks, flows, styles, diams = cellres
+               
+                else:   
+                    cellpose_model = models.CellposeModel(gpu=True, pretrained_model = pretrained_cellpose_model_path)
+                    cellres = tuple(
+                     zip(
+                        *tuple(cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy)
+                               for _x in tqdm(image_nuclei))))                  
+                    masks, flows, styles = cellres
+            
+            if star_model is not None:
+              
                   res = tuple(
                      zip(
                         *tuple(VollSeg3D(_x,  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
@@ -974,6 +1007,12 @@ def VollCellSeg(image: np.ndarray,
         print('Saving Results ...')
         Path(save_dir).mkdir(exist_ok=True)
 
+        if cellpose_model is not None:
+            cellpose_results = save_dir + 'CellPose/'
+            Path(cellpose_results).mkdir(exist_ok=True)
+            imwrite((cellpose_results + Name + '.tif'),
+                    np.asarray(masks).astype('uint16'))
+
         if  roi_model is not None:
             roi_results = save_dir + 'Roi/'
             Path(roi_results).mkdir(exist_ok=True)
@@ -1018,44 +1057,41 @@ def VollCellSeg(image: np.ndarray,
 
       
     # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
-    if noise_model is None and star_model is not None and  roi_model is not None:
+    if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is None:
 
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image
 
-    elif noise_model is None and star_model is not None and  roi_model is  None:
+    elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is None:
 
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton    
 
     # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
-    elif noise_model is not None and star_model is not None and  roi_model is not None:
+    elif noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is None:
       
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image
 
-    elif noise_model is not None and star_model is not None and  roi_model is None:
+    elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is None:
 
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image    
 
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
-    elif star_model is None and  roi_model is not None and noise_model is not None:
+    elif star_model is None and  roi_model is not None and noise_model is not None and cellpose_model is None:
 
         return SizedMask, Skeleton, image
 
-    elif star_model is None and  roi_model is not None and noise_model is None:
+    elif star_model is None and  roi_model is not None and noise_model is None and cellpose_model is None:
 
         return  roi_image.astype('uint16')  , Skeleton, image 
 
-    elif star_model is None and  roi_model is not None and noise_model is not None:
+    elif star_model is None and  roi_model is not None and noise_model is not None and cellpose_model is None:
 
         return  roi_image.astype('uint16')  , Skeleton, image     
     
-    elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
+    elif noise_model is not None and star_model is None and roi_model is None and unet_model is None and cellpose_model is None:
             
             return  SizedMask , Skeleton, image
-                  
 
-    
-
-    elif star_model is None and  roi_model is  None and noise_model is None and unet_model is not None:
+    elif star_model is None and  roi_model is  None and noise_model is None and unet_model is not None and cellpose_model is None:
 
         return SizedMask, Skeleton, image    
 
