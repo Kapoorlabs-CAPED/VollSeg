@@ -45,6 +45,8 @@ from qtpy.QtWidgets import QComboBox, QPushButton
 import diplib as dip
 from skimage.filters import threshold_multiotsu
 from scipy.ndimage.measurements import find_objects
+from cellpose import models
+
 Boxname = 'ImageIDBox'
 GLOBAL_THRESH = 1.0E-2
 GLOBAL_ERODE = 8
@@ -862,7 +864,202 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
     return Finalimage.astype('uint16'), Skeleton, image
 
 
-def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX', noise_model=None, prob_thresh=None, ExpandLabels = True, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
+def VollCellSeg(image: np.ndarray, 
+                diameter_cellpose_um: float = 34.6,
+                star_model = None, 
+                unet_model = None,
+                roi_model = None,
+                noise_model=None,
+                cellpose_model = None, 
+                custom_cellpose_model: bool = False, 
+                pretrained_cellpose_model_path: str = None,
+                cellpose_model_name = 'cyto2',
+                axes='ZYX',  
+                prob_thresh=None, 
+                ExpandLabels = False, 
+                nms_thresh=None, 
+                min_size_mask=100, 
+                min_size=100, 
+                max_size=10000000,
+                n_tiles=(1, 1, 1), 
+                UseProbability=True,  
+                donormalize=True, 
+                lower_perc=1, 
+                upper_perc=99.8, 
+                dounet=True, 
+                seedpool=True, 
+                save_dir=None, 
+                Name='Result',  
+                startZ=0, 
+                slice_merge=False, 
+                iou_threshold=0.3, 
+                RGB=False):
+    
+    assert len(image.shape) >= 4, f'A 3D + channel or a 3D + time + channel image is required, input image has shape{image.shape}'
+    if cellpose_model is not None:
+                
+                if not custom_cellpose_model:
+                    cellpose_model = models.Cellpose(gpu=True, model_type = cellpose_model_name)
+                else:   
+                    cellpose_model = models.CellposeModel(gpu=True, pretrained_model = pretrained_cellpose_model_path, net_avg=False)
+                    
+    if len(image.shape) == 4 and 'T' not in axes:
+            image_membrane = image[:,0,:,:]
+            image_nuclei = image[:,1,:,:]
+            
+            if star_model is not None:
+                res = VollSeg3D(image_nuclei,  unet_model, star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
+                                    n_tiles=n_tiles, UseProbability=UseProbability,  dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
+
+            
+                
+    if len(image.shape) > 4 and 'T' in axes:
+           
+            image_membrane = image[:,:,0,:,:]
+            image_nuclei = image[:,:,1,:,:]
+            if star_model is not None:
+              if len(n_tiles) == 4:
+                  n_tiles = (n_tiles[1], n_tiles[2], n_tiles[3])
+                  res = tuple(
+                     zip(
+                        *tuple(VollSeg3D(_x,  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
+                                        n_tiles=n_tiles, UseProbability=UseProbability,
+                                        dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for _x in tqdm(image_nuclei))))
+
+    if noise_model is None and star_model is not None and  roi_model is not None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
+
+    if noise_model is None and star_model is not None and  roi_model is None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton = res    
+
+    elif noise_model is not None and star_model is not None and  roi_model is not None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image = res
+
+    elif noise_model is not None and star_model is not None and  roi_model is None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image = res    
+        
+    elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
+
+         SizedMask, Skeleton, image = res
+   
+    
+    elif star_model is None and  roi_model is None and unet_model is not None and noise_model is not None :
+
+        SizedMask, Skeleton, image = res
+
+    elif star_model is None and  roi_model is not None and unet_model is not None and noise_model is not None :
+
+        SizedMask, Skeleton, image = res    
+
+    elif star_model is None and  roi_model is None and unet_model is not None and noise_model is None :
+
+        SizedMask, Skeleton, image = res    
+
+    elif star_model is None and  roi_model is not None and unet_model is None and noise_model is None :
+
+        roi_image, Skeleton, image = res
+        SizedMask = roi_image
+
+    elif star_model is None and  roi_model is not None and unet_model is None and noise_model is not None :
+
+        roi_image, Skeleton, image = res
+        SizedMask = roi_image    
+
+    elif star_model is None and  roi_model is not None and unet_model is not None and noise_model is None :
+
+        roi_image, Skeleton, image = res
+        SizedMask = roi_image
+
+    if save_dir is not None:
+        print('Saving Results ...')
+        Path(save_dir).mkdir(exist_ok=True)
+
+        if  roi_model is not None:
+            roi_results = save_dir + 'Roi/'
+            Path(roi_results).mkdir(exist_ok=True)
+            imwrite((roi_results + Name + '.tif'),
+                    np.asarray(roi_image).astype('uint16'))
+
+        if unet_model is not None:
+            unet_results = save_dir + 'BinaryMask/'
+            skel_unet_results = save_dir + 'Skeleton/'
+            Path(unet_results).mkdir(exist_ok=True)
+            Path(skel_unet_results).mkdir(exist_ok=True)
+             
+            imwrite((unet_results + Name + '.tif'),
+                    np.asarray(SizedMask).astype('uint16'))
+            imwrite((skel_unet_results + Name + '.tif'),
+                    np.asarray(Skeleton).astype('uint16'))        
+        if star_model is not None:
+            vollseg_results = save_dir + 'VollSeg/'
+            stardist_results = save_dir + 'StarDist/'
+            probability_results = save_dir + 'Probability/'
+            marker_results = save_dir + 'Markers/'
+            skel_results = save_dir + 'Skeleton/'
+            Path(skel_results).mkdir(exist_ok=True)
+            Path(vollseg_results).mkdir(exist_ok=True)
+            Path(stardist_results).mkdir(exist_ok=True)
+            Path(probability_results).mkdir(exist_ok=True)
+            Path(marker_results).mkdir(exist_ok=True)
+            imwrite((stardist_results + Name + '.tif'),
+                    np.asarray(star_labels).astype('uint16'))
+            imwrite((vollseg_results + Name + '.tif'),
+                    np.asarray(Sizedsmart_seeds).astype('uint16'))
+            imwrite((probability_results + Name + '.tif'),
+                    np.asarray(proabability_map).astype('float32'))
+            imwrite((marker_results + Name + '.tif'),
+                    np.asarray(Markers).astype('uint16'))
+            imwrite((skel_results + Name + '.tif'), np.asarray(Skeleton))
+        if noise_model is not None:
+            denoised_results = save_dir + 'Denoised/'
+            Path(denoised_results).mkdir(exist_ok=True)
+            imwrite((denoised_results + Name + '.tif'),
+                    np.asarray(image).astype('float32'))
+
+      
+    # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
+    if noise_model is None and star_model is not None and  roi_model is not None:
+
+        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image
+
+    elif noise_model is None and star_model is not None and  roi_model is  None:
+
+        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton    
+
+    # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
+    elif noise_model is not None and star_model is not None and  roi_model is not None:
+      
+        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image
+
+    elif noise_model is not None and star_model is not None and  roi_model is None:
+
+        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image    
+
+    # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
+    elif star_model is None and  roi_model is not None and noise_model is not None:
+
+        return SizedMask, Skeleton, image
+
+    elif star_model is None and  roi_model is not None and noise_model is None:
+
+        return  roi_image.astype('uint16')  , Skeleton, image 
+
+    elif star_model is None and  roi_model is not None and noise_model is not None:
+
+        return  roi_image.astype('uint16')  , Skeleton, image     
+    
+    elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
+            
+            return  SizedMask , Skeleton, image
+                  
+
+    
+
+    elif star_model is None and  roi_model is  None and noise_model is None and unet_model is not None:
+
+        return SizedMask, Skeleton, image    
+
+def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX', noise_model=None, prob_thresh=None, ExpandLabels = False, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
             n_tiles=(1, 1, 1), UseProbability=True,  donormalize=True, lower_perc=1, upper_perc=99.8, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0.3, RGB=False):
 
     if len(image.shape) == 2:
@@ -1060,6 +1257,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
     elif star_model is None and  roi_model is  None and noise_model is None and unet_model is not None:
 
         return SizedMask, Skeleton, image 
+
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,

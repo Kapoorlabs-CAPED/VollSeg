@@ -30,6 +30,7 @@ setup(
         "matplotlib",
         "napari",
         "diplib",
+        "cellpose",
        
     ],
     
