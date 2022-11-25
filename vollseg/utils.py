@@ -963,9 +963,9 @@ def VollCellSeg(image: np.ndarray,
                                         dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for _x in tqdm(image_nuclei))))
 
   
-    if cellpose_model is not None and not custom_cellpose_model:
-        masks, flows, styles, diams = cellres
     if cellpose_model is not None and custom_cellpose_model:
+        masks, flows, styles, diams = cellres
+    if cellpose_model is not None and not custom_cellpose_model:
         masks, flows, styles = cellres    
 
     if noise_model is None and star_model is not None and  roi_model is not None:
