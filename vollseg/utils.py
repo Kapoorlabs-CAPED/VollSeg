@@ -985,7 +985,10 @@ def VollCellSeg(image: np.ndarray,
         if 'T' not in axes:   
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
             cellpose_base = np.max(flows[0], axis = -1)
-            vollcellseg = CellPoseWater(cellpose_base, Sizedsmart_seeds, roi_image, nms_thresh)
+            Big_roi_image = np.zeros([image_membrane.shape[0],image_membrane.shape[1],image_membrane.shape[2] ])
+            for z in Big_roi_image.shape[0]:
+                    Big_roi_image[z,:,:] = roi_image[:,:]
+            vollcellseg = CellPoseWater(cellpose_base, Sizedsmart_seeds, Big_roi_image, nms_thresh)
         if 'T' in axes:
                 
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
