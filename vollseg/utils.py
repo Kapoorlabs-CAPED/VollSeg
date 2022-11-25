@@ -917,7 +917,7 @@ def VollCellSeg(image: np.ndarray,
             
             if cellpose_model is not None:
                 
-                if not custom_cellpose_model:
+                if custom_cellpose_model:
                     cellpose_model = models.Cellpose(gpu=gpu, model_type = cellpose_model_name)
                     cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy)
                 else:   
@@ -938,7 +938,7 @@ def VollCellSeg(image: np.ndarray,
             image_nuclei = image[:,:,channel_nuclei,:,:]
             if cellpose_model is not None:
                 
-                if not custom_cellpose_model:
+                if custom_cellpose_model:
                     cellpose_model = models.Cellpose(gpu=gpu, model_type = cellpose_model_name)
                     cellres = tuple(
                      zip(
