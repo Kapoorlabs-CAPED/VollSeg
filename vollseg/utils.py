@@ -993,7 +993,10 @@ def VollCellSeg(image: np.ndarray,
             vollcellseg = []
             for time in range(image_membrane.shape[0]):
                 cellpose_base_time = np.max(flows[0], axis = -1)[time,:,:,:]
-                vollcellseg_time = CellPoseWater(cellpose_base_time, Sizedsmart_seeds[time,:,:,:], roi_image[time,:,:,:], nms_thresh)
+                Big_roi_image = np.zeros([image_membrane.shape[1],image_membrane.shape[2],image_membrane.shape[3] ])
+                for z in Big_roi_image.shape[0]:
+                    Big_roi_image[z,:,:] = roi_image[time,:,:]
+                vollcellseg_time = CellPoseWater(cellpose_base_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image , nms_thresh)
                 cellpose_base.append(cellpose_base_time)
                 vollcellseg.append(vollcellseg_time)
             cellpose_base = np.asarray(cellpose_base)
