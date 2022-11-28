@@ -2111,12 +2111,15 @@ def CellPoseWater(Image, Seeds, mask, erosion_iterations):
     pixel_condition = (Image < 0.25 * (np.max(Image) - np.min(Image)))
     pixel_replace_condition = 0
     bin_mask = image_conditionals(Image, pixel_condition, pixel_replace_condition)
+    dim = Image.shape[0]
     
-    bin_mask = binary_erosion(bin_mask, iterations = erosion_iterations )
+    for i in range(dim):
+       bin_mask[i,:,:] = binary_erosion(bin_mask[i,:,:], iterations = erosion_iterations)
     
-    watershed_image = watershed(-Image, Seeds, mask = bin_mask)
-    watershed_image = expand_labels(watershed_image, distance = erosion_iterations)
-    watershed_image = fill_label_holes(watershed_image)
+    watershed_image = watershed(Image, Seeds, mask = bin_mask)
+    for i in range(dim):
+      watershed_image[i,:,:] = expand_labels(watershed_image[i,:,:], distance = erosion_iterations)
+      watershed_image[i,:,:] = fill_label_holes(watershed_image[i,:,:])
     
     return watershed_image
 
