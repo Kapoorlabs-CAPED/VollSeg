@@ -2117,7 +2117,7 @@ def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
     KeepCoordinates = []
     
     for star in Coordinates:
-        if Masks[zip(*star)] == 0:
+        if Masks[tuple(map(int, s) for s in star)] == 0:
             KeepCoordinates.append(star)
             
     
