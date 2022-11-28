@@ -2107,7 +2107,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 def CellPoseWater(Image, Seeds, mask, nms_thresh):
     
-    pixel_condition = (Image < 0.1)
+    pixel_condition = (Image < 0.25 * (np.max(Image) - np.min(Image)))
     pixel_replace_condition = 0
     bin_mask = image_conditionals(Image, pixel_condition, pixel_replace_condition)
     
