@@ -2115,14 +2115,12 @@ def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
     bbox = [prop.bbox for prop in properties]
     Coordinates = [prop.centroid for prop in starproperties]
     KeepCoordinates = []
-    if len(bbox) > 0:
-            for i in range(0, len(bbox)):
-
-                box = bbox[i]
-                include = [SeedPool(box, star).pooling() for star in Coordinates]
-
-                if False not in include:
-                    KeepCoordinates.append(Coordinates[i])
+    
+    for star in Coordinates:
+        if Masks[star] == 0:
+            KeepCoordinates.append(star)
+            
+    
     watershed_image = watershed(-Image, Seeds, mask = mask)
     watershed_image = fill_label_holes(watershed_image)
     
@@ -2132,6 +2130,7 @@ def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
         
         CopyMasks[index] = watershed_image[index]
     
+    CopyMasks = relabel_sequential(CopyMasks)
     
     return CopyMasks
 
