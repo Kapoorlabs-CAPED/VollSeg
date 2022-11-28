@@ -1168,8 +1168,9 @@ def VollCellSeg(image: np.ndarray,
             cellpose_base = np.max(flows[0], axis = -1)
             cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
             Big_roi_image = np.zeros([image_membrane.shape[0],image_membrane.shape[1],image_membrane.shape[2] ])
-           
-            vollcellseg = CellPoseWater(cellpose_base, Sizedsmart_seeds,  erosion_iterations)
+            for z in range(Big_roi_image.shape[0]):
+                Big_roi_image[i,:,:] = roi_image
+            vollcellseg = CellPoseWater(cellpose_base, Sizedsmart_seeds, Big_roi_image,  erosion_iterations)
         if 'T' in axes:
                 
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
@@ -1179,8 +1180,9 @@ def VollCellSeg(image: np.ndarray,
                 cellpose_base_time = np.max(flows[0], axis = -1)[time,:,:,:]
                 cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
                 Big_roi_image = np.zeros([image_membrane.shape[1],image_membrane.shape[2],image_membrane.shape[3] ])
-                
-                vollcellseg_time = CellPoseWater(cellpose_base_time, Sizedsmart_seeds[time,:,:,:],  erosion_iterations)
+                for z in range(Big_roi_image.shape[0]):
+                    Big_roi_image[i,:,:] = roi_image
+                vollcellseg_time = CellPoseWater(cellpose_base_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, erosion_iterations)
                 cellpose_base.append(cellpose_base_time)
                 vollcellseg.append(vollcellseg_time)
             cellpose_base = np.asarray(cellpose_base)
@@ -2104,20 +2106,12 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 # Default method that works well with cells which are below a certain shape and do not have weak edges
 
-def CellPoseWater(Image, Seeds, erosion_iterations):
+def CellPoseWater(Image, Seeds, mask, erosion_iterations):
     
-    pixel_condition = (Image < 0.25 * (np.max(Image) - np.min(Image)))
-    pixel_replace_condition = 0
-    bin_mask = image_conditionals(Image, pixel_condition, pixel_replace_condition)
-    dim = Image.shape[0]
+   
     
-    for i in range(dim):
-       bin_mask[i,:,:] = binary_erosion(bin_mask[i,:,:], iterations = erosion_iterations)
-    
-    watershed_image = watershed(Image, Seeds, mask = bin_mask)
-    for i in range(dim):
-      watershed_image[i,:,:] = expand_labels(watershed_image[i,:,:], distance = erosion_iterations)
-      watershed_image[i,:,:] = fill_label_holes(watershed_image[i,:,:])
+    watershed_image = watershed(-Image, Seeds, mask = mask)
+    watershed_image = fill_label_holes(watershed_image)
     
     return watershed_image
 
