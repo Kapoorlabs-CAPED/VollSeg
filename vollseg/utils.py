@@ -892,7 +892,13 @@ def _cellpose_star_block(cellpose_model,
                         seedpool,
                         startZ,
                         slice_merge,
-                        iou_threshold):
+                        iou_threshold,
+                        lower_perc,
+                        upper_perc,
+                        min_size_mask,
+                        min_size,
+                        max_size
+                        ):
     
     cellres = None
     res = None
