@@ -2114,11 +2114,11 @@ def CellPoseWater(Image, Seeds, mask, erosion_iterations):
     
     bin_mask = binary_erosion(bin_mask, iterations = erosion_iterations )
     
-    watershedImage = watershed(-Image, Seeds, mask = bin_mask)
+    watershed_image = watershed(-Image, Seeds, mask = bin_mask)
+    watershed_image = expand_labels(watershed_image, distance = erosion_iterations)
+    watershed_image = fill_label_holes(watershed_image)
     
-    watershedImage = fill_label_holes(watershedImage)
-    
-    return watershedImage
+    return watershed_image
 
 def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
 
