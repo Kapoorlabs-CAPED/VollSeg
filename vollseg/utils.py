@@ -2109,7 +2109,8 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
     
-    properties = measure.regionprops(Masks)
+    CopyMasks = Masks.copy()
+    properties = measure.regionprops(CopyMasks)
     starproperties = measure.regionprops(Seeds)
     bbox = [prop.bbox for prop in properties]
     Coordinates = [prop.centroid for prop in starproperties]
@@ -2125,14 +2126,14 @@ def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
     watershed_image = watershed(-Image, Seeds, mask = mask)
     watershed_image = fill_label_holes(watershed_image)
     
-    empy_region_indices = zip(*np.where(Masks == 0))
+    empy_region_indices = zip(*np.where(CopyMasks == 0))
     
     for index in empy_region_indices:
         
-        Masks[index] = watershed_image[index]
+        CopyMasks[index] = watershed_image[index]
     
     
-    return Masks
+    return CopyMasks
 
 def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
 
