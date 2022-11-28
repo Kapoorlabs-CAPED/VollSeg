@@ -992,7 +992,12 @@ def VollCellSeg(image: np.ndarray,
                         seedpool,
                         startZ,
                         slice_merge,
-                        iou_threshold)
+                        iou_threshold,
+                        lower_perc,
+                        upper_perc,
+                        min_size_mask,
+                        min_size,
+                        max_size)
                             
     if len(image.shape) == 4 and 'T' not in axes:
             image_membrane = image[:,channel_membrane,:,:]
@@ -1026,7 +1031,12 @@ def VollCellSeg(image: np.ndarray,
                         seedpool,
                         startZ,
                         slice_merge,
-                        iou_threshold)
+                        iou_threshold,
+                        lower_perc,
+                        upper_perc,
+                        min_size_mask,
+                        min_size,
+                        max_size)
             
                 
     if len(image.shape) > 4 and 'T' in axes:
