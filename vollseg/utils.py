@@ -1169,7 +1169,7 @@ def VollCellSeg(image: np.ndarray,
             cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
             Big_roi_image = np.zeros([image_membrane.shape[0],image_membrane.shape[1],image_membrane.shape[2] ])
             for z in range(Big_roi_image.shape[0]):
-                Big_roi_image[i,:,:] = roi_image
+                Big_roi_image[z,:,:] = roi_image
             vollcellseg = CellPoseWater(cellpose_base, Sizedsmart_seeds, Big_roi_image,  erosion_iterations)
         if 'T' in axes:
                 
@@ -1181,7 +1181,7 @@ def VollCellSeg(image: np.ndarray,
                 cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
                 Big_roi_image = np.zeros([image_membrane.shape[1],image_membrane.shape[2],image_membrane.shape[3] ])
                 for z in range(Big_roi_image.shape[0]):
-                    Big_roi_image[i,:,:] = roi_image
+                    Big_roi_image[z,:,:] = roi_image
                 vollcellseg_time = CellPoseWater(cellpose_base_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, erosion_iterations)
                 cellpose_base.append(cellpose_base_time)
                 vollcellseg.append(vollcellseg_time)
