@@ -1170,7 +1170,7 @@ def VollCellSeg(image: np.ndarray,
             Big_roi_image = np.zeros([image_membrane.shape[0],image_membrane.shape[1],image_membrane.shape[2] ])
             for z in range(Big_roi_image.shape[0]):
                 Big_roi_image[z,:,:] = roi_image
-            vollcellseg = CellPoseWater(cellpose_base, Sizedsmart_seeds, Big_roi_image,  erosion_iterations)
+            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, Big_roi_image,  erosion_iterations)
         if 'T' in axes:
                 
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
@@ -1178,11 +1178,12 @@ def VollCellSeg(image: np.ndarray,
             vollcellseg = []
             for time in range(image_membrane.shape[0]):
                 cellpose_base_time = np.max(flows[0], axis = -1)[time,:,:,:]
+                masks_time = masks[time,:,:,:]
                 cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
                 Big_roi_image = np.zeros([image_membrane.shape[1],image_membrane.shape[2],image_membrane.shape[3] ])
                 for z in range(Big_roi_image.shape[0]):
                     Big_roi_image[z,:,:] = roi_image
-                vollcellseg_time = CellPoseWater(cellpose_base_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, erosion_iterations)
+                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, erosion_iterations)
                 cellpose_base.append(cellpose_base_time)
                 vollcellseg.append(vollcellseg_time)
             cellpose_base = np.asarray(cellpose_base)
@@ -2106,14 +2107,32 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 # Default method that works well with cells which are below a certain shape and do not have weak edges
 
-def CellPoseWater(Image, Seeds, mask, erosion_iterations):
+def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
     
-   
-    
+    properties = measure.regionprops(Masks)
+    starproperties = measure.regionprops(Seeds)
+    bbox = [prop.bbox for prop in properties]
+    Coordinates = [prop.centroid for prop in starproperties]
+    KeepCoordinates = []
+    if len(bbox) > 0:
+            for i in range(0, len(bbox)):
+
+                box = bbox[i]
+                include = [SeedPool(box, star).pooling() for star in Coordinates]
+
+                if False not in include:
+                    KeepCoordinates.append(Coordinates[i])
     watershed_image = watershed(-Image, Seeds, mask = mask)
     watershed_image = fill_label_holes(watershed_image)
     
-    return watershed_image
+    empy_region_indices = zip(*np.where(Masks == 0))
+    
+    for index in empy_region_indices:
+        
+        Masks[index] = watershed_image[index]
+    
+    
+    return Masks
 
 def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
 
