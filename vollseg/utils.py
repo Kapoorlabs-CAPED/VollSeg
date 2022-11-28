@@ -1165,6 +1165,7 @@ def VollCellSeg(image: np.ndarray,
         if 'T' not in axes:   
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
             cellpose_base = np.max(flows[0], axis = -1)
+            cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
             Big_roi_image = np.zeros([image_membrane.shape[0],image_membrane.shape[1],image_membrane.shape[2] ])
             for z in range(Big_roi_image.shape[0]):
                     Big_roi_image[z,:,:] = roi_image[:,:]
@@ -1176,6 +1177,7 @@ def VollCellSeg(image: np.ndarray,
             vollcellseg = []
             for time in range(image_membrane.shape[0]):
                 cellpose_base_time = np.max(flows[0], axis = -1)[time,:,:,:]
+                cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
                 Big_roi_image = np.zeros([image_membrane.shape[1],image_membrane.shape[2],image_membrane.shape[3] ])
                 for z in range(Big_roi_image.shape[0]):
                     Big_roi_image[z,:,:] = roi_image[time,:,:]
