@@ -2105,7 +2105,6 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 
 
-# Default method that works well with cells which are below a certain shape and do not have weak edges
 
 def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
     
@@ -2115,13 +2114,25 @@ def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
     bbox = [prop.bbox for prop in properties]
     Coordinates = [prop.centroid for prop in starproperties]
     KeepCoordinates = []
-    
-    for star in Coordinates:
-        if Masks[(int(star[0]), int(star[1]), int(star[2]))] == 0:
-            KeepCoordinates.append(star)
-            
-    
-    watershed_image = watershed(-Image, Seeds, mask = mask)
+    if len(bbox) > 0:
+            for i in range(0, len(bbox)):
+
+                box = bbox[i]
+                include = [SeedPool(box, star).pooling() for star in Coordinates]
+
+                if False not in include:
+                    KeepCoordinates.append(Coordinates[i])
+                    
+                    
+    KeepCoordinates.append((0, 0))
+    KeepCoordinates = np.asarray(KeepCoordinates)
+
+    coordinates_int = np.round(KeepCoordinates).astype(int)
+    markers_raw = np.zeros_like(Image)
+    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
+
+    markers = morphology.dilation(markers_raw, morphology.disk(2))                
+    watershed_image = watershed(-Image, markers, mask = mask)
     watershed_image = fill_label_holes(watershed_image)
     
     empy_region_indices = zip(*np.where(CopyMasks == 0))
@@ -2130,7 +2141,6 @@ def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
         
         CopyMasks[index] = watershed_image[index]
     
-    CopyMasks = relabel_sequential(CopyMasks)
     
     return CopyMasks
 
