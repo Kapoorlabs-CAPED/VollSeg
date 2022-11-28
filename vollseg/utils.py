@@ -2131,7 +2131,8 @@ def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
     markers_raw = np.zeros_like(Image)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
 
-    markers = morphology.dilation(markers_raw, morphology.disk(2))                
+    markers = morphology.dilation(
+        markers_raw.astype('uint16'), morphology.ball(2))                
     watershed_image = watershed(-Image, markers, mask = mask)
     watershed_image = fill_label_holes(watershed_image)
     
