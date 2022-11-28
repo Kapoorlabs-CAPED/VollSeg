@@ -912,9 +912,7 @@ def _cellpose_star_block(cellpose_model,
                     cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy)                  
             
     if star_model is not None:
-                if prob_thresh is None and nms_thresh is None:
-                        prob_thresh = star_model.thresholds.prob
-                        nms_thresh = star_model.thresholds.nms
+                
                 res = VollSeg3D(image_nuclei,  unet_model, star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
                                     n_tiles=n_tiles, UseProbability=UseProbability,  dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
                     
@@ -958,7 +956,9 @@ def VollCellSeg(image: np.ndarray,
                 iou_threshold: float = 0.3, 
                 RGB: bool =False):
     
-    assert len(image.shape) >= 4, f'A 3D + channel or a 3D + time + channel image is required, input image has shape{image.shape}'
+    if prob_thresh is None and nms_thresh is None:
+                        prob_thresh = star_model.thresholds.prob
+                        nms_thresh = star_model.thresholds.nms
     
     if len(image.shape) == 3 and 'T' not in axes:
         #Just a 3D image
