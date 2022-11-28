@@ -1930,6 +1930,10 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 def CellPoseWater(Image, Seeds, mask, nms_thresh):
     
+    pixel_condition = (Image < GLOBAL_THRESH)
+    pixel_replace_condition = 0
+    mask = image_conditionals(Image, pixel_condition, pixel_replace_condition)
+    
     watershedImage = watershed(-Image, Seeds, mask=mask.copy())
     watershedImage =  NMSLabel(image = watershedImage, nms_thresh=nms_thresh).supresslabels()
     return watershedImage
