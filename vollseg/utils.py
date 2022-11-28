@@ -2124,7 +2124,7 @@ def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
                     KeepCoordinates.append(Coordinates[i])
                     
                     
-    KeepCoordinates.append((0, 0))
+    KeepCoordinates.append((0, 0, 0))
     KeepCoordinates = np.asarray(KeepCoordinates)
 
     coordinates_int = np.round(KeepCoordinates).astype(int)
