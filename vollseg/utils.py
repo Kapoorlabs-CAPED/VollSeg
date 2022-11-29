@@ -1209,7 +1209,7 @@ def VollCellSeg(image: np.ndarray,
             Big_roi_image = np.zeros([image_membrane.shape[0],image_membrane.shape[1],image_membrane.shape[2] ])
             for z in range(Big_roi_image.shape[0]):
                 Big_roi_image[z,:,:] = roi_image
-            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, Big_roi_image, min_size_mask, max_size,stitch_threshold)
+            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, Big_roi_image, min_size_mask, max_size,nms_threshold)
         if 'T' in axes:
                 
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
@@ -1222,7 +1222,7 @@ def VollCellSeg(image: np.ndarray,
                 Big_roi_image = np.zeros([image_membrane.shape[1],image_membrane.shape[2],image_membrane.shape[3] ])
                 for z in range(Big_roi_image.shape[0]):
                     Big_roi_image[z,:,:] = roi_image
-                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, min_size_mask, max_size,stitch_threshold)
+                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, min_size_mask, max_size,nms_threshold)
                 cellpose_base.append(cellpose_base_time)
                 vollcellseg.append(vollcellseg_time)
             cellpose_base = np.asarray(cellpose_base)
@@ -2145,7 +2145,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 
 
-def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size,iou_threshold):
+def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size,nms_threshold):
     
     
     
