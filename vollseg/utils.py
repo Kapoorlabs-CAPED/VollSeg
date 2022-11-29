@@ -2148,10 +2148,27 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size,iou_threshold):
     
     
-   
+    
+    label_dict = {}
+    for z in range(Masks.shape[0]):
+        properties = measure.regionprops(Masks[z,:,:])
+        labels = [prop.label for prop in properties]
+        label_dict[z] = len(labels)
+    
+    validz = []
+    max_z = max(label_dict, key=label_dict.get)
+    max_labels = label_dict[max_z]
+    
+    for z in range(Masks.shape[0]):
+        
+        labels = label_dict[z]
+        if labels < 0.2 * max_labels:
+            mask[z,:,:] = 0
+    
     CopyMasks = np.copy(Masks)
     properties = measure.regionprops(CopyMasks)
     starproperties = measure.regionprops(Seeds)
+    
     bbox = [prop.bbox for prop in properties]
     Coordinates = [prop.centroid for prop in starproperties]
     KeepCoordinates = []
@@ -2188,7 +2205,6 @@ def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size,iou_threshold):
         
         CopyMasks[index] = watershed_image[index]
     
-    CopyMasks = match_labels(CopyMasks, iou_threshold=iou_threshold)   
     
     return CopyMasks
 
