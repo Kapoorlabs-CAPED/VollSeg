@@ -899,7 +899,7 @@ def _cellpose_star_time_block(cellpose_model,
     
     
     
-    max_size = diameter_cellpose 
+    max_size = 3.14 * diameter_cellpose * diameter_cellpose
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -988,7 +988,7 @@ def _cellpose_star_block(cellpose_model,
     
     cellres = None
     res = None
-    max_size = diameter_cellpose
+    max_size = 3.14 * diameter_cellpose * diameter_cellpose
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -1056,7 +1056,7 @@ def VollCellSeg(image: np.ndarray,
                 do_3D: bool =False,
                 ):
     
-    max_size = diameter_cellpose
+    max_size = 3.14 * diameter_cellpose * diameter_cellpose
     
     if prob_thresh is None and nms_thresh is None:
                         prob_thresh = star_model.thresholds.prob
