@@ -2153,11 +2153,11 @@ def CellPoseWater(Image, Masks, Seeds, mask, max_size):
     bbox = [prop.bbox for prop in properties]
     Coordinates = [prop.centroid for prop in starproperties]
     KeepCoordinates = []
-    if len(bbox) > 0:
-            for i in range(0, len(bbox)):
+    if len(Coordinates) > 0:
+            for i in range(0, len(Coordinates)):
 
-                box = bbox[i]
-                include = [SeedPool(box, star).pooling() for star in Coordinates]
+                star = Coordinates[i]
+                include = [SeedPool(box, star).pooling() for box in bbox]
 
                 if False not in include:
                     KeepCoordinates.append(Coordinates[i])
