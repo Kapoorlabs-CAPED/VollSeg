@@ -36,6 +36,7 @@ import math
 import pandas as pd
 import napari
 import glob
+from skimage.util import map_array
 from vollseg.matching import matching
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
@@ -331,23 +332,23 @@ def match_labels(ys, iou_threshold=0):
     return ys_new
 
 
-def remove_big_objects(ar, max_size=6400, connectivity=1, in_place=False):
+def remove_big_objects(ar: np.ndarray, max_size=6400):
 
-    out = ar.copy()
-    ccs = out
+    ar = np.copy(ar.astype('uint16'))
+    remove_labels = []
+    
+    properties = measure.regionprops(ar)
+    for prop in properties:
+        
+        label = prop.label
+        area = prop.area
+        if area > max_size:
+            remove_labels.append(label)
+    
+    zero_labels = [0]*len(remove_labels)
+    relabeled = map_array(sliceimage, np.asarray(remove_labels), np.asarray(zero_labels))
 
-    try:
-        component_sizes = np.bincount(ccs.ravel())
-    except ValueError:
-        raise ValueError("Negative value labels are not supported. Try "
-                         "relabeling the input with `scipy.ndimage.label` or "
-                         "`skimage.morphology.label`.")
-
-    too_big = component_sizes > max_size
-    too_big_mask = too_big[ccs]
-    out[too_big_mask] = 0
-
-    return out
+    return relabeled
 
 
 
