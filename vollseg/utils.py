@@ -334,7 +334,7 @@ def match_labels(ys, iou_threshold=0):
 
 def remove_big_objects(ar: np.ndarray, max_size=6400):
 
-    ar = np.copy(ar.astype('uint16'))
+    image = np.copy(ar.astype('uint16'))
     remove_labels = []
     
     properties = measure.regionprops(ar)
@@ -346,7 +346,7 @@ def remove_big_objects(ar: np.ndarray, max_size=6400):
             remove_labels.append(label)
     
     zero_labels = [0]*len(remove_labels)
-    relabeled = map_array(sliceimage, np.asarray(remove_labels), np.asarray(zero_labels))
+    relabeled = map_array(image, np.asarray(remove_labels), np.asarray(zero_labels))
 
     return relabeled
 
