@@ -2147,6 +2147,10 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size, nms_thresh):
     
+    Image = invertimage(Image)
+    indices = zip(*np.where(Image < 0.1))
+    for index in indices:
+        Image[index] = 0
     CopyMasks = np.copy(Masks)
     properties = measure.regionprops(CopyMasks)
     starproperties = measure.regionprops(Seeds)
