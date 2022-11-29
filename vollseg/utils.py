@@ -332,14 +332,13 @@ def match_labels(ys, iou_threshold=0):
     return ys_new
 
 
-def remove_big_objects(ar: np.ndarray, max_size=6400):
+def remove_big_objects(ar: np.ndarray, max_size):
 
     image = np.copy(ar.astype('uint16'))
     remove_labels = []
     
-    properties = measure.regionprops(ar)
+    properties = measure.regionprops(image)
     for prop in properties:
-        
         label = prop.label
         area = prop.area
         if area > max_size:
@@ -900,7 +899,7 @@ def _cellpose_star_time_block(cellpose_model,
     
     
     
-    max_size =(diameter_cellpose * 2)
+    max_size = diameter_cellpose 
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -989,7 +988,7 @@ def _cellpose_star_block(cellpose_model,
     
     cellres = None
     res = None
-    max_size = (diameter_cellpose * 2)
+    max_size = diameter_cellpose
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -1057,7 +1056,7 @@ def VollCellSeg(image: np.ndarray,
                 do_3D: bool =False,
                 ):
     
-    max_size = (diameter_cellpose * 2)
+    max_size = diameter_cellpose
     
     if prob_thresh is None and nms_thresh is None:
                         prob_thresh = star_model.thresholds.prob
