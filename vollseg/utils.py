@@ -894,10 +894,11 @@ def _cellpose_star_time_block(cellpose_model,
                         lower_perc,
                         upper_perc,
                         min_size_mask,
-                        min_size,
-                        max_size):
+                        min_size):
     
     
+    
+    max_size = math.pi * (diameter_cellpose **3) /6
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -959,12 +960,12 @@ def _cellpose_star_block(cellpose_model,
                         lower_perc,
                         upper_perc,
                         min_size_mask,
-                        min_size,
-                        max_size
+                        min_size
                         ):
     
     cellres = None
     res = None
+    max_size = math.pi * (diameter_cellpose **3) /6
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -1004,7 +1005,7 @@ def VollCellSeg(image: np.ndarray,
                 nms_thresh: float=None, 
                 min_size_mask: int =100, 
                 min_size: int =100, 
-                max_size: int =10000000,
+              
                 erosion_iterations: int = 5,
                 n_tiles: tuple = (1, 1, 1), 
                 UseProbability: bool =True,  
@@ -1019,6 +1020,8 @@ def VollCellSeg(image: np.ndarray,
                 slice_merge : bool = False, 
                 iou_threshold: float = 0.3, 
                 RGB: bool =False):
+    
+    max_size = math.pi * (diameter_cellpose **3) /6
     
     if prob_thresh is None and nms_thresh is None:
                         prob_thresh = star_model.thresholds.prob
@@ -1060,8 +1063,7 @@ def VollCellSeg(image: np.ndarray,
                         lower_perc,
                         upper_perc,
                         min_size_mask,
-                        min_size,
-                        max_size)
+                        min_size)
                             
     if len(image.shape) == 4 and 'T' not in axes:
             image_membrane = image[:,channel_membrane,:,:]
@@ -1099,8 +1101,7 @@ def VollCellSeg(image: np.ndarray,
                         lower_perc,
                         upper_perc,
                         min_size_mask,
-                        min_size,
-                        max_size)
+                        min_size)
             
                 
     if len(image.shape) > 4 and 'T' in axes:
@@ -1140,8 +1141,7 @@ def VollCellSeg(image: np.ndarray,
                         lower_perc,
                         upper_perc,
                         min_size_mask,
-                        min_size,
-                        max_size)
+                        min_size)
 
   
     if cellpose_model is not None and custom_cellpose_model:
@@ -1170,7 +1170,7 @@ def VollCellSeg(image: np.ndarray,
             Big_roi_image = np.zeros([image_membrane.shape[0],image_membrane.shape[1],image_membrane.shape[2] ])
             for z in range(Big_roi_image.shape[0]):
                 Big_roi_image[z,:,:] = roi_image
-            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, Big_roi_image,  erosion_iterations)
+            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, Big_roi_image, max_size)
         if 'T' in axes:
                 
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
@@ -1183,7 +1183,7 @@ def VollCellSeg(image: np.ndarray,
                 Big_roi_image = np.zeros([image_membrane.shape[1],image_membrane.shape[2],image_membrane.shape[3] ])
                 for z in range(Big_roi_image.shape[0]):
                     Big_roi_image[z,:,:] = roi_image
-                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, erosion_iterations)
+                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, max_size)
                 cellpose_base.append(cellpose_base_time)
                 vollcellseg.append(vollcellseg_time)
             cellpose_base = np.asarray(cellpose_base)
@@ -2106,7 +2106,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 
 
-def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
+def CellPoseWater(Image, Masks, Seeds, mask, max_size):
     
     CopyMasks = Masks.copy()
     properties = measure.regionprops(CopyMasks)
@@ -2142,7 +2142,7 @@ def CellPoseWater(Image, Masks, Seeds, mask, erosion_iterations):
         
         CopyMasks[index] = watershed_image[index]
     
-    
+    CopyMasks = remove_big_objects(CopyMasks, max_size = max_size)
     return CopyMasks
 
 def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
