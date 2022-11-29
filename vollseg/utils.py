@@ -894,7 +894,8 @@ def _cellpose_star_time_block(cellpose_model,
                         lower_perc,
                         upper_perc,
                         min_size_mask,
-                        min_size):
+                        min_size,
+                        do_3D):
     
     
     
@@ -905,7 +906,7 @@ def _cellpose_star_time_block(cellpose_model,
                     cellpose_model = models.Cellpose(gpu=gpu, model_type = cellpose_model_name)
                     cellres = tuple(
                      zip(
-                        *tuple(cellpose_model.eval(_x, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy)
+                        *tuple(cellpose_model.eval(_x, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
                                for _x in tqdm(image_nuclei))))
                     
                
@@ -913,7 +914,7 @@ def _cellpose_star_time_block(cellpose_model,
                     cellpose_model = models.CellposeModel(gpu=gpu, pretrained_model = pretrained_cellpose_model_path)
                     cellres = tuple(
                      zip(
-                        *tuple(cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy)
+                        *tuple(cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
                                for _x in tqdm(image_nuclei))))                  
                     
             
@@ -960,7 +961,8 @@ def _cellpose_star_block(cellpose_model,
                         lower_perc,
                         upper_perc,
                         min_size_mask,
-                        min_size
+                        min_size,
+                        do_3D
                         ):
     
     cellres = None
@@ -970,10 +972,10 @@ def _cellpose_star_block(cellpose_model,
                 
                 if custom_cellpose_model:
                     cellpose_model = models.Cellpose(gpu=gpu, model_type = cellpose_model_name)
-                    cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy)
+                    cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
                 else:   
                     cellpose_model = models.CellposeModel(gpu=gpu, pretrained_model = pretrained_cellpose_model_path)
-                    cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy)                  
+                    cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
             
     if star_model is not None:
                 
@@ -1019,7 +1021,8 @@ def VollCellSeg(image: np.ndarray,
                 startZ : int = 0, 
                 slice_merge : bool = False, 
                 iou_threshold: float = 0.3, 
-                RGB: bool =False):
+                do_3D: bool =False,
+                ):
     
     max_size = math.pi * (diameter_cellpose **3) /6
     
@@ -1063,7 +1066,8 @@ def VollCellSeg(image: np.ndarray,
                         lower_perc,
                         upper_perc,
                         min_size_mask,
-                        min_size)
+                        min_size,
+                        do_3D)
                             
     if len(image.shape) == 4 and 'T' not in axes:
             image_membrane = image[:,channel_membrane,:,:]
@@ -1101,7 +1105,8 @@ def VollCellSeg(image: np.ndarray,
                         lower_perc,
                         upper_perc,
                         min_size_mask,
-                        min_size)
+                        min_size,
+                        do_3D)
             
                 
     if len(image.shape) > 4 and 'T' in axes:
@@ -1141,7 +1146,8 @@ def VollCellSeg(image: np.ndarray,
                         lower_perc,
                         upper_perc,
                         min_size_mask,
-                        min_size)
+                        min_size,
+                        do_3D)
 
   
     if cellpose_model is not None and custom_cellpose_model:
