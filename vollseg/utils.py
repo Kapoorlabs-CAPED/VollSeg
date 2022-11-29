@@ -904,19 +904,40 @@ def _cellpose_star_time_block(cellpose_model,
                 
                 if custom_cellpose_model:
                     cellpose_model = models.Cellpose(gpu=gpu, model_type = cellpose_model_name)
-                    cellres = tuple(
-                     zip(
-                        *tuple(cellpose_model.eval(_x, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
-                               for _x in tqdm(image_nuclei))))
+                    if anisotropy is not None:
+                            cellres = tuple(
+                             zip(
+                                *tuple(cellpose_model.eval(_x, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
+                                       for _x in tqdm(image_nuclei))))
+                    else:
+
+                        cellres = tuple(
+                            zip(
+                                *tuple(
+                                    cellpose_model.eval(_x, diameter=diameter_cellpose, flow_threshold=flow_threshold,
+                                                        cellprob_threshold=cellprob_threshold,
+                                                        stitch_threshold=stitch_threshold,
+                                                        do_3D=do_3D)
+                                    for _x in tqdm(image_nuclei))))
                     
                
                 else:   
                     cellpose_model = models.CellposeModel(gpu=gpu, pretrained_model = pretrained_cellpose_model_path)
-                    cellres = tuple(
-                     zip(
-                        *tuple(cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
-                               for _x in tqdm(image_nuclei))))                  
-                    
+                    if anisotropy is not None:
+                        cellres = tuple(
+                         zip(
+                            *tuple(cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
+                                   for _x in tqdm(image_nuclei))))
+                    else:
+                        cellres = tuple(
+                            zip(
+                                *tuple(cellpose_model.eval(image_membrane, diameter=diameter_cellpose,
+                                                           flow_threshold=flow_threshold,
+                                                           cellprob_threshold=cellprob_threshold,
+                                                           stitch_threshold=stitch_threshold,
+                                                           do_3D=do_3D)
+                                       for _x in tqdm(image_nuclei))))
+
             
     if star_model is not None:
                   if prob_thresh is None and nms_thresh is None:
@@ -972,11 +993,22 @@ def _cellpose_star_block(cellpose_model,
                 
                 if custom_cellpose_model:
                     cellpose_model = models.Cellpose(gpu=gpu, model_type = cellpose_model_name)
-                    cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
+                    if anisotropy is not None:
+                       cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
+                    else:
+                        cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,
+                                                      flow_threshold=flow_threshold,
+                                                      cellprob_threshold=cellprob_threshold,
+                                                      stitch_threshold=stitch_threshold,
+                                                      do_3D=do_3D)
+
                 else:   
                     cellpose_model = models.CellposeModel(gpu=gpu, pretrained_model = pretrained_cellpose_model_path)
-                    cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
-            
+                    if anisotropy is not None:
+                        cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
+                    else:
+                        cellres = cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, do_3D=do_3D)
+
     if star_model is not None:
                 
                 res = VollSeg3D(image_nuclei,  unet_model, star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
