@@ -341,6 +341,7 @@ def remove_big_objects(ar: np.ndarray, max_size):
     for prop in properties:
         label = prop.label
         area = prop.area
+        print('area',area, max_size)
         if area > max_size:
             remove_labels.append(label)
     
