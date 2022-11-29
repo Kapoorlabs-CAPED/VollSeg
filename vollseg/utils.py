@@ -2159,9 +2159,11 @@ def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size):
             for i in range(0, len(Coordinates)):
 
                 star = Coordinates[i]
-                value = Masks[int(star[0]),int(star[1]),int(star[2])]
+                value = []
+                for i in range(Image.shape[0]):
+                   value.append(Masks[i,int(star[1]),int(star[2])])
 
-                if value==0:
+                if all(value)==0:
                     KeepCoordinates.append(Coordinates[i])
                     
                     
