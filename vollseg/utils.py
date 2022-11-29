@@ -2159,9 +2159,9 @@ def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size):
             for i in range(0, len(Coordinates)):
 
                 star = Coordinates[i]
-                include = [SeedPool(box, star).pooling() for box in bbox]
+                value = Masks[int(star[0]),int(star[1]),int(star[2])]
 
-                if False not in include:
+                if value==0:
                     KeepCoordinates.append(Coordinates[i])
                     
                     
@@ -2181,6 +2181,9 @@ def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size):
     for i in range(watershed_image.shape[0]):
        watershed_image[i,:,:] = remove_small_objects(watershed_image[i,:,:], min_size = min_size) 
        watershed_image[i,:,:] = remove_big_objects(watershed_image[i,:,:], max_size = max_size)
+       
+  
+       
     for index in empy_region_indices:
         
         CopyMasks[index] = watershed_image[index]
