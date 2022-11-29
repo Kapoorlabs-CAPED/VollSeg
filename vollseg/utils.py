@@ -2184,7 +2184,6 @@ def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size, nms_thresh):
        CopyMasks[i,:,:] = remove_small_objects(CopyMasks[i,:,:], min_size = min_size) 
        CopyMasks[i,:,:] = remove_big_objects(CopyMasks[i,:,:], max_size = max_size)
        
-    CopyMasks =  NMSLabel(image= CopyMasks, nms_thresh=nms_thresh).supresslabels()   
     
     return CopyMasks
 
