@@ -1209,7 +1209,7 @@ def VollCellSeg(image: np.ndarray,
             Big_roi_image = np.zeros([image_membrane.shape[0],image_membrane.shape[1],image_membrane.shape[2] ])
             for z in range(Big_roi_image.shape[0]):
                 Big_roi_image[z,:,:] = roi_image
-            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, Big_roi_image, min_size, max_size)
+            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, Big_roi_image, min_size_mask, max_size, nms_thresh)
         if 'T' in axes:
                 
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
@@ -1222,7 +1222,7 @@ def VollCellSeg(image: np.ndarray,
                 Big_roi_image = np.zeros([image_membrane.shape[1],image_membrane.shape[2],image_membrane.shape[3] ])
                 for z in range(Big_roi_image.shape[0]):
                     Big_roi_image[z,:,:] = roi_image
-                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, min_size, max_size)
+                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, min_size_mask, max_size, nms_thresh)
                 cellpose_base.append(cellpose_base_time)
                 vollcellseg.append(vollcellseg_time)
             cellpose_base = np.asarray(cellpose_base)
@@ -2145,7 +2145,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 
 
-def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size):
+def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size, nms_thresh):
     
     CopyMasks = np.copy(Masks)
     properties = measure.regionprops(CopyMasks)
@@ -2183,6 +2183,9 @@ def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size):
     for i in range(CopyMasks.shape[0]):
        CopyMasks[i,:,:] = remove_small_objects(CopyMasks[i,:,:], min_size = min_size) 
        CopyMasks[i,:,:] = remove_big_objects(CopyMasks[i,:,:], max_size = max_size)
+       
+    CopyMasks =  NMSLabel(image= CopyMasks, nms_thresh=nms_thresh).supresslabels()   
+    
     return CopyMasks
 
 def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
