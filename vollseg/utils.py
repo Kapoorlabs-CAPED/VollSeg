@@ -334,21 +334,21 @@ def match_labels(ys, iou_threshold=0):
 
 def remove_big_objects(ar: np.ndarray, max_size):
 
-    image = np.copy(ar.astype('uint16'))
-    remove_labels = []
-    
-    properties = measure.regionprops(image)
-    for prop in properties:
-        label = prop.label
-        area = prop.area
-        print('area',area, max_size)
-        if area > max_size:
-            remove_labels.append(label)
-    
-    zero_labels = [0]*len(remove_labels)
-    relabeled = map_array(image, np.asarray(remove_labels), np.asarray(zero_labels))
+    out = ar.copy()
+    ccs = out
 
-    return relabeled
+    try:
+        component_sizes = np.bincount(ccs.ravel())
+    except ValueError:
+        raise ValueError("Negative value labels are not supported. Try "
+                         "relabeling the input with `scipy.ndimage.label` or "
+                         "`skimage.morphology.label`.")
+
+    too_big = component_sizes > max_size
+    too_big_mask = too_big[ccs]
+    out[too_big_mask] = 0
+
+    return out
 
 
 
@@ -900,7 +900,7 @@ def _cellpose_star_time_block(cellpose_model,
     
     
     
-    max_size = 3.14 * diameter_cellpose * diameter_cellpose
+    max_size =  diameter_cellpose * diameter_cellpose
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -989,7 +989,7 @@ def _cellpose_star_block(cellpose_model,
     
     cellres = None
     res = None
-    max_size = 3.14 * diameter_cellpose * diameter_cellpose
+    max_size =  diameter_cellpose * diameter_cellpose
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -1057,7 +1057,7 @@ def VollCellSeg(image: np.ndarray,
                 do_3D: bool =False,
                 ):
     
-    max_size = 3.14 * diameter_cellpose * diameter_cellpose
+    max_size = diameter_cellpose * diameter_cellpose
     
     if prob_thresh is None and nms_thresh is None:
                         prob_thresh = star_model.thresholds.prob
