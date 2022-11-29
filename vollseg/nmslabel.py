@@ -8,6 +8,8 @@ class NMSLabel(object):
         self.nms_thresh = nms_thresh
 
     def supresslabels(self):
+        
+        print('Supressing spurious labels, this can take some time')
         properties = measure.regionprops(self.image)
         Bbox = [prop.bbox for prop in properties] 
         Labels = [prop.label for prop in properties]
