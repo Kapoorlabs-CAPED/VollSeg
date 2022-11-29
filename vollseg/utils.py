@@ -2145,7 +2145,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 
 
-def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size,nms_threshold):
+def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size,nms_thresh):
     
     
     
