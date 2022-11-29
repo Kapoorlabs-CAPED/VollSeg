@@ -899,7 +899,7 @@ def _cellpose_star_time_block(cellpose_model,
     
     
     
-    max_size = math.pi * (diameter_cellpose **3) /6
+    max_size = math.pi * (diameter_cellpose **2)
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -988,7 +988,7 @@ def _cellpose_star_block(cellpose_model,
     
     cellres = None
     res = None
-    max_size = math.pi * (diameter_cellpose **3) /6
+    max_size = math.pi * (diameter_cellpose **2)
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -1056,7 +1056,7 @@ def VollCellSeg(image: np.ndarray,
                 do_3D: bool =False,
                 ):
     
-    max_size = math.pi * (diameter_cellpose **3) /6
+    max_size = math.pi * (diameter_cellpose **2)
     
     if prob_thresh is None and nms_thresh is None:
                         prob_thresh = star_model.thresholds.prob
@@ -2146,7 +2146,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 def CellPoseWater(Image, Masks, Seeds, mask, max_size):
     
-    CopyMasks = Masks.copy()
+    CopyMasks = np.copy(Masks)
     properties = measure.regionprops(CopyMasks)
     starproperties = measure.regionprops(Seeds)
     bbox = [prop.bbox for prop in properties]
@@ -2179,8 +2179,8 @@ def CellPoseWater(Image, Masks, Seeds, mask, max_size):
     for index in empy_region_indices:
         
         CopyMasks[index] = watershed_image[index]
-    
-    CopyMasks = remove_big_objects(CopyMasks, max_size = max_size)
+    for i in range(CopyMasks.shape[0]):
+       CopyMasks[i,:,:] = remove_big_objects(CopyMasks[i,:,:], max_size = max_size)
     return CopyMasks
 
 def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
