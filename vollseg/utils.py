@@ -2195,10 +2195,11 @@ def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size,iou_threshold):
     watershed_image = fill_label_holes(watershed_image)
     
     empy_region_indices = zip(*np.where(CopyMasks == 0))
-    
+    watershed_image =  NMSLabel(image= watershed_image, nms_thresh=nms_thresh).supresslabels()
     for index in empy_region_indices:
         
         CopyMasks[index] = watershed_image[index]
+        
     for i in range(CopyMasks.shape[0]):
        CopyMasks[i,:,:] = remove_small_objects(CopyMasks[i,:,:], min_size = min_size) 
        CopyMasks[i,:,:] = remove_big_objects(CopyMasks[i,:,:], max_size = max_size)
