@@ -43,7 +43,7 @@ from vollseg.unetstarmask import UnetStarMask
 from vollseg.nmslabel import NMSLabel
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
-import diplib as dip
+
 from skimage.filters import threshold_multiotsu
 from scipy.ndimage.measurements import find_objects
 from cellpose import models
@@ -449,7 +449,7 @@ def SmartSkel(smart_seedsLabels, ProbImage, RGB = False):
     pixel_replace_condition = 0
     image_max = image_conditionals(image_max,pixel_condition,pixel_replace_condition )
 
-    Skeleton = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
+    Skeleton = skeletonize(image_max.astype > 0)
 
     return Skeleton
 
@@ -459,7 +459,7 @@ def Skel(smart_seedsLabels, RGB = False):
         return smart_seedsLabels > 0
     image_max = find_boundaries(smart_seedsLabels)
     
-    Skeleton = np.array(dip.UpperSkeleton2D(image_max.astype('float32')))
+    Skeleton = skeletonize(image_max.astype > 0)
 
     return Skeleton
 
