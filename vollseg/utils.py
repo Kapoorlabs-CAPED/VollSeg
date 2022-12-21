@@ -2100,8 +2100,9 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     
     if model_dim < len(image.shape):
         Segmented = np.zeros_like(image)
+        
         for i in range(image.shape[0]):
-            Segmented[i] = model.predict(image[i].astype('float32'), axis, n_tiles= (n_tiles[-2], n_tiles[-1]))
+            Segmented[i] = model.predict(image[i].astype('float32'), axis.eplace('Z', ''), n_tiles= (n_tiles[-2], n_tiles[-1]))
             
         Segmented = match_labels(Segmented.astype('uint16'),
                               iou_threshold=iou_threshold)    
