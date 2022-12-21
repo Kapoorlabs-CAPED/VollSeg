@@ -1286,7 +1286,7 @@ def VollCellSeg(image: np.ndarray,
             cellpose_results = save_dir + 'CellPose/'
             Path(cellpose_results).mkdir(exist_ok=True)
             imwrite((cellpose_results + Name + '.tif'),
-                    np.asarray(masks).astype('uint16'))
+                    np.asarray(cellpose_masks).astype('uint16'))
             
             vollcellpose_results = save_dir + 'VollCellPose/'
             Path(vollcellpose_results).mkdir(exist_ok=True)
