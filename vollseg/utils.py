@@ -1351,11 +1351,11 @@ def VollCellSeg(image: np.ndarray,
     
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None:
 
-        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image, masks, vollcellseg
+        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image, cellpose_masks, vollcellseg
     
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None:
 
-        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton, roi_image, masks, vollcellseg
+        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton, roi_image, cellpose_masks, vollcellseg
 
     elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is None:
 
@@ -1363,11 +1363,11 @@ def VollCellSeg(image: np.ndarray,
     
     elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is not None:
 
-        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, masks, vollcellseg 
+        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, cellpose_masks, vollcellseg 
     
     elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is not None and unet_membrane_model is not None:
 
-        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton, masks, vollcellseg  
+        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton, cellpose_masks, vollcellseg  
     
 
     # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
@@ -1377,11 +1377,11 @@ def VollCellSeg(image: np.ndarray,
     
     elif noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None:
       
-        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image, masks, vollcellseg
+        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image, cellpose_masks, vollcellseg
     
     elif noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None:
       
-        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image, masks, vollcellseg
+        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image, cellpose_masks, vollcellseg
     
 
     elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is None:
@@ -1390,11 +1390,11 @@ def VollCellSeg(image: np.ndarray,
     
     elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None:
 
-        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, masks, vollcellseg   
+        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, cellpose_masks, vollcellseg   
     
     elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None and unet_membrane_model is not None:
 
-        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton,  image, masks, vollcellseg
+        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton,  image, cellpose_masks, vollcellseg
      
 
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
