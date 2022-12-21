@@ -877,6 +877,7 @@ def _cellpose_star_time_block(cellpose_model,
                         pretrained_cellpose_model_path,
                         gpu,
                         unet_model,
+                        unet_membrane_model,
                         star_model, 
                         roi_model,
                         ExpandLabels,
@@ -896,11 +897,11 @@ def _cellpose_star_time_block(cellpose_model,
                         upper_perc,
                         min_size_mask,
                         min_size,
+                        max_size,
                         do_3D):
     
     
     
-    max_size =  3.14 * diameter_cellpose * diameter_cellpose
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -947,7 +948,7 @@ def _cellpose_star_time_block(cellpose_model,
                   res = tuple(
                      zip(
                         *tuple(VollSeg3D(_x,  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-                                        n_tiles=n_tiles, UseProbability=UseProbability,
+                                        n_tiles=n_tiles, UseProbability=UseProbability, unet_membrane_model = unet_membrane_model,
                                         dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for _x in tqdm(image_nuclei))))
     
     return cellres, res
@@ -965,6 +966,7 @@ def _cellpose_star_block(cellpose_model,
                         pretrained_cellpose_model_path,
                         gpu,
                         unet_model,
+                        unet_membrane_model,
                         star_model, 
                         roi_model,
                         ExpandLabels,
@@ -984,12 +986,12 @@ def _cellpose_star_block(cellpose_model,
                         upper_perc,
                         min_size_mask,
                         min_size,
+                        max_size,
                         do_3D
                         ):
     
     cellres = None
     res = None
-    max_size = 3.14 * diameter_cellpose * diameter_cellpose
     if cellpose_model is not None:
                 
                 if custom_cellpose_model:
@@ -1012,8 +1014,8 @@ def _cellpose_star_block(cellpose_model,
 
     if star_model is not None:
                 
-                res = VollSeg3D(image_nuclei,  unet_model, star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-                                    n_tiles=n_tiles, UseProbability=UseProbability,  dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
+                res = VollSeg3D(image_nuclei,  unet_model,  star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
+                                    n_tiles=n_tiles, UseProbability=UseProbability,unet_membrane_model = unet_membrane_model,  dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
                     
     return cellres, res
 
@@ -1027,6 +1029,7 @@ def VollCellSeg(image: np.ndarray,
                 anisotropy = None,
                 star_model = None, 
                 unet_model = None,
+                unet_membrane_model = None,
                 roi_model = None,
                 noise_model=None,
                 cellpose_model = None, 
@@ -1040,7 +1043,7 @@ def VollCellSeg(image: np.ndarray,
                 nms_thresh: float=None, 
                 min_size_mask: int =100, 
                 min_size: int =100, 
-              
+                max_size: int = 10000,
                 erosion_iterations: int = 5,
                 n_tiles: tuple = (1, 1, 1), 
                 UseProbability: bool =True,  
@@ -1057,7 +1060,6 @@ def VollCellSeg(image: np.ndarray,
                 do_3D: bool =False,
                 ):
     
-    max_size = 3.14 * diameter_cellpose * diameter_cellpose
     
     if prob_thresh is None and nms_thresh is None:
                         prob_thresh = star_model.thresholds.prob
@@ -1081,6 +1083,7 @@ def VollCellSeg(image: np.ndarray,
                         pretrained_cellpose_model_path,
                         gpu,
                         unet_model,
+                        unet_membrane_model,
                         star_model, 
                         roi_model,
                         ExpandLabels,
@@ -1120,6 +1123,7 @@ def VollCellSeg(image: np.ndarray,
                         pretrained_cellpose_model_path,
                         gpu,
                         unet_model,
+                        unet_membrane_model,
                         star_model, 
                         roi_model,
                         ExpandLabels,
@@ -1139,6 +1143,7 @@ def VollCellSeg(image: np.ndarray,
                         upper_perc,
                         min_size_mask,
                         min_size,
+                        max_size,
                         do_3D)
             
                 
@@ -1161,6 +1166,7 @@ def VollCellSeg(image: np.ndarray,
                         pretrained_cellpose_model_path,
                         gpu,
                         unet_model,
+                        unet_membrane_model,
                         star_model, 
                         roi_model,
                         ExpandLabels,
@@ -1180,6 +1186,7 @@ def VollCellSeg(image: np.ndarray,
                         upper_perc,
                         min_size_mask,
                         min_size,
+                        max_size,
                         do_3D)
 
   
@@ -1194,6 +1201,11 @@ def VollCellSeg(image: np.ndarray,
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None:
         Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res    
         cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane)
+    
+    if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None:
+        Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res    
+        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMembraneMask, min_size_mask, max_size, nms_thresh, image_membrane)
+
 
 
     if noise_model is None and star_model is not None and  roi_model is None:
@@ -1202,6 +1214,10 @@ def VollCellSeg(image: np.ndarray,
     if noise_model is None and star_model is not None and  roi_model is None and cellpose_model is not None:
         Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton = res
         cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane)
+    
+    if noise_model is None and star_model is not None and  roi_model is None and cellpose_model is not None and unet_membrane_model is not None:
+        Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton = res
+        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMembraneMask, min_size_mask, max_size, nms_thresh, image_membrane)
   
 
     if noise_model is not None and star_model is not None and  roi_model is not None:
@@ -1210,6 +1226,10 @@ def VollCellSeg(image: np.ndarray,
     if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None:
         Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image = res    
         cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane)
+   
+    if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None:
+        Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image = res    
+        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMembraneMask, min_size_mask, max_size, nms_thresh, image_membrane)
 
 
     if noise_model is not None and star_model is not None and  roi_model is None:
@@ -1219,7 +1239,12 @@ def VollCellSeg(image: np.ndarray,
         
               Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
               cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane)
+      
+    if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None:
         
+              Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
+              cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMembraneMask, min_size_mask, max_size, nms_thresh, image_membrane)
+            
         
     elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
 
@@ -1268,7 +1293,14 @@ def VollCellSeg(image: np.ndarray,
             imwrite((vollcellpose_results + Name + '.tif'),
                     np.asarray(vollcellseg).astype('uint16'))
             
-
+        if unet_membrane_model is not None:
+            
+            unet_membrane_results = save_dir + 'BinaryMembraneMask/'
+            Path(unet_membrane_results).mkdir(exist_ok=True)
+             
+            imwrite((unet_membrane_results + Name + '.tif'),
+                    np.asarray(SizedMembraneMask).astype('uint16'))
+        
         if  roi_model is not None:
             roi_results = save_dir + 'Roi/'
             Path(roi_results).mkdir(exist_ok=True)
@@ -1320,6 +1352,10 @@ def VollCellSeg(image: np.ndarray,
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None:
 
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image, masks, vollcellseg
+    
+    if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None:
+
+        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton, roi_image, masks, vollcellseg
 
     elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is None:
 
@@ -1327,7 +1363,12 @@ def VollCellSeg(image: np.ndarray,
     
     elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is not None:
 
-        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, masks, vollcellseg   
+        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, masks, vollcellseg 
+    
+    elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is not None and unet_membrane_model is not None:
+
+        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton, masks, vollcellseg  
+    
 
     # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
     elif noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is None:
@@ -1337,6 +1378,11 @@ def VollCellSeg(image: np.ndarray,
     elif noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None:
       
         return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image, masks, vollcellseg
+    
+    elif noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None:
+      
+        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image, masks, vollcellseg
+    
 
     elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is None:
 
@@ -1344,7 +1390,12 @@ def VollCellSeg(image: np.ndarray,
     
     elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None:
 
-        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, masks, vollcellseg    
+        return Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, masks, vollcellseg   
+    
+    elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None and unet_membrane_model is not None:
+
+        return Sizedsmart_seeds, SizedMask, SizedMembraneMask, star_labels, proabability_map, Markers, Skeleton,  image, masks, vollcellseg
+     
 
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
     elif star_model is None and  roi_model is not None and noise_model is not None and cellpose_model is None:
@@ -1595,7 +1646,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2), UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
+              n_tiles=(1, 2, 2), unet_membrane_model = None, UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
 
    
 
@@ -1608,6 +1659,8 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
     else:
                 tiles = n_tiles
     SizedMask = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
+    if unet_membrane_model is not None:
+        SizedMembraneMask = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Sizedsmart_seeds = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Sizedproabability_map = np.zeros([sizeZ, sizeY, sizeX], dtype='float32')
     Sizedmarkers = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
@@ -1673,6 +1726,25 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         endrow = image.shape[2]
         endcol = image.shape[1]
         roi_bbox = [colstart, rowstart, endcol, endrow]
+
+
+    if unet_membrane_model is not None:
+            print('UNET membrane segmentation on Image',  patch.shape)
+
+            MembraneMask = UNETPrediction3D(patch, unet_membrane_model, n_tiles, axes,
+                                    iou_threshold=iou_threshold, slice_merge=slice_merge, ExpandLabels = ExpandLabels)
+            for i in range(0, MembraneMask.shape[0]):
+                    MembraneMask[i, :] = remove_small_objects(
+                            MembraneMask[i, :].astype('uint16'), min_size=min_size_mask)
+                    MembraneMask[i, :] = remove_big_objects(
+                            MembraneMask[i, :].astype('uint16'), max_size=max_size)
+            MembraneMask_patch = MembraneMask.copy()
+            MembraneMask = Region_embedding(image, roi_bbox, MembraneMask)
+            if slice_merge:
+                MembraneMask = match_labels(MembraneMask.astype('uint16'), iou_threshold=iou_threshold)
+            else:
+                MembraneMask = label(MembraneMask > 0)
+            SizedMembraneMask[:, :MembraneMask.shape[1], :MembraneMask.shape[2]] = MembraneMask
 
     if dounet:
 
@@ -1779,6 +1851,30 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
 
     if noise_model is None and roi_image is None and star_model is None and unet_model is not None:
          return SizedMask.astype('uint16'), Skeleton, image
+     
+    
+    #With membrane model
+    
+    if noise_model is None and roi_image is not None and star_model is not None and unet_membrane_model is not None:
+        return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), SizedMembraneMask.astype('uint16') ,star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), roi_image.astype('uint16')
+    if noise_model is None and roi_image is None and star_model is not None and unet_membrane_model is not None:
+        return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), SizedMembraneMask.astype('uint16') , star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16')    
+    if noise_model is not None and roi_image is None and star_model is not None and unet_membrane_model is not None:
+        return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), SizedMembraneMask.astype('uint16') , star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'),  image
+    if noise_model is not None and roi_image is not None and star_model is not None and unet_membrane_model is not None:
+        return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'),SizedMembraneMask.astype('uint16') , star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'),  image, roi_image.astype('uint16')
+    
+    if noise_model is not None and roi_image is not None and star_model is None and unet_membrane_model is not None:
+        return  SizedMask.astype('uint16'),SizedMembraneMask.astype('uint16') , Skeleton, image
+    
+    if noise_model is not None and roi_image is None and star_model is None and unet_model is None and unet_membrane_model is not None:
+         return SizedMask.astype('uint16'),SizedMembraneMask.astype('uint16') , Skeleton, image
+
+    if noise_model is None and roi_image is None and star_model is None and unet_model is not None and unet_membrane_model is not None:
+         return SizedMask.astype('uint16'),SizedMembraneMask.astype('uint16') , Skeleton, image
+
+    
+     
 
            
 def image_pixel_duplicator(image, size):
@@ -2230,8 +2326,10 @@ def CellPoseWater(Image, Masks, Seeds, mask, min_size, max_size,nms_thresh):
         CopyMasks[index] = watershed_image[index]
         
     for i in range(CopyMasks.shape[0]):
-       CopyMasks[i,:,:] = remove_small_objects(CopyMasks[i,:,:], min_size = min_size) 
-       CopyMasks[i,:,:] = remove_big_objects(CopyMasks[i,:,:], max_size = max_size)
+       CopyMasks[i] = remove_small_objects(CopyMasks[i], min_size = min_size) 
+       CopyMasks[i] = remove_big_objects(CopyMasks[i], max_size = max_size)
+    
+    CopyMasks =  NMSLabel(image= CopyMasks, nms_thresh=nms_thresh).supresslabels()
     
     return CopyMasks
 
