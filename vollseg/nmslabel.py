@@ -3,9 +3,10 @@ import numpy as np
 import vollseg.utils
 class NMSLabel(object):
 
-    def __init__(self, image, nms_thresh):
+    def __init__(self, image, nms_thresh, z_thresh = 2):
         self.image = image 
         self.nms_thresh = nms_thresh
+        self.z_thresh = z_thresh
 
     def supresslabels(self):
         
@@ -30,7 +31,37 @@ class NMSLabel(object):
                 pixel_replace_condition = v
                 self.image = vollseg.utils.image_conditionals(self.image,pixel_condition,pixel_replace_condition )
 
-        return self.image       
+        return self.image
+           
+    def supressregions(self):
+        
+        print('Supressing spurious labels, this can take some time')
+        properties = measure.regionprops(self.image)
+        Bbox = [prop.bbox for prop in properties] 
+        Labels = [prop.label for prop in properties]
+        self.supressregion = {}
+        for pos in (range(len(Labels))):
+                        current_label = Labels[pos]
+                        self.smallz(Bbox[pos], current_label)
+
+                
+        for (k,v) in self.supressregion.items():
+                pixel_condition = (self.image == k)
+                pixel_replace_condition = v
+                self.image = vollseg.utils.image_conditionals(self.image,pixel_condition,pixel_replace_condition )
+
+        return self.image
+        
+        
+        
+    def smallz(self, box, label):
+        
+        ndim = len(self.image.shape)
+        if ndim == 3:
+            z = abs(box[2] - box[5])
+            if z <= self.z_thresh:
+                self.supressregion[label] = 0
+        
     def iou(self, boxA, boxB, labelA, labelB):
 
         ndim = len(self.image.shape)
