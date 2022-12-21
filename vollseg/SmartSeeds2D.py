@@ -224,7 +224,7 @@ class SmartSeeds2D(object):
                            imwrite((self.base_dir + self.real_mask_dir + Name + self.pattern), Binaryimage)
                     
                     
-                    if self.train_seed_unet and len(RealMask) > 0  and len(ErodeMask) < len(RealMask):
+                    if len(RealMask) > 0  and len(ErodeMask) < len(RealMask):
                         print('Generating Eroded Binary images')
                                
                         with concurrent.futures.ThreadPoolExecutor(max_workers = nthreads) as executor:
@@ -238,7 +238,7 @@ class SmartSeeds2D(object):
                             
                                 
 
-                    if self.train_unet and len(RealMask) > 0  and len(Mask) < len(RealMask):
+                    if len(RealMask) > 0  and len(Mask) < len(RealMask):
                         print('Generating Binary images')
                                
                 
@@ -294,6 +294,7 @@ class SmartSeeds2D(object):
                           
                       else:
                          
+                            if self.train_unet:
                                     raw_data = RawData.from_folder (
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],
@@ -307,7 +308,8 @@ class SmartSeeds2D(object):
                                     n_patches_per_image = self.n_patches_per_image,
                                     save_file           = self.base_dir + self.npz_filename + '.npz',
                                     )
-                             
+                                    
+                            if self.train_seed_unet: 
                                     raw_data = RawData.from_folder (
                                     basepath    = self.base_dir,
                                     source_dirs = [self.raw_dir],

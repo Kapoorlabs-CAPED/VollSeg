@@ -29,7 +29,6 @@ setup(
         "tifffile",
         "matplotlib",
         "napari",
-        "diplib",
         "cellpose",
        
     ],

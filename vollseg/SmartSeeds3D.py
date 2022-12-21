@@ -223,7 +223,7 @@ class SmartSeeds3D(object):
                 
                     
                     
-                    if self.train_unet and len(RealMask) > 0  and len(Mask) < len(RealMask):
+                    if len(RealMask) > 0  and len(Mask) < len(RealMask):
                         print('Generating Binary images')
                
                                
