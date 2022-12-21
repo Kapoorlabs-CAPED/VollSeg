@@ -1190,39 +1190,35 @@ def VollCellSeg(image: np.ndarray,
 
     if noise_model is None and star_model is not None and  roi_model is not None:
         Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
+        
+    if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res    
+        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane)
+
 
     if noise_model is None and star_model is not None and  roi_model is None:
-        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton = res    
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton = res  
+        
+    if noise_model is None and star_model is not None and  roi_model is None and cellpose_model is not None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton = res
+        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane)
+  
 
-    elif noise_model is not None and star_model is not None and  roi_model is not None:
+    if noise_model is not None and star_model is not None and  roi_model is not None:
         Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image = res
+        
+    if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image = res    
+        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane)
 
-    elif noise_model is not None and star_model is not None and  roi_model is None:
+
+    if noise_model is not None and star_model is not None and  roi_model is None:
         Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image = res    
         
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None:
         
-        if 'T' not in axes:   
-            Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
-            cellpose_base = np.max(flows[0], axis = -1)
-            cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
-            
-            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size,nms_thresh)
-        if 'T' in axes:
-                
-            Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
-            cellpose_base = []
-            vollcellseg = []
-            for time in range(image_membrane.shape[0]):
-                cellpose_base_time = np.max(flows[0], axis = -1)[time,:,:,:]
-                masks_time = masks[time,:,:,:]
-                cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
-               
-                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], SizedMask, min_size_mask, max_size,nms_thresh)
-                cellpose_base.append(cellpose_base_time)
-                vollcellseg.append(vollcellseg_time)
-            cellpose_base = np.asarray(cellpose_base)
-            vollcellseg = np.asarray(vollcellseg_time)    
+              Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
+              cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane)
         
         
     elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
@@ -1372,7 +1368,8 @@ def VollCellSeg(image: np.ndarray,
         return SizedMask, Skeleton, image    
 
 
-def _cellpose_block(axes, cellpose_base, flows, lower_perc, upper_perc, masks,Sizedsmart_seeds,SizedMask, min_size_mask, max_size,nms_thresh,image_membrane ):
+def _cellpose_block(axes, flows, lower_perc, upper_perc, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane):
+    
     if 'T' not in axes:   
             cellpose_base = np.max(flows[0], axis = -1)
             cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
