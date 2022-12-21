@@ -1834,22 +1834,22 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             Skeleton = Skeleton > 0
 
 
-    if noise_model is None and roi_image is not None and star_model is not None:
+    if noise_model is None and roi_image is not None and star_model is not None and unet_membrane_model is None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), roi_image.astype('uint16')
-    if noise_model is None and roi_image is None and star_model is not None:
+    if noise_model is None and roi_image is None and star_model is not None and unet_membrane_model is None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16')    
-    if noise_model is not None and roi_image is None and star_model is not None:
+    if noise_model is not None and roi_image is None and star_model is not None and unet_membrane_model is None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'),  image
-    if noise_model is not None and roi_image is not None and star_model is not None:
+    if noise_model is not None and roi_image is not None and star_model is not None and unet_membrane_model is None:
         return Sizedsmart_seeds.astype('uint16'), SizedMask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'),  image, roi_image.astype('uint16')
     
-    if noise_model is not None and roi_image is not None and star_model is None:
+    if noise_model is not None and roi_image is not None and star_model is None and unet_membrane_model is None:
         return  SizedMask.astype('uint16'), Skeleton, image
     
-    if noise_model is not None and roi_image is None and star_model is None and unet_model is None:
+    if noise_model is not None and roi_image is None and star_model is None and unet_model is None and unet_membrane_model is None:
          return SizedMask.astype('uint16'), Skeleton, image
 
-    if noise_model is None and roi_image is None and star_model is None and unet_model is not None:
+    if noise_model is None and roi_image is None and star_model is None and unet_model is not None and unet_membrane_model is None:
          return SizedMask.astype('uint16'), Skeleton, image
      
     
