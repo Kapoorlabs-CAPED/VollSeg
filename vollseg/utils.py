@@ -449,7 +449,7 @@ def SmartSkel(smart_seedsLabels, ProbImage, RGB = False):
     pixel_replace_condition = 0
     image_max = image_conditionals(image_max,pixel_condition,pixel_replace_condition )
 
-    Skeleton = skeletonize(image_max.astype > 0)
+    Skeleton = skeletonize(image_max.astype('uint16') > 0)
 
     return Skeleton
 
@@ -459,7 +459,7 @@ def Skel(smart_seedsLabels, RGB = False):
         return smart_seedsLabels > 0
     image_max = find_boundaries(smart_seedsLabels)
     
-    Skeleton = skeletonize(image_max.astype > 0)
+    Skeleton = skeletonize(image_max.astype('uint16') > 0)
 
     return Skeleton
 
