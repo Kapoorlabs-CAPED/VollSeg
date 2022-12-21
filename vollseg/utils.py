@@ -1206,10 +1206,8 @@ def VollCellSeg(image: np.ndarray,
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
             cellpose_base = np.max(flows[0], axis = -1)
             cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
-            Big_roi_image = np.zeros([image_membrane.shape[0],image_membrane.shape[1],image_membrane.shape[2] ])
-            for z in range(Big_roi_image.shape[0]):
-                Big_roi_image[z,:,:] = roi_image
-            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, Big_roi_image, min_size_mask, max_size,nms_thresh)
+            
+            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size,nms_thresh)
         if 'T' in axes:
                 
             Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = res
@@ -1219,10 +1217,8 @@ def VollCellSeg(image: np.ndarray,
                 cellpose_base_time = np.max(flows[0], axis = -1)[time,:,:,:]
                 masks_time = masks[time,:,:,:]
                 cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
-                Big_roi_image = np.zeros([image_membrane.shape[1],image_membrane.shape[2],image_membrane.shape[3] ])
-                for z in range(Big_roi_image.shape[0]):
-                    Big_roi_image[z,:,:] = roi_image
-                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], Big_roi_image, min_size_mask, max_size,nms_thresh)
+               
+                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], SizedMask, min_size_mask, max_size,nms_thresh)
                 cellpose_base.append(cellpose_base_time)
                 vollcellseg.append(vollcellseg_time)
             cellpose_base = np.asarray(cellpose_base)
@@ -1374,6 +1370,31 @@ def VollCellSeg(image: np.ndarray,
     elif star_model is None and  roi_model is  None and noise_model is None and unet_model is not None and cellpose_model is None:
 
         return SizedMask, Skeleton, image    
+
+
+def _cellpose_block(axes, cellpose_base, flows, lower_perc, upper_perc, masks,Sizedsmart_seeds,SizedMask, min_size_mask, max_size,nms_thresh,image_membrane ):
+    if 'T' not in axes:   
+            cellpose_base = np.max(flows[0], axis = -1)
+            cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
+            vollcellseg = CellPoseWater(cellpose_base, masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size,nms_thresh)
+            
+    if 'T' in axes:
+                
+            cellpose_base = []
+            vollcellseg = []
+            for time in range(image_membrane.shape[0]):
+                cellpose_base_time = np.max(flows[0], axis = -1)[time,:,:,:]
+                masks_time = masks[time,:,:,:]
+                cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
+               
+                vollcellseg_time = CellPoseWater(cellpose_base_time, masks_time, Sizedsmart_seeds[time,:,:,:], SizedMask, min_size_mask, max_size,nms_thresh)
+                cellpose_base.append(cellpose_base_time)
+                vollcellseg.append(vollcellseg_time)
+            cellpose_base = np.asarray(cellpose_base)
+            vollcellseg = np.asarray(vollcellseg_time) 
+       
+    return cellpose_base, vollcellseg        
+
 
 def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX', noise_model=None, prob_thresh=None, ExpandLabels = False, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
             n_tiles=(1, 1, 1), UseProbability=True,  donormalize=True, lower_perc=1, upper_perc=99.8, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0.3, RGB=False):
@@ -1982,7 +2003,18 @@ def CleanMask(star_labels, OverAllunet_mask):
 
 def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge=False, erosion_iterations = 15, ExpandLabels = True):
 
-    Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
+    model_dim = model.config.n_dim
+    
+    if model_dim < len(image.shape):
+        Segmented = np.zeros_like(image)
+        for i in range(image.shape[0]):
+            Segmented[i] = model.predict(image[i].astype('float32'), axis, n_tiles= (n_tiles[-2], n_tiles[-1]))
+            
+        Segmented = match_labels(Segmented.astype('uint16'),
+                              iou_threshold=iou_threshold)    
+    else:
+        
+        Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
 
     try:
         thresholds = threshold_multiotsu(Segmented, classes=2)
@@ -1998,17 +2030,17 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     ndim = len(image.shape)
     if ndim == 3:
                 for i in range(image.shape[0]):
-                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
-                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
-                    overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
-                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE)
+                    overall_mask[i] = binary_dilation(overall_mask[i], iterations = erosion_iterations)
+                    overall_mask[i] = binary_erosion(overall_mask[i], iterations = erosion_iterations)
+                    overall_mask[i] = fill_label_holes(overall_mask[i])
+                    Binary[i] = binary_erosion(Binary[i], iterations = GLOBAL_ERODE)
     
     Binary = label(Binary)
     
         
     if ndim == 3 and slice_merge:
         for i in range(image.shape[0]):
-            Binary[i, :] = label(Binary[i, :])
+            Binary[i] = label(Binary[i])
         Binary = match_labels(Binary.astype('uint16'),
                               iou_threshold=iou_threshold)
         
