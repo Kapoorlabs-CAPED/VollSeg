@@ -668,31 +668,16 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), proabability_map, Markers.astype('uint16'), Skeleton.astype('uint16'), image
 
 
-def VollSeg_nolabel_precondition(image, Finalimage):
 
-   
-    ndim = len(image.shape) 
-    if ndim == 3:
-        for i in range(image.shape[0]):
-              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE)
-
-    return Finalimage
     
-def VollSeg_nolabel_expansion(image, Finalimage, Skeleton, RGB):
-    
-    for i in range(image.shape[0]):
-                   Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE) 
-                   Skeleton[i, :] = Skel(Finalimage[i,:], RGB)
-                   Skeleton[i, :] = Skeleton[i, :] > 0 
-                   
-    return Finalimage, Skeleton               
+             
 
 def VollSeg_label_precondition(image, overall_mask, Finalimage):
 
         ndim = len(image.shape)
         if ndim == 3:
           for i in range(image.shape[0]):
-              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
+              Finalimage[i] = expand_labels(Finalimage[i], distance = 50)
           pixel_condition = (overall_mask == 0)
           pixel_replace_condition = 0
           Finalimage = image_conditionals(Finalimage,pixel_condition,pixel_replace_condition )  
@@ -702,15 +687,12 @@ def VollSeg_label_precondition(image, overall_mask, Finalimage):
 def VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton, RGB):
 
     for i in range(image.shape[0]):
-                            Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = 50)
-                            Skeleton[i, :] = Skel(Finalimage[i,:], RGB)
-                            Skeleton[i, :] = Skeleton[i, :] > 0
+                            Finalimage[i] = expand_labels(Finalimage[i], distance = 50)
     pixel_condition = (overall_mask == 0)
     pixel_replace_condition = 0
     Finalimage = image_conditionals(Finalimage,pixel_condition,pixel_replace_condition )        
-    Skeleton = image_conditionals(Skeleton,pixel_condition,pixel_replace_condition )
 
-    return Finalimage, Skeleton 
+    return Finalimage
 
 
 def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', ExpandLabels = True, noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0.3, slice_merge=False, dounet=True, erosion_iterations = 15):
@@ -758,7 +740,6 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                     overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
-                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE)
     
        
 
@@ -794,8 +775,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                        
                     Finalimage, Skeleton = VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton, RGB)   
                     
-            else:
-                    Finalimage, Skeleton =  VollSeg_nolabel_expansion(image, Finalimage, Skeleton, RGB)    
+            
 
         
 
@@ -2143,8 +2123,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
 
     if ExpandLabels:
         Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
-    else:
-        Finalimage = VollSeg_nolabel_precondition(image, Finalimage)
+    
 
     return Finalimage
 
