@@ -1703,7 +1703,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
 
             MembraneMask = UNETPrediction3D(patch_membrane, unet_membrane_model, n_tiles, axes,
                                     iou_threshold=iou_threshold, slice_merge=slice_merge, ExpandLabels = ExpandLabels)
-            for i in range(0, MembraneMask.shape[0]):
+            for i in tqdm(range(0, MembraneMask.shape[0])):
                     MembraneMask[i] = remove_small_objects(
                             MembraneMask[i].astype('uint16'), min_size=min_size_mask)
                     MembraneMask[i] = remove_big_objects(
