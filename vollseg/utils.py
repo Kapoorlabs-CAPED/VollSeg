@@ -293,7 +293,6 @@ def match_labels(ys, iou_threshold=0.5):
     ys : np.ndarray, tuple of np.ndarray
           list/array of integer labels (2D or 3D)
     """
-    print('Stitching')
     ys = np.asarray(ys)
     if not ys.ndim in (3, 4):
         raise ValueError('label image y should be 3 or 4 dimensional!')
@@ -2100,11 +2099,11 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
         Binary = match_labels(Binary.astype('uint16'),
                               iou_threshold=iou_threshold)
     if ndim == 3 and model_dim < len(image.shape):    
-         for i in range(image.shape[0]):
+        for i in range(image.shape[0]):
             Binary[i] = label(Binary[i])
             Binary[i] = expand_labels(Binary[i], distance = GLOBAL_ERODE//2)
             Binary[i] = fill_label_holes(Binary[i])
-            Binary = match_labels(Binary.astype('uint16'),
+        Binary = match_labels(Binary.astype('uint16'),
                               iou_threshold=iou_threshold)
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
