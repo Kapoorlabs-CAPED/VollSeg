@@ -1754,10 +1754,10 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             Mask = UNETPrediction3D(patch, unet_model, n_tiles, axes,
                                     iou_threshold=iou_threshold, slice_merge=slice_merge, ExpandLabels = ExpandLabels)
             for i in range(0, Mask.shape[0]):
-                    Mask[i, :] = remove_small_objects(
-                            Mask[i, :].astype('uint16'), min_size=min_size_mask)
-                    Mask[i, :] = remove_big_objects(
-                            Mask[i, :].astype('uint16'), max_size=max_size)
+                    Mask[i] = remove_small_objects(
+                            Mask[i].astype('uint16'), min_size=min_size_mask)
+                    Mask[i] = remove_big_objects(
+                            Mask[i].astype('uint16'), max_size=max_size)
             Mask_patch = Mask.copy()
             Mask = Region_embedding(image, roi_bbox, Mask)
             if slice_merge:
@@ -2127,7 +2127,6 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
                     overall_mask[i] = binary_dilation(overall_mask[i], iterations = erosion_iterations)
                     overall_mask[i] = binary_erosion(overall_mask[i], iterations = erosion_iterations)
                     overall_mask[i] = fill_label_holes(overall_mask[i])
-                    Binary[i] = binary_erosion(Binary[i], iterations = GLOBAL_ERODE)
     
     Binary = label(Binary)
     
@@ -2368,7 +2367,7 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
     markers = morphology.dilation(markers_raw, morphology.disk(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
     watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supresslabels()
-    watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supressregions()
+    #watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supressregions()
     return watershedImage, markers
 
 
@@ -2420,7 +2419,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
         markers_raw.astype('uint16'), morphology.ball(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
     watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supresslabels()
-    watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supressregions()
+    #watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supressregions()
     return watershedImage, markers
 
 
