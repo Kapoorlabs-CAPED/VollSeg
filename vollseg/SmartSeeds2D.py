@@ -335,7 +335,7 @@ class SmartSeeds2D(object):
                                     c = axes_dict(axes)['C']
                                     n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
                                     
-                                    config = Config(axes, n_channel_in, n_channel_out, unet_n_depth= self.depth,train_epochs= self.epochs, train_batch_size = self.batch_size, unet_kern_size = self.kern_size,unet_n_first = self.unet_n_first, train_learning_rate = self.learning_rate, train_reduce_lr={'patience': 5, 'factor': 0.5})
+                                    config = Config(axes, n_channel_in, n_channel_out, unet_n_depth= self.depth,train_epochs= self.epochs, train_batch_size = self.batch_size, unet_kern_size = self.kern_size,unet_n_first = self.startfilter, train_learning_rate = self.learning_rate, train_reduce_lr={'patience': 5, 'factor': 0.5})
                                     print(config)
                                     vars(config)
                                     
