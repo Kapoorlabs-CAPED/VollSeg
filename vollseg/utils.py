@@ -1041,8 +1041,8 @@ def VollCellSeg(image: np.ndarray,
                 prob_thresh: float =None, 
                 ExpandLabels: bool = False, 
                 nms_thresh: float=None, 
-                min_size_mask: int =100, 
-                min_size: int =100, 
+                min_size_mask: int =10, 
+                min_size: int =10, 
                 max_size: int = 10000,
                 erosion_iterations: int = 5,
                 n_tiles: tuple = (1, 1, 1), 
@@ -2320,7 +2320,7 @@ def CellPoseWater(Image, Masks, Seeds, cellpose_mask, min_size, max_size,nms_thr
     
     
     CopyMasks =  NMSLabel(image= CopyMasks, nms_thresh=nms_thresh).supresslabels()
-    CopyMasks =  NMSLabel(image= CopyMasks, nms_thresh=nms_thresh).supressregions()
+    #CopyMasks =  NMSLabel(image= CopyMasks, nms_thresh=nms_thresh).supressregions()
     
     return CopyMasks
 
