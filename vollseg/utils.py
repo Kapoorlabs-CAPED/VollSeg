@@ -2249,7 +2249,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 
 
-def CellPoseWater(Image, Masks, Seeds, cellpose_mask, min_size, max_size,nms_thresh):
+def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thresh):
     
     
     
@@ -2282,7 +2282,7 @@ def CellPoseWater(Image, Masks, Seeds, cellpose_mask, min_size, max_size,nms_thr
 
     markers = morphology.dilation(
         markers_raw.astype('uint16'), morphology.ball(2))                
-    watershed_image = watershed(-Image, markers, mask = cellpose_mask)
+    watershed_image = watershed(-Image, markers, mask = membrane_mask)
     watershed_image = fill_label_holes(watershed_image)
     
     empy_region_indices = zip(*np.where(CopyMasks == 0))
