@@ -2280,7 +2280,7 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     for i in range(CopyMasks.shape[0]):
        CopyMasks[i] = remove_small_objects(CopyMasks[i], min_size = min_size) 
        CopyMasks[i] = remove_big_objects(CopyMasks[i], max_size = max_size)
-    
+    CopyMasks = label(CopyMasks)
     return CopyMasks
 
 def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
