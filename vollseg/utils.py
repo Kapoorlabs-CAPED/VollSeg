@@ -660,7 +660,7 @@ def VollSeg_nolabel_precondition(image, Finalimage):
     ndim = len(image.shape) 
     if ndim == 3:
         for i in range(image.shape[0]):
-              Finalimage[i,:] = expand_labels(Finalimage[i,:], distance = GLOBAL_ERODE)
+              Finalimage[i] = expand_labels(Finalimage[i], distance = GLOBAL_ERODE)
 
     return Finalimage    
              
@@ -2094,7 +2094,6 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
                     overall_mask[i] = binary_dilation(overall_mask[i], iterations = erosion_iterations)
                     overall_mask[i] = binary_erosion(overall_mask[i], iterations = erosion_iterations)
                     overall_mask[i] = fill_label_holes(overall_mask[i])
-                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE)
     
     Binary = label(Binary)
     
@@ -2271,8 +2270,8 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     watershed_image = fill_label_holes(watershed_image)
     
     empy_region_indices = zip(*np.where(CopyMasks == 0))
-    watershed_image =  NMSLabel(image= watershed_image, nms_thresh=nms_thresh).supresslabels()
-    watershed_image =  NMSLabel(image= watershed_image, nms_thresh=nms_thresh).supressregions()
+    watershed_image =  NMSLabel(image= watershed_image, nms_thresh=nms_thresh * 2).supresslabels()
+    watershed_image =  NMSLabel(image= watershed_image, nms_thresh=nms_thresh * 2).supressregions()
     
     for index in empy_region_indices:
         
