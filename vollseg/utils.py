@@ -808,9 +808,9 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Finalimage = np.zeros_like(image)
             for i in range(0, image.shape[0]):
 
-               Binary[i,:,:] = s_Binary
-               Skeleton[i,:,:] = s_Skeleton
-               Finalimage[i,:,:] = s_Finalimage
+               Binary[i] = s_Binary
+               Skeleton[i] = s_Skeleton
+               Finalimage[i] = s_Finalimage
 
         elif model_dim == len(image.shape):
             Binary = UNETPrediction3D(
@@ -819,16 +819,16 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Binary = label(Binary)
             if ndim == 3 and slice_merge:
                 for i in range(image.shape[0]):
-                    Binary[i, :] = label(Binary[i, :])
+                    Binary[i] = label(Binary[i])
                     
 
                 Binary = match_labels(Binary, iou_threshold=iou_threshold)
                 Binary = fill_label_holes(Binary)
                 for i in range(image.shape[0]):
-                    Binary[i, :] = remove_small_objects(
-                        Binary[i, :].astype('uint16'), min_size=min_size_mask)
-                    Binary[i, :] = remove_big_objects(
-                        Binary[i, :].astype('uint16'), max_size=max_size)
+                    Binary[i] = remove_small_objects(
+                        Binary[i].astype('uint16'), min_size=min_size_mask)
+                    Binary[i] = remove_big_objects(
+                        Binary[i].astype('uint16'), max_size=max_size)
 
             Finalimage = relabel_sequential(Binary)[0]
 
@@ -2092,12 +2092,20 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     Binary = label(Binary)
     
         
-    if ndim == 3 and slice_merge or model_dim < len(image.shape):
+    if ndim == 3 and slice_merge:
         for i in range(image.shape[0]):
             Binary[i] = label(Binary[i])
+            Binary[i] = expand_labels(Binary[i], distance = GLOBAL_ERODE//2)
+            Binary[i] = fill_label_holes(Binary[i])
         Binary = match_labels(Binary.astype('uint16'),
                               iou_threshold=iou_threshold)
-        
+    if ndim == 3 and model_dim < len(image.shape):    
+         for i in range(image.shape[0]):
+            Binary[i] = label(Binary[i])
+            Binary[i] = expand_labels(Binary[i], distance = GLOBAL_ERODE//2)
+            Binary[i] = fill_label_holes(Binary[i])
+            Binary = match_labels(Binary.astype('uint16'),
+                              iou_threshold=iou_threshold)
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
     Finalimage = relabel_sequential(Finalimage)[0]
