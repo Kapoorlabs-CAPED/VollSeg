@@ -831,7 +831,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
             Finalimage = relabel_sequential(Binary)[0]
 
-            Skeleton = thin(find_boundaries(Finalimage > 0))
+            Skeleton = thin((Finalimage > 0))
         
 
 
