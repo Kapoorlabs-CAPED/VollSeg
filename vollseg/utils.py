@@ -1404,18 +1404,18 @@ def _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_masks, Sizedsm
     if 'T' not in axes:   
             cellpose_base = np.max(flows[0], axis = -1)
             cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
-            vollcellseg = CellPoseWater(cellpose_base, cellpose_masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size,nms_thresh)
+            vollcellseg = CellPoseWater(cellpose_base, np.copy(cellpose_masks), Sizedsmart_seeds, SizedMask, min_size_mask, max_size,nms_thresh)
             
     if 'T' in axes:
                 
             cellpose_base = []
             vollcellseg = []
             for time in range(image_membrane.shape[0]):
-                cellpose_base_time = np.max(flows[0], axis = -1)[time,:,:,:]
-                cellpose_masks_time = cellpose_masks[time,:,:,:]
+                cellpose_base_time = np.max(flows[0], axis = -1)[time]
+                cellpose_masks_time = cellpose_masks[time]
                 cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
                
-                vollcellseg_time = CellPoseWater(cellpose_base_time, cellpose_masks_time, Sizedsmart_seeds[time,:,:,:], SizedMask, min_size_mask, max_size,nms_thresh)
+                vollcellseg_time = CellPoseWater(cellpose_base_time, np.copy(cellpose_masks_time), Sizedsmart_seeds[time], SizedMask, min_size_mask, max_size,nms_thresh)
                 cellpose_base.append(cellpose_base_time)
                 vollcellseg.append(vollcellseg_time)
             cellpose_base = np.asarray(cellpose_base)
@@ -2267,7 +2267,7 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
             for i in range(0, len(Coordinates)):
 
                 star = Coordinates[i]
-                value=Masks[int(star[0]),int(star[1]),int(star[2])]
+                value=CopyMasks[int(star[0]),int(star[1]),int(star[2])]
 
                 if value==0:
                     KeepCoordinates.append(Coordinates[i])
