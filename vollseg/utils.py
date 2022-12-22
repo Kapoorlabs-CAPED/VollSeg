@@ -2273,7 +2273,7 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     watershed_image =  NMSLabel(image= watershed_image, nms_thresh=nms_thresh * 2).supresslabels()
     watershed_image =  NMSLabel(image= watershed_image, nms_thresh=nms_thresh * 2).supressregions()
     for i in range(watershed_image.shape[0]):
-        watershed_image[i] = watershed_image(watershed_image[i], distance = GLOBAL_ERODE)
+        watershed_image[i] = expand_labels(watershed_image[i], distance = GLOBAL_ERODE)
     for index in empy_region_indices:
         
         CopyMasks[index] = watershed_image[index]
