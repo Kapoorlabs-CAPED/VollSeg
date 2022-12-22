@@ -31,7 +31,7 @@ from skimage.measure import label
 from csbdeep.utils import normalize
 from tqdm import tqdm
 from scipy.ndimage import distance_transform_edt
-from skimage.morphology import thin
+from skimage.morphology import skeletonize
 import math
 import pandas as pd
 import napari
@@ -446,7 +446,7 @@ def SmartSkel(smart_seedsLabels, ProbImage, RGB = False):
     pixel_replace_condition = 0
     image_max = image_conditionals(image_max,pixel_condition,pixel_replace_condition )
 
-    Skeleton = thin(image_max.astype('uint16') > 0)
+    Skeleton = skeletonize(image_max.astype('uint16') > 0)
 
     return Skeleton
 
@@ -456,7 +456,7 @@ def Skel(smart_seedsLabels, RGB = False):
         return smart_seedsLabels > 0
     image_max = find_boundaries(smart_seedsLabels)
     
-    Skeleton = thin(image_max.astype('uint16') > 0)
+    Skeleton = skeletonize(image_max.astype('uint16') > 0)
 
     return Skeleton
 
@@ -801,7 +801,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
             s_Finalimage = relabel_sequential(s_Binary)[0]
 
-            s_Skeleton = thin(find_boundaries(s_Finalimage > 0))
+            s_Skeleton = skeletonize(find_boundaries(s_Finalimage > 0))
             Binary = np.zeros_like(image)
             Skeleton = np.zeros_like(image)
             Finalimage = np.zeros_like(image)
@@ -831,7 +831,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
             Finalimage = relabel_sequential(Binary)[0]
 
-            Skeleton = thin((Finalimage > 0))
+            Skeleton = skeletonize(find_boundaries(Finalimage > 0))
         
 
 
