@@ -927,9 +927,9 @@ def _cellpose_star_time_block(cellpose_model,
                         nms_thresh = star_model.thresholds.nms
                   res = tuple(
                      zip(
-                        *tuple(VollSeg3D(_x,  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-                                        n_tiles=n_tiles, UseProbability=UseProbability, unet_membrane_model = unet_membrane_model,
-                                        dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for _x in tqdm(image_nuclei))))
+                        *tuple(VollSeg3D(image_nuclei[i],  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
+                                        n_tiles=n_tiles, image_membrane = image_membrane[i], UseProbability=UseProbability, unet_membrane_model = unet_membrane_model,
+                                        dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for i in tqdm(range(image_nuclei.shape[0])))))
     
     return cellres, res
 
@@ -995,7 +995,7 @@ def _cellpose_star_block(cellpose_model,
     if star_model is not None:
                 
                 res = VollSeg3D(image_nuclei,  unet_model,  star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-                                    n_tiles=n_tiles, UseProbability=UseProbability,unet_membrane_model = unet_membrane_model,  dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
+                                    n_tiles=n_tiles, image_membrane = image_membrane, UseProbability=UseProbability,unet_membrane_model = unet_membrane_model,  dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
                     
     return cellres, res
 
@@ -1626,7 +1626,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2), unet_membrane_model = None, UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
+              n_tiles=(1, 2, 2), image_membrane = None, unet_membrane_model = None, UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
 
    
 
@@ -1693,12 +1693,19 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         # The actual pixels in that region.
         if roi_bbox is not None:
             patch = image[region]
+            if image_membrane is not None:
+                patch_membrane = image_membrane[region]
         else:
-            patch = image        
+            patch = image  
+            if image_membrane is not None:
+                patch_membrane = image_membrane      
 
     else:
 
         patch = image
+        if image_membrane is not None:
+                patch_membrane = image_membrane
+        
         region = (slice(0, image.shape[0]), slice(0, image.shape[1]),
                   slice(0, image.shape[2]))
         rowstart = 0
@@ -1709,9 +1716,9 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
 
 
     if unet_membrane_model is not None:
-            print('UNET membrane segmentation on Image',  patch.shape)
+            print('UNET membrane segmentation on Image',  patch_membrane.shape)
 
-            MembraneMask = UNETPrediction3D(patch, unet_membrane_model, n_tiles, axes,
+            MembraneMask = UNETPrediction3D(patch_membrane, unet_membrane_model, n_tiles, axes,
                                     iou_threshold=iou_threshold, slice_merge=slice_merge, ExpandLabels = ExpandLabels)
             for i in range(0, MembraneMask.shape[0]):
                     MembraneMask[i, :] = remove_small_objects(
@@ -1740,6 +1747,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                     Mask[i] = remove_big_objects(
                             Mask[i].astype('uint16'), max_size=max_size)
             Mask_patch = Mask.copy()
+            print('region embedding')
             Mask = Region_embedding(image, roi_bbox, Mask)
             if slice_merge:
                 Mask = match_labels(Mask.astype('uint16'), iou_threshold=iou_threshold)
