@@ -49,7 +49,7 @@ from cellpose import models
 
 Boxname = 'ImageIDBox'
 GLOBAL_THRESH = 1.0E-2
-GLOBAL_ERODE = 8
+GLOBAL_ERODE = 4
 
 class SegCorrect(object):
 
