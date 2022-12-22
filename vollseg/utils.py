@@ -324,7 +324,6 @@ def match_labels(ys, iou_threshold=0.5):
     
     
     for i in tqdm(range(len(ys)-1)):
-        if ys_new[i].any() > 0:
            ys_new[i+1] = _match_single(ys_new[i], ys[i+1])
 
     return ys_new
@@ -1728,7 +1727,6 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             print('done here')
             for i in tqdm(range(0, MembraneMask.shape[0])):
                    
-                    MembraneMask[i] = erode
                     MembraneMask[i] = remove_small_objects(
                             MembraneMask[i].astype('uint16'), min_size=min_size_mask)
                     MembraneMask[i] = remove_big_objects(
@@ -2082,9 +2080,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
         
         for i in range(image.shape[0]):
             Segmented[i] = model.predict(image[i].astype('float32'), axis.replace('Z', ''), n_tiles= (n_tiles[-2], n_tiles[-1]))
-            Segmented[i] = label(Segmented[i])
-        Segmented = match_labels(Segmented.astype('uint16'),
-                              iou_threshold=iou_threshold)    
+                
     else:
         
         Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
@@ -2103,7 +2099,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     Binary = label(Binary)
     
         
-    if ndim == 3 and slice_merge:
+    if ndim == 3 and slice_merge or model_dim < len(image.shape):
         for i in range(image.shape[0]):
             Binary[i] = label(Binary[i])
         Binary = match_labels(Binary.astype('uint16'),
