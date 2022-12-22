@@ -736,10 +736,9 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
         
         if ndim == 3:
                 for i in range(image.shape[0]):
-                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
-                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
-                    overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
-                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE)
+                    overall_mask[i] = binary_dilation(overall_mask[i], iterations = erosion_iterations)
+                    overall_mask[i] = binary_erosion(overall_mask[i], iterations = erosion_iterations)
+                    overall_mask[i] = fill_label_holes(overall_mask[i])
     
        
 
@@ -763,10 +762,10 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
         if ndim == 3: 
             for i in range(image.shape[0]):
-                Binary[i, :]  = remove_small_objects(
-                    Binary[i, :] .astype('uint16'), min_size=min_size_mask)
-                Binary[i, :]  = remove_big_objects(
-                    Binary[i, :] .astype('uint16'), max_size=max_size)    
+                Binary[i]  = remove_small_objects(
+                    Binary[i] .astype('uint16'), min_size=min_size_mask)
+                Binary[i]  = remove_big_objects(
+                    Binary[i] .astype('uint16'), max_size=max_size)    
             Finalimage = relabel_sequential(Binary)[0]
             Skeleton = np.zeros_like(Finalimage)
 
@@ -775,11 +774,6 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                        
                     Finalimage, Skeleton = VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton, RGB)   
                     
-            else:
-                    Finalimage, Skeleton =  VollSeg_nolabel_expansion(image, Finalimage, Skeleton, RGB) 
-
-        
-
     elif roi_model is not None:
 
         if noise_model is not None:
@@ -2109,8 +2103,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     Finalimage = relabel_sequential(Finalimage)[0]
     if ExpandLabels:
         Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
-    else:
-        Finalimage = VollSeg_nolabel_precondition(image, Finalimage)    
+  
     
 
     return Finalimage
