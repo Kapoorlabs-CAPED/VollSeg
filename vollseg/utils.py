@@ -299,7 +299,7 @@ def match_labels(ys, iou_threshold=0.5):
         raise ValueError('label image y should be 3 or 4 dimensional!')
 
     def _match_single(x, y):
-        res = matching(x, y, report_matches=True, thresh=0)
+        res = matching(x, y, report_matches=True)
 
         pairs = tuple(p for p, s in zip(res.matched_pairs,
                       res.matched_scores) if s >= iou_threshold)
