@@ -324,7 +324,8 @@ def match_labels(ys, iou_threshold=0.5):
     
     
     for i in tqdm(range(len(ys)-1)):
-        ys_new[i+1] = _match_single(ys_new[i], ys[i+1])
+        if ys_new[i].any() > 0:
+           ys_new[i+1] = _match_single(ys_new[i], ys[i+1])
 
     return ys_new
 
