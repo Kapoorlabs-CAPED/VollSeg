@@ -1719,6 +1719,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                     MembraneMask[i, :] = remove_big_objects(
                             MembraneMask[i, :].astype('uint16'), max_size=max_size)
             MembraneMask_patch = MembraneMask.copy()
+            print('embedding membrane')
             MembraneMask = Region_embedding(image, roi_bbox, MembraneMask)
             if slice_merge:
                 MembraneMask = match_labels(MembraneMask.astype('uint16'), iou_threshold=iou_threshold)
