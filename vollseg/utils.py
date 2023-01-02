@@ -884,7 +884,7 @@ def _cellpose_star_time_block(cellpose_model,
                             cellres = tuple(
                              zip(
                                 *tuple(cellpose_model.eval(_x, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
-                                       for _x in tqdm(image_nuclei))))
+                                       for _x in tqdm(image_membrane))))
                     else:
 
                         cellres = tuple(
@@ -894,7 +894,7 @@ def _cellpose_star_time_block(cellpose_model,
                                                         cellprob_threshold=cellprob_threshold,
                                                         stitch_threshold=stitch_threshold,
                                                         do_3D=do_3D)
-                                    for _x in tqdm(image_nuclei))))
+                                    for _x in tqdm(image_membrane))))
                     
                
                 else:   
@@ -902,17 +902,17 @@ def _cellpose_star_time_block(cellpose_model,
                     if anisotropy is not None:
                         cellres = tuple(
                          zip(
-                            *tuple(cellpose_model.eval(image_membrane, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
-                                   for _x in tqdm(image_nuclei))))
+                            *tuple(cellpose_model.eval(_x, diameter=diameter_cellpose,  flow_threshold=flow_threshold, cellprob_threshold=cellprob_threshold, stitch_threshold=stitch_threshold, anisotropy=anisotropy, do_3D=do_3D)
+                                   for _x in tqdm(image_membrane))))
                     else:
                         cellres = tuple(
                             zip(
-                                *tuple(cellpose_model.eval(image_membrane, diameter=diameter_cellpose,
+                                *tuple(cellpose_model.eval(_x, diameter=diameter_cellpose,
                                                            flow_threshold=flow_threshold,
                                                            cellprob_threshold=cellprob_threshold,
                                                            stitch_threshold=stitch_threshold,
                                                            do_3D=do_3D)
-                                       for _x in tqdm(image_nuclei))))
+                                       for _x in tqdm(image_membrane))))
 
             
     if star_model is not None:
