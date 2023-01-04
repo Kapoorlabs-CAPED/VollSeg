@@ -47,6 +47,7 @@ from skimage.filters import threshold_otsu
 from scipy.ndimage.measurements import find_objects
 from cellpose import models
 from multiprocessing.pool import ThreadPool
+from concurrent.futures import ThreadPoolExecutor
 from threading import Thread
 
 Boxname = 'ImageIDBox'
@@ -975,52 +976,54 @@ def _cellpose_star_time_block(cellpose_model,
     
     
     
-    pool = ThreadPool(processes = 2)
     results = []
-    results.append(pool.apply_async(_star_time_block, args = [
-                        image_membrane,
-                        image_nuclei,
-                        gpu,
-                        unet_model,
-                        unet_membrane_model,
-                        star_model, 
-                        roi_model,
-                        ExpandLabels,
-                        axes,
-                        noise_model,
-                        prob_thresh,
-                        nms_thresh,
-                        donormalize,
-                        n_tiles,
-                        UseProbability,
-                        dounet,
-                        seedpool,
-                        startZ,
-                        slice_merge,
-                        iou_threshold,
-                        lower_perc,
-                        upper_perc,
-                        min_size_mask,
-                        min_size,
-                        max_size]))
+    
+    with ThreadPoolExecutor(max_workers = os.cpu_count() - 1) as executor:
+        
+            results.append(executor.submit(_star_time_block, 
+                                image_membrane,
+                                image_nuclei,
+                                gpu,
+                                unet_model,
+                                unet_membrane_model,
+                                star_model, 
+                                roi_model,
+                                ExpandLabels,
+                                axes,
+                                noise_model,
+                                prob_thresh,
+                                nms_thresh,
+                                donormalize,
+                                n_tiles,
+                                UseProbability,
+                                dounet,
+                                seedpool,
+                                startZ,
+                                slice_merge,
+                                iou_threshold,
+                                lower_perc,
+                                upper_perc,
+                                min_size_mask,
+                                min_size,
+                                max_size))
     
     
-    
-    results.append(pool.apply_async(_cellpose_time_block, args = [cellpose_model,
-                        custom_cellpose_model,
-                        cellpose_model_name,
-                        image_membrane,
-                        image_nuclei,
-                        diameter_cellpose,
-                        flow_threshold,
-                        cellprob_threshold,
-                        stitch_threshold,
-                        anisotropy,
-                        pretrained_cellpose_model_path,
-                        gpu,
-                        axes,
-                        do_3D]))
-    results = [r.get() for r in results] 
+
+            results.append(executor.submit(_cellpose_time_block, cellpose_model,
+                                custom_cellpose_model,
+                                cellpose_model_name,
+                                image_membrane,
+                                image_nuclei,
+                                diameter_cellpose,
+                                flow_threshold,
+                                cellprob_threshold,
+                                stitch_threshold,
+                                anisotropy,
+                                pretrained_cellpose_model_path,
+                                gpu,
+                                axes,
+                                do_3D))
+    results = [r.result() for r in results] 
     
     res, cellres =  results
             
