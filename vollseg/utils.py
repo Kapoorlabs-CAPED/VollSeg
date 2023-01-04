@@ -46,6 +46,7 @@ from qtpy.QtWidgets import QComboBox, QPushButton
 from skimage.filters import threshold_otsu
 from scipy.ndimage.measurements import find_objects
 from cellpose import models
+from multiprocessing.pool import ThreadPool
 
 Boxname = 'ImageIDBox'
 GLOBAL_THRESH = 1.0E-2
@@ -838,7 +839,8 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
     return Finalimage.astype('uint16'), Skeleton, image
 
-def _cellpose_star_time_block(cellpose_model,
+
+def __cellpose_time_block(cellpose_model,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,
@@ -850,44 +852,8 @@ def _cellpose_star_time_block(cellpose_model,
                         anisotropy,
                         pretrained_cellpose_model_path,
                         gpu,
-                        unet_model,
-                        unet_membrane_model,
-                        star_model, 
-                        roi_model,
-                        ExpandLabels,
                         axes,
-                        noise_model,
-                        prob_thresh,
-                        nms_thresh,
-                        donormalize,
-                        n_tiles,
-                        UseProbability,
-                        dounet,
-                        seedpool,
-                        startZ,
-                        slice_merge,
-                        iou_threshold,
-                        lower_perc,
-                        upper_perc,
-                        min_size_mask,
-                        min_size,
-                        max_size,
                         do_3D):
-    
-    
-    
-    if star_model is not None:
-                  if 'T' in axes:
-                     axes = axes.replace('T', '')
-                  if prob_thresh is None and nms_thresh is None:
-                        prob_thresh = star_model.thresholds.prob
-                        nms_thresh = star_model.thresholds.nms
-                  res = tuple(
-                     zip(
-                        *tuple(VollSeg3D(image_nuclei[i],  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-                                        n_tiles=n_tiles, image_membrane = image_membrane[i], UseProbability=UseProbability, unet_membrane_model = unet_membrane_model,
-                                        dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for i in tqdm(range(image_nuclei.shape[0])))))
-    
     
     if cellpose_model is not None:
                 
@@ -926,7 +892,135 @@ def _cellpose_star_time_block(cellpose_model,
                                                            stitch_threshold=stitch_threshold,
                                                            do_3D=do_3D)
                                        for _x in tqdm(image_membrane))))
+                        
+    return cellres                    
 
+def _star_time_block(
+                        image_membrane,
+                        image_nuclei,
+                        gpu,
+                        unet_model,
+                        unet_membrane_model,
+                        star_model, 
+                        roi_model,
+                        ExpandLabels,
+                        axes,
+                        noise_model,
+                        prob_thresh,
+                        nms_thresh,
+                        donormalize,
+                        n_tiles,
+                        UseProbability,
+                        dounet,
+                        seedpool,
+                        startZ,
+                        slice_merge,
+                        iou_threshold,
+                        lower_perc,
+                        upper_perc,
+                        min_size_mask,
+                        min_size,
+                        max_size):
+    
+    if star_model is not None:
+                  if 'T' in axes:
+                     axes = axes.replace('T', '')
+                  if prob_thresh is None and nms_thresh is None:
+                        prob_thresh = star_model.thresholds.prob
+                        nms_thresh = star_model.thresholds.nms
+                  res = tuple(
+                     zip(
+                        *tuple(VollSeg3D(image_nuclei[i],  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
+                                        n_tiles=n_tiles, image_membrane = image_membrane[i], UseProbability=UseProbability, unet_membrane_model = unet_membrane_model,
+                                        dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for i in tqdm(range(image_nuclei.shape[0])))))
+    
+    return res
+
+def _cellpose_star_time_block(cellpose_model,
+                        custom_cellpose_model,
+                        cellpose_model_name,
+                        image_membrane,
+                        image_nuclei,
+                        diameter_cellpose,
+                        flow_threshold,
+                        cellprob_threshold,
+                        stitch_threshold,
+                        anisotropy,
+                        pretrained_cellpose_model_path,
+                        gpu,
+                        unet_model,
+                        unet_membrane_model,
+                        star_model, 
+                        roi_model,
+                        ExpandLabels,
+                        axes,
+                        noise_model,
+                        prob_thresh,
+                        nms_thresh,
+                        donormalize,
+                        n_tiles,
+                        UseProbability,
+                        dounet,
+                        seedpool,
+                        startZ,
+                        slice_merge,
+                        iou_threshold,
+                        lower_perc,
+                        upper_perc,
+                        min_size_mask,
+                        min_size,
+                        max_size,
+                        do_3D):
+    
+    
+    
+    pool = ThreadPool(processes = 2)
+    star_async_result = pool.apply_async(_star_time_block, args = [
+                        image_membrane,
+                        image_nuclei,
+                        gpu,
+                        unet_model,
+                        unet_membrane_model,
+                        star_model, 
+                        roi_model,
+                        ExpandLabels,
+                        axes,
+                        noise_model,
+                        prob_thresh,
+                        nms_thresh,
+                        donormalize,
+                        n_tiles,
+                        UseProbability,
+                        dounet,
+                        seedpool,
+                        startZ,
+                        slice_merge,
+                        iou_threshold,
+                        lower_perc,
+                        upper_perc,
+                        min_size_mask,
+                        min_size,
+                        max_size])
+    
+    res = star_async_result.get()
+    
+    
+    cellpose_async_result = pool.apply_async(__cellpose_time_block, args = [cellpose_model,
+                        custom_cellpose_model,
+                        cellpose_model_name,
+                        image_membrane,
+                        image_nuclei,
+                        diameter_cellpose,
+                        flow_threshold,
+                        cellprob_threshold,
+                        stitch_threshold,
+                        anisotropy,
+                        pretrained_cellpose_model_path,
+                        gpu,
+                        axes,
+                        do_3D]) 
+    
+    cellres =  cellpose_async_result.get()
             
     
     return cellres, res
