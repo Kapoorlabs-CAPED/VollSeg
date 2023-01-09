@@ -91,7 +91,9 @@ class SmartPatches(object):
                                     imwrite(self.binary_mask_dir + '/' + name + str(count) + self.pattern, eroded_binary_image.astype('uint16'))
 
                                     self.raw_image = imread(Path(self.raw_dir + name + self.pattern ))[region]
-                                    imwrite(self.base_dir + self.raw_save_dir + '/' + name + str(count) + self.pattern, self.raw_image)
+                                    imwrite(self.raw_save_dir + '/' + name + str(count) + self.pattern, self.raw_image)
+                                    imwrite(self.real_mask_patch_dir + '/' + name + str(count) + self.pattern, self.crop_labelimage.astype('uint16'))
+                                    
                         
                         
                         

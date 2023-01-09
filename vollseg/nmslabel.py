@@ -113,4 +113,5 @@ class NMSLabel(object):
                         else:
                             replace.append(False)
                 if all(replace):            
-                        self.supresslabel[labelB] = labelA        
+                        self.supresslabel[labelB] = labelA    
+                        print('good?')    
