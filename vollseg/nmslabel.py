@@ -29,7 +29,7 @@ class NMSLabel(object):
 
         if len(self.originallabels) > 0:        
             relabeled = map_array(
-                    self.image, np.asarray(originallabels), np.asarray(newlabels)
+                    self.image, np.asarray(self.originallabels), np.asarray(self.newlabels)
                 ) 
         else:
             relabeled = self.image  
