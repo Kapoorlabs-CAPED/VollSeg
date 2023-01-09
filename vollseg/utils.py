@@ -2391,56 +2391,6 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 
 
-
-def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thresh):
-    
-   
-    CopyMasks = Masks.copy()
-    properties = measure.regionprops(CopyMasks)
-    starproperties = measure.regionprops(Seeds)
-    
-    bbox = [prop.bbox for prop in properties]
-    Coordinates = [prop.centroid for prop in starproperties]
-    KeepCoordinates = []
-    if len(Coordinates) > 0:
-            for i in range(0, len(Coordinates)):
-
-                star = Coordinates[i]
-                value=CopyMasks[int(star[0]),int(star[1]),int(star[2])]
-
-                if value==0:
-                    KeepCoordinates.append(Coordinates[i])
-                    
-                    
-    KeepCoordinates.append((0, 0, 0))
-    KeepCoordinates = np.asarray(KeepCoordinates)
-
-    coordinates_int = np.round(KeepCoordinates).astype(int)
-    markers_raw = np.zeros_like(Image)
-    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
-
-    markers = morphology.dilation(
-        markers_raw.astype('uint16'), morphology.ball(2))                
-    watershed_image = watershed(-Image, markers, mask = membrane_mask)
-    watershed_image = fill_label_holes(watershed_image)
-    
-    empy_region_indices = zip(*np.where(CopyMasks == 0))
-    
-    for i in range(watershed_image.shape[0]):
-        watershed_image[i] = expand_labels(watershed_image[i], distance = GLOBAL_ERODE)
-    for index in empy_region_indices:
-        CopyMasks[index] = watershed_image[index]
-        
-    for i in range(CopyMasks.shape[0]):
-       CopyMasks[i] = remove_small_objects(CopyMasks[i], min_size = min_size) 
-       CopyMasks[i] = remove_big_objects(CopyMasks[i], max_size = max_size)
-       
-    CopyMasks = label(CopyMasks)
-    CopyMasks =  NMSLabel(image= CopyMasks).supresslabels()
-    
-    
-    return CopyMasks
-
 def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
 
     properties = measure.regionprops(Label)
@@ -2485,6 +2435,82 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
     markers = morphology.dilation(markers_raw, morphology.disk(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
     return watershedImage, markers
+
+
+def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thresh):
+    
+   
+    CopyMasks = Masks.copy()
+    properties = measure.regionprops(CopyMasks)
+    starproperties = measure.regionprops(Seeds)
+    
+    bbox = [prop.bbox for prop in properties]
+    bbcord = [prop.centroid for prop in properties]
+    bblabel = [prop.label for prop in properties]
+    
+    Coordinates = [prop.centroid for prop in starproperties]
+    KeepCoordinates = []
+    if len(Coordinates) > 0:
+            for i in range(0, len(Coordinates)):
+
+                star = Coordinates[i]
+                value=CopyMasks[int(star[0]),int(star[1]),int(star[2])]
+
+                if value==0:
+                    KeepCoordinates.append(Coordinates[i])
+                    
+                    
+    KeepCoordinates.append((0, 0, 0))
+    KeepCoordinates = np.asarray(KeepCoordinates)
+
+    coordinates_int = np.round(KeepCoordinates).astype(int)
+    markers_raw = np.zeros_like(Image)
+    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
+
+    markers = morphology.dilation(
+        markers_raw.astype('uint16'), morphology.ball(2))                
+    watershed_image = watershed(-Image, markers, mask = membrane_mask)
+    watershed_image = fill_label_holes(watershed_image)
+    
+    empy_region_indices = zip(*np.where(CopyMasks == 0))
+    
+    for i in range(watershed_image.shape[0]):
+        watershed_image[i] = expand_labels(watershed_image[i], distance = GLOBAL_ERODE)
+    for index in empy_region_indices:
+        CopyMasks[index] = watershed_image[index]
+        
+    for i in range(CopyMasks.shape[0]):
+       CopyMasks[i] = remove_small_objects(CopyMasks[i], min_size = min_size) 
+       CopyMasks[i] = remove_big_objects(CopyMasks[i], max_size = max_size)
+       
+    CopyMasks = label(CopyMasks)
+    if len(bbox) > 0:
+            originallabels = []
+            newlabels = []
+            for i in range(0, len(bbox)):
+
+                box = bbox[i]
+                for j in range(0, len(bbcord)):
+                    if j!=i:
+                        star = bbcord[j]
+                        merge = NMSLabel(box,star).merging()
+                        if merge:
+                            originallabels.append(bblabel[j])
+                            newlabels.append(bblabel[i])
+                        else:
+                            originallabels.append(bblabel[j])
+                            newlabels.append(bblabel[j])     
+                            
+            relabeled = map_array(
+                    CopyMasks, np.asarray(originallabels), np.asarray(newlabels)
+                )                
+            
+            
+    else:
+        relabeled = CopyMasks
+    
+    
+    return relabeled
 
 
 def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
