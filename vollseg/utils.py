@@ -52,7 +52,7 @@ from threading import Thread
 
 Boxname = 'ImageIDBox'
 GLOBAL_THRESH = 1.0E-2
-GLOBAL_ERODE = 4
+GLOBAL_ERODE = 8
 
 class SegCorrect(object):
 
@@ -1136,7 +1136,7 @@ def VollCellSeg(image: np.ndarray,
                 slice_merge : bool = False, 
                 iou_threshold: float = 0.3, 
                 do_3D: bool =False,
-                z_thresh: int = 3
+                z_thresh: int = 1
                 ):
     
     
@@ -1551,7 +1551,7 @@ def VollCellSeg(image: np.ndarray,
         return SizedMask, Skeleton, image    
 
 
-def _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = 2):
+def _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = 1):
     
     if 'T' not in axes:   
             cellpose_base = np.max(flows[0], axis = -1)
@@ -2246,8 +2246,14 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     Binary = regions > 0
     overall_mask = Binary.copy()
     ndim = len(image.shape)
+    if ndim == 3:
+                for i in range(image.shape[0]):
+                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
+                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
+                    overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
+                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE)
     
-    
+    Binary = label(Binary)
     
         
     if ndim == 3 and slice_merge or model_dim < len(image.shape):
@@ -2255,8 +2261,6 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
             Binary[i, :] = label(Binary[i, :])
         Binary = match_labels(Binary.astype('uint16'),
                               iou_threshold=iou_threshold)
-    else:
-        Binary = label(Binary)    
         
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
@@ -2264,7 +2268,8 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
 
     if ExpandLabels:
         Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
-   
+    else:
+        Finalimage = VollSeg_nolabel_precondition(image, Finalimage)
 
     return Finalimage
 
@@ -2389,7 +2394,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 
 
-def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh = 2):
+def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh = 1):
 
     properties = measure.regionprops(Label)
     Coordinates = [prop.centroid for prop in properties]
@@ -2440,7 +2445,7 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh = 
     return watershedImage, markers
 
 
-def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thresh, z_thresh = 2):
+def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thresh, z_thresh = 1):
     
    
     CopyMasks = Masks.copy()
@@ -2485,7 +2490,7 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     return relabeled
 
 
-def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh = 2):
+def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh = 1):
     properties = measure.regionprops(Label)
     
 
