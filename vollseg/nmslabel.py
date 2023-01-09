@@ -1,7 +1,7 @@
 from skimage import measure
 import numpy as np
 from skimage.util import map_array
-from .utils import image_conditionals
+import vollseg.utils 
 class NMSLabel(object):
 
     def __init__(self, image, nms_thresh, z_thresh = 2):
@@ -30,7 +30,7 @@ class NMSLabel(object):
         for (k,v) in self.supresslabel.items():
                 pixel_condition = (self.image == k)
                 pixel_replace_condition = v
-                self.image = image_conditionals(self.image,pixel_condition,pixel_replace_condition )
+                self.image = vollseg.utils.image_conditionals(self.image,pixel_condition,pixel_replace_condition )
 
         return self.image
            
