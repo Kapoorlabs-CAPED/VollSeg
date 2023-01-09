@@ -2234,40 +2234,42 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
         
         Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
 
-    thresholds = threshold_otsu(Segmented)
-    Binary = Segmented > thresholds
+    try:
+        thresholds = threshold_multiotsu(Segmented, classes=2)
+
+        # Using the threshold values, we generate the three regions.
+        regions = np.digitize(Segmented, bins=thresholds)
+    except:
+
+        regions = Segmented
+
+    Binary = regions > 0
     overall_mask = Binary.copy()
     ndim = len(image.shape)
     if ndim == 3:
                 for i in range(image.shape[0]):
-                    overall_mask[i] = binary_dilation(overall_mask[i], iterations = erosion_iterations)
-                    overall_mask[i] = binary_erosion(overall_mask[i], iterations = erosion_iterations)
-                    overall_mask[i] = fill_label_holes(overall_mask[i])
+                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
+                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
+                    overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
+                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE)
     
     Binary = label(Binary)
     
         
     if ndim == 3 and slice_merge:
         for i in range(image.shape[0]):
-            Binary[i] = label(Binary[i])
-            Binary[i] = expand_labels(Binary[i], distance = GLOBAL_ERODE//2)
-            Binary[i] = fill_label_holes(Binary[i])
+            Binary[i, :] = label(Binary[i, :])
         Binary = match_labels(Binary.astype('uint16'),
                               iou_threshold=iou_threshold)
-    if ndim == 3 and model_dim < len(image.shape):    
-        for i in range(image.shape[0]):
-            Binary[i] = label(Binary[i])
-            Binary[i] = expand_labels(Binary[i], distance = GLOBAL_ERODE//2)
-            Binary[i] = fill_label_holes(Binary[i])
-        Binary = match_labels(Binary.astype('uint16'),
-                              iou_threshold=iou_threshold)
+        
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
     Finalimage = relabel_sequential(Finalimage)[0]
+
     if ExpandLabels:
         Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
-  
-    
+    else:
+        Finalimage = VollSeg_nolabel_precondition(image, Finalimage)
 
     return Finalimage
 
