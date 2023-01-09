@@ -113,7 +113,7 @@ class NMSLabel(object):
                 if interArea == boxAArea  :
                     replace = []
                     for p in range(ndim - 1):
-                        if centroidA[p] >= self.boxB[p] and self.centroidA[p] <= self.boxB[p + self.ndim]:
+                        if centroidA[p] >= boxB[p] and centroidA[p] <= boxB[p + ndim]:
                             replace.append(True)
                         else:
                             replace.append(False)
@@ -123,7 +123,7 @@ class NMSLabel(object):
                 if interArea == boxBArea  :
                     replace = []
                     for p in range(ndim - 1):
-                        if centroidB[p] >= self.boxA[p] and self.centroidB[p] <= self.boxA[p + self.ndim]:
+                        if centroidB[p] >= boxA[p] and centroidB[p] <= boxA[p + ndim]:
                             replace.append(True)
                         else:
                             replace.append(False)
