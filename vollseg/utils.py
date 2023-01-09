@@ -2392,7 +2392,7 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
 
 
 
-def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
+def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh = 2):
 
     properties = measure.regionprops(Label)
     Coordinates = [prop.centroid for prop in properties]
@@ -2489,7 +2489,7 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     return relabeled
 
 
-def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
+def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh = 2):
     properties = measure.regionprops(Label)
     
 
