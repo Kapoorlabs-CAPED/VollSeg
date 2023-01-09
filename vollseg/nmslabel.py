@@ -49,7 +49,6 @@ class NMSLabel(object):
                         self.smallz(Bbox[pos], current_label)
 
         if len(self.originallabels) > 0:   
-            print(np.asarray(self.newlabels),np.asarray(self.originallabels) )     
             relabeled = map_array(
                     self.image, np.asarray(self.originallabels), np.asarray(self.newlabels)
                 ) 
@@ -64,7 +63,7 @@ class NMSLabel(object):
         ndim = len(self.image.shape)
         if ndim == 3:
             z = abs(box[0] - box[3])
-            if z <= self.z_thresh:
+            if z < self.z_thresh:
                 self.originallabels.append(label)
                 self.newlabels.append(0)
             else:

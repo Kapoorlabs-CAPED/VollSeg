@@ -2256,7 +2256,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     Binary = label(Binary)
     
         
-    if ndim == 3 and slice_merge:
+    if ndim == 3 and slice_merge or model_dim < len(image.shape):
         for i in range(image.shape[0]):
             Binary[i, :] = label(Binary[i, :])
         Binary = match_labels(Binary.astype('uint16'),
@@ -2439,7 +2439,7 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh = 
     watershedImage = watershed(-Image, markers, mask=mask.copy())
     
     watershedImage = NMSLabel(watershedImage, nms_thresh, z_thresh = z_thresh).supressregions()
-    watershedImage = NMSLabel(watershedImage, nms_thresh, z_thresh = z_thresh).supresslabels()
+   # watershedImage = NMSLabel(watershedImage, nms_thresh, z_thresh = z_thresh).supresslabels()
     
     
     return watershedImage, markers
@@ -2485,7 +2485,7 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
        
     CopyMasks = label(CopyMasks)
     relabeled = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
-    relabeled = NMSLabel(relabeled,nms_thresh, z_thresh = z_thresh).supresslabels()
+    #relabeled = NMSLabel(relabeled,nms_thresh, z_thresh = z_thresh).supresslabels()
     
     return relabeled
 
@@ -2539,7 +2539,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh 
     watershedImage = watershed(-Image, markers, mask=mask.copy())
     
     watershedImage = NMSLabel(watershedImage, nms_thresh, z_thresh = z_thresh).supressregions()
-    watershedImage = NMSLabel(watershedImage, nms_thresh, z_thresh = z_thresh).supresslabels()
+    #watershedImage = NMSLabel(watershedImage, nms_thresh, z_thresh = z_thresh).supresslabels()
     
     return watershedImage, markers
 
