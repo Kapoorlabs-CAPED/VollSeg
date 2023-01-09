@@ -1,7 +1,7 @@
 from skimage import measure
 import numpy as np
 from skimage.util import map_array
-from vollseg.utils import image_conditionals
+from .utils import image_conditionals
 class NMSLabel(object):
 
     def __init__(self, image, nms_thresh, z_thresh = 2):
