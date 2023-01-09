@@ -68,7 +68,10 @@ class SmartPatches(object):
                             crop_Xplus = x   + int(self.patch_size[1]/2)
                             crop_Yminus = y  - int(self.patch_size[0]/2)
                             crop_Yplus = y   + int(self.patch_size[0]/2)
-                            region =(slice(int(crop_Yminus), int(crop_Yplus)),
+                            crop_Zminus = z  - int(self.patch_size[2]/2)
+                            crop_Zplus = z   + int(self.patch_size[2]/2)
+                            
+                            region =(slice(int(crop_Zminus), int(crop_Zplus)),slice(int(crop_Yminus), int(crop_Yplus)),
                                                                         slice(int(crop_Xminus), int(crop_Xplus)))
                             
                         
@@ -80,17 +83,14 @@ class SmartPatches(object):
 
                                 if self.valid:
 
-                                    imwrite(self.real_mask_patch_dir + '/' + name + str(count) + self.pattern, self.crop_labelimage.astype('uint16'))
-                                    binary_image = self.crop_labelimage > 0   
-                                    imwrite(self.binary_mask_dir + '/' + name + str(count) + self.pattern, binary_image.astype('uint16'))
-
                                     if self.erosion_iterations > 0:
                                         eroded_crop_labelimage = erode_labels(self.crop_labelimage.astype('uint16'), self.erosion_iterations)
+                                    else:
+                                        eroded_crop_labelimage =  self.crop_labelimage   
                                     eroded_binary_image = eroded_crop_labelimage > 0   
                                     imwrite(self.binary_mask_dir + '/' + name + str(count) + self.pattern, eroded_binary_image.astype('uint16'))
 
                                     self.raw_image = imread(Path(self.raw_dir + name + self.pattern ))[region]
-                                    
                                     imwrite(self.base_dir + self.raw_save_dir + '/' + name + str(count) + self.pattern, self.raw_image)
                         
                         
@@ -106,3 +106,31 @@ class SmartPatches(object):
                   if index_ratio >= self.lower_ratio_fore_to_back  and index_ratio <= self.upper_ratio_fore_to_back:
 
                       self.valid = True                
+                      
+                      
+def erode_label_holes(lbl_img, iterations):
+    lbl_img_filled = np.zeros_like(lbl_img)
+    for l in (range(np.min(lbl_img), np.max(lbl_img) + 1)):
+        mask = lbl_img==l
+        mask_filled = binary_erosion(mask,iterations = iterations)
+        lbl_img_filled[mask_filled] = l
+    return lbl_img_filled    
+
+def erode_labels(segmentation, erosion_iterations= 2):
+    # create empty list where the eroded masks can be saved to
+    list_of_eroded_masks = list()
+    regions = regionprops(segmentation)
+    erode = np.zeros(segmentation.shape)
+    def erode_mask(segmentation_labels, label_id, erosion_iterations):
+        
+        only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
+        eroded = ndimage.binary_erosion(only_current_label_id, iterations = erosion_iterations)
+        relabeled_eroded = np.where(eroded == 1, label_id, 0)
+        return(relabeled_eroded)
+
+    for i in range(len(regions)):
+        label_id = regions[i].label
+        erode = erode + erode_mask(segmentation, label_id, erosion_iterations)
+
+    # convert list of numpy arrays to stacked numpy array
+    return erode                      
