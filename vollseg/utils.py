@@ -2496,7 +2496,6 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
 
     markers = morphology.dilation(markers_raw, morphology.disk(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
-    watershedImage =  NMSLabel(image= watershedImage).supresslabels()
     return watershedImage, markers
 
 
@@ -2547,7 +2546,6 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
     markers = morphology.dilation(
         markers_raw.astype('uint16'), morphology.ball(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
-    watershedImage =  NMSLabel(image= watershedImage).supresslabels()
     return watershedImage, markers
 
 
