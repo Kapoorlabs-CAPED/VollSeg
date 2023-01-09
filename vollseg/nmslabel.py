@@ -39,18 +39,22 @@ class NMSLabel(object):
         properties = measure.regionprops(self.image)
         Bbox = [prop.bbox for prop in properties] 
         Labels = [prop.label for prop in properties]
-        self.supressregion = {}
+        
+        
+        self.originallabels = []
+        self.newlabels = []
         for pos in (range(len(Labels))):
                         current_label = Labels[pos]
                         self.smallz(Bbox[pos], current_label)
 
-                
-        for (k,v) in self.supressregion.items():
-                pixel_condition = (self.image == k)
-                pixel_replace_condition = v
-                self.image = vollseg.utils.image_conditionals(self.image,pixel_condition,pixel_replace_condition )
-
-        return self.image
+        if len(self.originallabels) > 0:   
+            print(np.asarray(self.newlabels),np.asarray(self.originallabels) )     
+            relabeled = map_array(
+                    self.image, np.asarray(self.originallabels), np.asarray(self.newlabels)
+                ) 
+        else:
+            relabeled = self.image  
+        return relabeled
         
         
         
@@ -58,9 +62,13 @@ class NMSLabel(object):
         
         ndim = len(self.image.shape)
         if ndim == 3:
-            z = abs(box[0] - box[3])
+            z = abs(box[2] - box[5])
             if z <= self.z_thresh:
-                self.supressregion[label] = 0
+                self.originallabels.append(label)
+                self.newlabels.append(0)
+            else:
+                self.originallabels.append(label)
+                self.newlabels.append(label)
         
     def iou(self, boxA, boxB, labelA, labelB):
 
