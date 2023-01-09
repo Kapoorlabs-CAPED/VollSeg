@@ -2246,14 +2246,8 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
     Binary = regions > 0
     overall_mask = Binary.copy()
     ndim = len(image.shape)
-    if ndim == 3:
-                for i in range(image.shape[0]):
-                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
-                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
-                    overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
-                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE)
     
-    Binary = label(Binary)
+    
     
         
     if ndim == 3 and slice_merge or model_dim < len(image.shape):
@@ -2261,6 +2255,8 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
             Binary[i, :] = label(Binary[i, :])
         Binary = match_labels(Binary.astype('uint16'),
                               iou_threshold=iou_threshold)
+    else:
+        Binary = label(Binary)    
         
     # Postprocessing steps
     Finalimage = fill_label_holes(Binary)
@@ -2268,8 +2264,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
 
     if ExpandLabels:
         Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
-    else:
-        Finalimage = VollSeg_nolabel_precondition(image, Finalimage)
+   
 
     return Finalimage
 
