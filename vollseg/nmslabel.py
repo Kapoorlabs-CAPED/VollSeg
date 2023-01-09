@@ -72,6 +72,7 @@ class NMSLabel(object):
                 xB = min(boxA[2], boxB[2])
                 yB = min(boxA[3], boxB[3])
                 
+                
                 # compute the area of intersection rectangle
                 interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
                 # compute the area of both the prediction and ground-truth
@@ -104,7 +105,7 @@ class NMSLabel(object):
                 iou = interArea / float(boxAArea + boxBArea - interArea)
          
         
-        if interArea == boxAArea:
+        if interArea == boxAArea and boxA[5] < boxB[5] and boxA[2] > boxB[2] :
             self.supresslabel[labelA] = labelB
-        if interArea == boxBArea:
+        if interArea == boxBArea and boxB[5] < boxA[5] and boxB[2] > boxA[2] :
             self.supresslabel[labelB] = labelA        
