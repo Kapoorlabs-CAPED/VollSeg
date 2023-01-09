@@ -98,7 +98,7 @@ class NMSLabel(object):
          
             if sizeA < sizeB:
                 replace = []
-                for p in range(ndim - 1):
+                for p in range(1,ndim):
                      if centroidA[p] >= boxB[p] and centroidA[p] <= boxB[p + ndim]:
                             replace.append(True)
                      else:
@@ -107,7 +107,7 @@ class NMSLabel(object):
                         self.supresslabel[labelA] = labelB
             else:            
                 replace = []
-                for p in range(ndim - 1):
+                for p in range(1,ndim):
                         if centroidB[p] >= boxA[p] and centroidB[p] <= boxA[p + ndim]:
                             replace.append(True)
                         else:
