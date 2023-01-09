@@ -14,7 +14,7 @@ class NMSLabel(object):
         Bbox = [prop.bbox for prop in properties] 
         Labels = [prop.label for prop in properties]
         Centroids = [prop.centroid for prop in properties]
-        Sizes = [prop.size for prop in properties]
+        Sizes = [prop.area for prop in properties]
         
         self.supresslabel = {}
         while len(Labels) > 0:
