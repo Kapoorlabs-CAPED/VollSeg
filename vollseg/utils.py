@@ -2484,6 +2484,11 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
        CopyMasks[i] = remove_big_objects(CopyMasks[i], max_size = max_size)
        
     CopyMasks = label(CopyMasks)
+    properties = measure.regionprops(CopyMasks)
+    
+    bbox = [prop.bbox for prop in properties]
+    bbcord = [prop.centroid for prop in properties]
+    bblabel = [prop.label for prop in properties]
     if len(bbox) > 0:
             originallabels = []
             newlabels = []
