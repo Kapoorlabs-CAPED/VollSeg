@@ -1136,7 +1136,7 @@ def VollCellSeg(image: np.ndarray,
                 slice_merge : bool = False, 
                 iou_threshold: float = 0.3, 
                 do_3D: bool =False,
-                z_thresh: int = 1
+                z_thresh: int = 2
                 ):
     
     
@@ -2251,7 +2251,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
                     overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
-                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE)
+                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = 2)
     
     Binary = label(Binary)
     
