@@ -27,7 +27,8 @@ class NMSLabel(object):
                         current_label = Labels[pos]
                         self.smallz(Bbox[pos], current_label)
 
-        if len(self.originallabels) > 0:        
+        if len(self.originallabels) > 0:   
+            print(np.asarray(self.newlabels),np.asarray(self.originallabels) )     
             relabeled = map_array(
                     self.image, np.asarray(self.originallabels), np.asarray(self.newlabels)
                 ) 
