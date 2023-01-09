@@ -43,6 +43,7 @@ class NMSLabel(object):
         ndim = len(self.image.shape)
         if ndim == 3:
             z = abs(box[2] - box[5])
+            print(z, self.z_thresh, box)
             if z <= self.z_thresh:
                 self.originallabels.append(label)
                 self.newlabels.append(0)
