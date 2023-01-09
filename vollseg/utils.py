@@ -2251,7 +2251,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
                     overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
                     overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
-                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = 2)
+                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE // 2)
     
     Binary = label(Binary)
     
@@ -2479,8 +2479,8 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     empy_region_indices = zip(*np.where(CopyMasks == 0))
     
   
-    for index in empy_region_indices:
-        CopyMasks[index] = watershed_image[index]
+    #for index in empy_region_indices:
+        #CopyMasks[index] = watershed_image[index]
 
        
     CopyMasks = label(CopyMasks)
