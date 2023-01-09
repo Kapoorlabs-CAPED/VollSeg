@@ -2441,7 +2441,6 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     for i in range(watershed_image.shape[0]):
         watershed_image[i] = expand_labels(watershed_image[i], distance = GLOBAL_ERODE)
     for index in empy_region_indices:
-        
         CopyMasks[index] = watershed_image[index]
         
     for i in range(CopyMasks.shape[0]):
@@ -2449,7 +2448,7 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
        CopyMasks[i] = remove_big_objects(CopyMasks[i], max_size = max_size)
        
     CopyMasks = label(CopyMasks)
-    CopyMasks =  NMSLabel(image= CopyMasks, nms_thresh=nms_thresh * 2).supresslabels()
+    CopyMasks =  NMSLabel(image= CopyMasks, nms_thresh= 0.9).supresslabels()
     
     
     return CopyMasks
@@ -2497,8 +2496,7 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool):
 
     markers = morphology.dilation(markers_raw, morphology.disk(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
-    watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supresslabels()
-    #watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supressregions()
+    watershedImage =  NMSLabel(image= watershedImage, nms_thresh=0.9).supresslabels()
     return watershedImage, markers
 
 
@@ -2549,8 +2547,7 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True):
     markers = morphology.dilation(
         markers_raw.astype('uint16'), morphology.ball(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
-    watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supresslabels()
-    #watershedImage =  NMSLabel(image= watershedImage, nms_thresh=nms_thresh).supressregions()
+    watershedImage =  NMSLabel(image= watershedImage, nms_thresh=0.9).supresslabels()
     return watershedImage, markers
 
 
