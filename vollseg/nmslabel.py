@@ -14,6 +14,8 @@ class NMSLabel(object):
         Bbox = [prop.bbox for prop in properties] 
         Labels = [prop.label for prop in properties]
         Centroids = [prop.centroid for prop in properties]
+        Sizes = [prop.size for prop in properties]
+        
         self.supresslabel = {}
         while len(Labels) > 0:
                 last = len(Labels) - 1
@@ -22,7 +24,7 @@ class NMSLabel(object):
                 for pos in (range(0, last)):
                     # grab the current index
                         j = Labels[pos]
-                        self.iou(Bbox[last], Bbox[pos], Centroids[last], Centroids[pos],  i, j)
+                        self.iou(Bbox[last], Bbox[pos], Centroids[last], Centroids[pos],Sizes[last], Sizes[pos],  i, j)
 
                 Labels = np.delete(Labels, suppress)
                 
@@ -40,6 +42,7 @@ class NMSLabel(object):
         properties = measure.regionprops(self.image)
         Bbox = [prop.bbox for prop in properties] 
         Labels = [prop.label for prop in properties]
+        
         
         self.supressregion = {}
         for pos in (range(len(Labels))):
@@ -64,68 +67,50 @@ class NMSLabel(object):
             if z <= self.z_thresh:
                 self.supressregion[label] = 0
         
-    def iou(self, boxA, boxB, centroidA, centroidB, labelA, labelB):
+    def iou(self, boxA, boxB, centroidA, centroidB, sizeA, sizeB, labelA, labelB):
 
         ndim = len(self.image.shape)
         
         if ndim == 2:
-                xA = max(boxA[0], boxB[0])
-                yA = max(boxA[1], boxB[1])
-                xB = min(boxA[2], boxB[2])
-                yB = min(boxA[3], boxB[3])
                 
-                
-                # compute the area of intersection rectangle
-                interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-                # compute the area of both the prediction and ground-truth
-                # rectangles
-                boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
-                boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
-                # compute the intersection over union by taking the intersection
-                # area and dividing it by the sum of prediction + ground-truth
-                # areas - the interesection area
-                if interArea == boxAArea  :
-                       self.supresslabel[labelA] = labelB
-                if interArea == boxBArea  :
-                       self.supresslabel[labelB] = labelA 
-         
-
-        if ndim == 3:
-
-                xA = max(boxA[0], boxB[0])
-                yA = max(boxA[1], boxB[1])
-                zA = max(boxA[2], boxB[2])
-                xB = min(boxA[3], boxB[3])
-                yB = min(boxA[4], boxB[4])
-                zB = min(boxA[5], boxB[5])
-                # compute the area of intersection rectangle
-                interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1) 
-                # compute the area of both the prediction and ground-truth
-                # rectangles
-                boxAArea = (boxA[3] - boxA[0] + 1) * (boxA[4] - boxA[1] + 1) 
-                boxBArea = (boxB[3] - boxB[0] + 1) * (boxB[4] - boxB[1] + 1) 
-                # compute the intersection over union by taking the intersection
-                # area and dividing it by the sum of prediction + ground-truth
-                # areas - the interesection area
-                iou = interArea / float(boxAArea + boxBArea - interArea)
-         
-        
-                if interArea == boxAArea  :
-                    replace = []
-                    for p in range(ndim - 1):
-                        if centroidA[p] >= boxB[p] and centroidA[p] <= boxB[p + ndim]:
+            if sizeA < sizeB:
+                replace = []
+                for p in range(ndim):
+                     if centroidA[p] >= boxB[p] and centroidA[p] <= boxB[p + ndim]:
                             replace.append(True)
-                        else:
+                     else:
                             replace.append(False)
-                    if all(replace):            
+                if all(replace):            
                         self.supresslabel[labelA] = labelB
-                        
-                if interArea == boxBArea  :
-                    replace = []
-                    for p in range(ndim - 1):
+            else:            
+                replace = []
+                for p in range(ndim):
                         if centroidB[p] >= boxA[p] and centroidB[p] <= boxA[p + ndim]:
                             replace.append(True)
                         else:
                             replace.append(False)
-                    if all(replace):            
+                if all(replace):            
+                        self.supresslabel[labelB] = labelA
+
+        if ndim == 3:
+
+               
+         
+            if sizeA < sizeB:
+                replace = []
+                for p in range(ndim - 1):
+                     if centroidA[p] >= boxB[p] and centroidA[p] <= boxB[p + ndim]:
+                            replace.append(True)
+                     else:
+                            replace.append(False)
+                if all(replace):            
+                        self.supresslabel[labelA] = labelB
+            else:            
+                replace = []
+                for p in range(ndim - 1):
+                        if centroidB[p] >= boxA[p] and centroidB[p] <= boxA[p + ndim]:
+                            replace.append(True)
+                        else:
+                            replace.append(False)
+                if all(replace):            
                         self.supresslabel[labelB] = labelA        
