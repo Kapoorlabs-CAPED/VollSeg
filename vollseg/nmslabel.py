@@ -4,7 +4,7 @@ from skimage.util import map_array
 import vollseg.utils 
 class NMSLabel(object):
 
-    def __init__(self, image, nms_thresh, z_thresh = 2):
+    def __init__(self, image, nms_thresh, z_thresh = 1):
         self.image = image 
         self.nms_thresh = nms_thresh
         self.z_thresh = z_thresh
