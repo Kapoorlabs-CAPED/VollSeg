@@ -2436,8 +2436,8 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh = 
     markers = morphology.dilation(markers_raw, morphology.disk(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
     
-    watershedImage = NMSLabel(watershedImage, z_thresh = z_thresh).supressregions()
-    watershedImage = NMSLabel(watershedImage, z_thresh = z_thresh).supresslabels()
+    watershedImage = NMSLabel(watershedImage, nms_thresh, z_thresh = z_thresh).supressregions()
+    watershedImage = NMSLabel(watershedImage, nms_thresh, z_thresh = z_thresh).supresslabels()
     
     
     return watershedImage, markers
@@ -2483,8 +2483,8 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
 
        
     CopyMasks = label(CopyMasks)
-    relabeled = NMSLabel(CopyMasks, z_thresh = z_thresh).supressregions()
-    relabeled = NMSLabel(relabeled, z_thresh = z_thresh).supresslabels()
+    relabeled = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
+    relabeled = NMSLabel(relabeled,nms_thresh, z_thresh = z_thresh).supresslabels()
     
     return relabeled
 
@@ -2537,8 +2537,8 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh 
         markers_raw.astype('uint16'), morphology.ball(2))
     watershedImage = watershed(-Image, markers, mask=mask.copy())
     
-    watershedImage = NMSLabel(watershedImage, z_thresh = z_thresh).supressregions()
-    watershedImage = NMSLabel(watershedImage, z_thresh = z_thresh).supresslabels()
+    watershedImage = NMSLabel(watershedImage, nms_thresh, z_thresh = z_thresh).supressregions()
+    watershedImage = NMSLabel(watershedImage, nms_thresh, z_thresh = z_thresh).supresslabels()
     
     return watershedImage, markers
 
