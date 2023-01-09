@@ -68,7 +68,10 @@ class SmartPatches(object):
                             crop_Xplus = x   + int(self.patch_size[1]/2)
                             crop_Yminus = y  - int(self.patch_size[0]/2)
                             crop_Yplus = y   + int(self.patch_size[0]/2)
-                            region =(slice(int(crop_Yminus), int(crop_Yplus)),
+                            crop_Zminus = z  - int(self.patch_size[2]/2)
+                            crop_Zplus = z   + int(self.patch_size[2]/2)
+                            
+                            region =(slice(int(crop_Zminus), int(crop_Zplus)),slice(int(crop_Yminus), int(crop_Yplus)),
                                                                         slice(int(crop_Xminus), int(crop_Xplus)))
                             
                         

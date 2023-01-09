@@ -14,6 +14,7 @@ from .StarDist2D import StarDist2D
 from .StarDist3D import StarDist3D
 from .Projection3D import Projection3D
 from .CARE import CARE
+from .SmartPatches import SmartPatches
 from ._version import __version__
 from csbdeep.utils.tf import keras_import
 
