@@ -2478,41 +2478,10 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
         watershed_image[i] = expand_labels(watershed_image[i], distance = GLOBAL_ERODE)
     for index in empy_region_indices:
         CopyMasks[index] = watershed_image[index]
-        
-    for i in range(CopyMasks.shape[0]):
-       CopyMasks[i] = remove_small_objects(CopyMasks[i], min_size = min_size) 
-       CopyMasks[i] = remove_big_objects(CopyMasks[i], max_size = max_size)
+
        
     CopyMasks = label(CopyMasks)
-    properties = measure.regionprops(CopyMasks)
-    
-    bbox = [prop.bbox for prop in properties]
-    bbcord = [prop.centroid for prop in properties]
-    bblabel = [prop.label for prop in properties]
-    if len(bbox) > 0:
-            originallabels = []
-            newlabels = []
-            for i in range(0, len(bbox)):
-
-                box = bbox[i]
-                for j in range(0, len(bbcord)):
-                    if j!=i:
-                        star = bbcord[j]
-                        merge = NMSLabel(box,star).merging()
-                        if merge:
-                            originallabels.append(bblabel[j])
-                            newlabels.append(bblabel[i])
-                        else:
-                            originallabels.append(bblabel[j])
-                            newlabels.append(bblabel[j])     
-                            
-            relabeled = map_array(
-                    CopyMasks, np.asarray(originallabels), np.asarray(newlabels)
-                )                
-            
-            
-    else:
-        relabeled = CopyMasks
+    CopyMasks = NMSLabel(CopyMasks).supressregions()
     
     
     return relabeled
