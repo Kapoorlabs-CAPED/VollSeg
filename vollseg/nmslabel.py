@@ -10,7 +10,7 @@ class NMSLabel(object):
 
     def supresslabels(self):
         
-        print('Supressing spurious labels, this can take some time')
+        print(f'Supressing spurious labels, this can take some time using nms threshold of {self.nms_thresh}')
         properties = measure.regionprops(self.image)
         Bbox = [prop.bbox for prop in properties] 
         Labels = [prop.label for prop in properties]
@@ -29,6 +29,8 @@ class NMSLabel(object):
         for (k,v) in self.supresslabel.items():
                 pixel_condition = (self.image == k)
                 pixel_replace_condition = v
+                if self.nms_thresh == 0.9:
+                    print(k,v)
                 self.image = vollseg.utils.image_conditionals(self.image,pixel_condition,pixel_replace_condition )
 
         return self.image
