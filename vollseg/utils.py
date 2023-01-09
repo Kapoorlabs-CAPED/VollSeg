@@ -2451,7 +2451,6 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     CopyMasks = label(CopyMasks)
     CopyMasks =  NMSLabel(image= CopyMasks, nms_thresh=nms_thresh * 2).supresslabels()
     
-    CopyMasks = CopyMasks * membrane_mask 
     
     return CopyMasks
 
