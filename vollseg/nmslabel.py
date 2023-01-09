@@ -3,14 +3,13 @@ import numpy as np
 import vollseg.utils
 class NMSLabel(object):
 
-    def __init__(self, image, nms_thresh, z_thresh = 2):
+    def __init__(self, image, z_thresh = 2):
         self.image = image 
-        self.nms_thresh = nms_thresh
         self.z_thresh = z_thresh
 
     def supresslabels(self):
         
-        print(f'Supressing spurious labels, this can take some time using nms threshold of {self.nms_thresh}')
+        print(f'Supressing spurious labels, this can take some time')
         properties = measure.regionprops(self.image)
         Bbox = [prop.bbox for prop in properties] 
         Labels = [prop.label for prop in properties]
@@ -29,8 +28,7 @@ class NMSLabel(object):
         for (k,v) in self.supresslabel.items():
                 pixel_condition = (self.image == k)
                 pixel_replace_condition = v
-                if self.nms_thresh == 0.9:
-                    print(k,v)
+                
                 self.image = vollseg.utils.image_conditionals(self.image,pixel_condition,pixel_replace_condition )
 
         return self.image
@@ -83,8 +81,8 @@ class NMSLabel(object):
                 # compute the intersection over union by taking the intersection
                 # area and dividing it by the sum of prediction + ground-truth
                 # areas - the interesection area
-                iou = interArea / float(boxAArea + boxBArea - interArea)
-                    
+              
+         
 
         if ndim == 3:
 
@@ -105,8 +103,7 @@ class NMSLabel(object):
                 # areas - the interesection area
                 iou = interArea / float(boxAArea + boxBArea - interArea)
          
-        if iou >= self.nms_thresh:
-            self.supresslabel[labelA] = labelB
+        
         if interArea == boxAArea:
             self.supresslabel[labelA] = labelB
         if interArea == boxBArea:
