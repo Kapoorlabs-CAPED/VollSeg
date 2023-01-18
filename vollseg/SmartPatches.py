@@ -57,31 +57,32 @@ class SmartPatches(object):
                         crop_Xplus = x   + int(self.patch_size[1]/2)
                         crop_Yminus = y  - int(self.patch_size[0]/2)
                         crop_Yplus = y   + int(self.patch_size[0]/2)
+                        crop_minus = [crop_Yminus,crop_Xminus]
                         region =(slice(int(crop_Yminus), int(crop_Yplus)),
                                                                     slice(int(crop_Xminus), int(crop_Xplus)))
                     if self.ndim == 3:
                         
                             self.valid = False
                             centroid = prop.centroid
-                            z = centroid[2]
-                            x = centroid[1]
-                            y = centroid[0]
-
+                            z = centroid[0]
+                            x = centroid[2]
+                            y = centroid[1]
+                            
                             crop_Xminus = x  - int(self.patch_size[2]/2)
                             crop_Xplus = x   + int(self.patch_size[2]/2)
                             crop_Yminus = y  - int(self.patch_size[1]/2)
                             crop_Yplus = y   + int(self.patch_size[1]/2)
                             crop_Zminus = z  - int(self.patch_size[0]/2)
                             crop_Zplus = z   + int(self.patch_size[0]/2)
-                            
+                            crop_minus = [crop_Zminus,crop_Yminus, crop_Xminus]
                             region =(slice(int(crop_Zminus), int(crop_Zplus)),slice(int(crop_Yminus), int(crop_Yplus)),
                                                                         slice(int(crop_Xminus), int(crop_Xplus)))
-                           
-                    self.crop_labelimage = labelimage[region] 
-                    print(region, self.crop_labelimage.shape[2], self.patch_size[2],self.crop_labelimage.shape[1], self.patch_size[1]) 
-                    self.crop_labelimage = remove_small_objects(
-                                self.crop_labelimage.astype('uint16'), min_size=10)
-                    if self.crop_labelimage.shape[2] == self.patch_size[2] and self.crop_labelimage.shape[1] == self.patch_size[1]:
+                    if all(crop for crop in crop_minus) > 0:       
+                        self.crop_labelimage = labelimage[region] 
+                        print(region, self.crop_labelimage.shape[2], self.patch_size[2],self.crop_labelimage.shape[1], self.patch_size[1]) 
+                        self.crop_labelimage = remove_small_objects(
+                                    self.crop_labelimage.astype('uint16'), min_size=10)
+                        if self.crop_labelimage.shape[2] == self.patch_size[2] and self.crop_labelimage.shape[1] == self.patch_size[1]:
                                 self._region_selector()
                                 print(self.valid)
                                 if self.valid:
