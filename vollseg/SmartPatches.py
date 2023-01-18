@@ -81,7 +81,7 @@ class SmartPatches(object):
                                 self.crop_labelimage.astype('uint16'), min_size=10)
                     if self.crop_labelimage.shape[0] == self.patch_size[0] and self.crop_labelimage.shape[1] == self.patch_size[1]:
                                 self._region_selector()
-
+                                print(self.valid)
                                 if self.valid:
 
                                     if self.erosion_iterations > 0:
@@ -106,6 +106,7 @@ class SmartPatches(object):
                 if len(total_indices) > 0:
                   norm_foreground = len(non_zero_indices)/ len(total_indices)
                   index_ratio = float(norm_foreground) 
+                  print('index_ratio', index_ratio)
                   if index_ratio >= self.lower_ratio_fore_to_back  and index_ratio <= self.upper_ratio_fore_to_back:
 
                       self.valid = True                
