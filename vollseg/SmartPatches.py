@@ -25,7 +25,7 @@ class SmartPatches(object):
         
         self._create_smart_patches()  
         
-        def _create_smart_patches(self):
+    def _create_smart_patches(self):
             
             Path(self.raw_save_dir).mkdir(exist_ok = True)
             Path(self.binary_mask_dir).mkdir(exist_ok = True)
@@ -39,7 +39,7 @@ class SmartPatches(object):
                 for count, prop in enumerate(properties):
                           self._label_maker( fname, labelimage , count , prop )
                 
-        def _label_maker(self, fname, labelimage, count, prop):
+    def _label_maker(self, fname, labelimage, count, prop):
             
                     name = os.path.splitext(os.path.basename(fname))[0]
                     
@@ -97,7 +97,7 @@ class SmartPatches(object):
                         
                         
                         
-        def _region_selector(self):
+    def _region_selector(self):
             
                 non_zero_indices = list(zip(*np.where(self.crop_labelimage > 0)))
  
