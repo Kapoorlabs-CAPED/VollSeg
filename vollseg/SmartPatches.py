@@ -3,6 +3,8 @@ import numpy as np
 from pathlib import Path
 from tifffile import imread, imwrite
 from skimage.measure import  regionprops
+from skimage.morphology import remove_small_objects
+from scipy.ndimage import binary_dilation, binary_erosion
 
 class SmartPatches(object):
     
@@ -20,8 +22,6 @@ class SmartPatches(object):
         self.pattern = pattern 
         self.lower_ratio_fore_to_back = lower_ratio_fore_to_back
         self.upper_ratio_fore_to_back = upper_ratio_fore_to_back
-        
-        
         
         self._create_smart_patches()  
         
@@ -126,7 +126,7 @@ def erode_labels(segmentation, erosion_iterations= 2):
     def erode_mask(segmentation_labels, label_id, erosion_iterations):
         
         only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
-        eroded = ndimage.binary_erosion(only_current_label_id, iterations = erosion_iterations)
+        eroded = binary_erosion(only_current_label_id, iterations = erosion_iterations)
         relabeled_eroded = np.where(eroded == 1, label_id, 0)
         return(relabeled_eroded)
 
