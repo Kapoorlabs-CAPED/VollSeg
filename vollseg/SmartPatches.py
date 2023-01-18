@@ -12,7 +12,7 @@ class SmartPatches(object):
      upper_ratio_fore_to_back = 0.9):
         
         self.base_dir = base_dir
-        self.raw_dir = os.path.join(base_dir,raw_dir) 
+        self.raw_dir = raw_dir
         self.real_mask_dir = os.path.join(base_dir,real_mask_dir)
         self.raw_save_dir = os.path.join(base_dir,raw_save_dir) 
         self.binary_mask_dir = os.path.join(base_dir,binary_mask_dir)  
@@ -22,7 +22,7 @@ class SmartPatches(object):
         self.pattern = pattern 
         self.lower_ratio_fore_to_back = lower_ratio_fore_to_back
         self.upper_ratio_fore_to_back = upper_ratio_fore_to_back
-        
+        self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
         self._create_smart_patches()  
         
     def _create_smart_patches(self):
@@ -30,18 +30,19 @@ class SmartPatches(object):
             Path(self.raw_save_dir).mkdir(exist_ok = True)
             Path(self.binary_mask_dir).mkdir(exist_ok = True)
             Path(self.real_mask_patch_dir).mkdir(exist_ok = True)
-            for fname in os.listdir(self.real_mask_dir):
+            files = os.listdir(self.real_mask_dir)
+            for fname in files:
+                if any(fname.endswith(f) for f in self.acceptable_formats):
                 
-                
-                labelimage = imread(fname).astype(np.uint16)
-                self.ndim = len(labelimage.shape)
-                properties = regionprops(labelimage)
-                for count, prop in enumerate(properties):
-                          self._label_maker( fname, labelimage , count , prop )
+                    labelimage = imread(os.path.join(self.real_mask_dir,fname)).astype(np.uint16)
+                    self.ndim = len(labelimage.shape)
+                    properties = regionprops(labelimage)
+                    for count, prop in enumerate(properties):
+                            self._label_maker( fname, labelimage , count , prop )
                 
     def _label_maker(self, fname, labelimage, count, prop):
             
-                    name = os.path.splitext(os.path.basename(fname))[0]
+                    name = os.path.splitext(fname)[0]
                     
                     if self.ndim == 2:
                         
