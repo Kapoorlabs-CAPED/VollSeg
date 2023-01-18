@@ -12,7 +12,7 @@ class SmartPatches(object):
      upper_ratio_fore_to_back = 0.9):
         
         self.base_dir = base_dir
-        self.raw_dir = raw_dir
+        self.raw_dir = os.path.join(base_dir,raw_dir)
         self.real_mask_dir = os.path.join(base_dir,real_mask_dir)
         self.raw_save_dir = os.path.join(base_dir,raw_save_dir) 
         self.binary_mask_dir = os.path.join(base_dir,binary_mask_dir)  
@@ -82,24 +82,28 @@ class SmartPatches(object):
                         print(region, self.crop_labelimage.shape[2], self.patch_size[2],self.crop_labelimage.shape[1], self.patch_size[1]) 
                         self.crop_labelimage = remove_small_objects(
                                     self.crop_labelimage.astype('uint16'), min_size=10)
-                        if self.crop_labelimage.shape[2] == self.patch_size[2] and self.crop_labelimage.shape[1] == self.patch_size[1]:
-                                self._region_selector()
-                                print(self.valid)
-                                if self.valid:
+                        if self.crop_labelimage.shape[0] == self.patch_size[0] and self.crop_labelimage.shape[1] == self.patch_size[1] and self.ndim == 2:
+                                self._crop_maker(region, name, count)
+                        if self.crop_labelimage.shape[0] == self.patch_size[0] and self.crop_labelimage.shape[1] == self.patch_size[1] and self.crop_labelimage.shape[2] == self.patch_size[2]  and self.ndim == 3:
+                                self._crop_maker(region, name, count)
+    def _crop_maker(self, region, name, count):
+          
+            self._region_selector()
+            print(self.valid)
+            if self.valid:
 
-                                    if self.erosion_iterations > 0:
-                                        eroded_crop_labelimage = erode_labels(self.crop_labelimage.astype('uint16'), self.erosion_iterations)
-                                    else:
-                                        eroded_crop_labelimage =  self.crop_labelimage   
-                                    eroded_binary_image = eroded_crop_labelimage > 0   
-                                    imwrite(self.binary_mask_dir + '/' + name + str(count) + self.pattern, eroded_binary_image.astype('uint16'))
+                if self.erosion_iterations > 0:
+                    eroded_crop_labelimage = erode_labels(self.crop_labelimage.astype('uint16'), self.erosion_iterations)
+                else:
+                    eroded_crop_labelimage =  self.crop_labelimage   
+                eroded_binary_image = eroded_crop_labelimage > 0   
+                imwrite(self.binary_mask_dir + '/' + name + str(count) + self.pattern, eroded_binary_image.astype('uint16'))
 
-                                    self.raw_image = imread(Path(self.raw_dir + name + self.pattern ))[region]
-                                    imwrite(self.raw_save_dir + '/' + name + str(count) + self.pattern, self.raw_image)
-                                    imwrite(self.real_mask_patch_dir + '/' + name + str(count) + self.pattern, self.crop_labelimage.astype('uint16'))
-                                    
-                        
-                        
+                self.raw_image = imread(Path(self.raw_dir + name + self.pattern ))[region]
+                imwrite(self.raw_save_dir + '/' + name + str(count) + self.pattern, self.raw_image)
+                imwrite(self.real_mask_patch_dir + '/' + name + str(count) + self.pattern, self.crop_labelimage.astype('uint16'))
+                
+                              
                         
     def _region_selector(self):
             
