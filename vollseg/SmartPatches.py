@@ -5,7 +5,7 @@ from tifffile import imread, imwrite
 from skimage.measure import  regionprops
 from skimage.morphology import remove_small_objects
 from scipy.ndimage import binary_dilation, binary_erosion
-
+from tqdm import tqdm
 class SmartPatches(object):
     
     def __init__(self, base_dir,  raw_dir, real_mask_dir, raw_save_dir, real_mask_patch_dir, binary_mask_dir, patch_size, erosion_iterations = 2, pattern = '.tif', lower_ratio_fore_to_back = 0.3,
@@ -35,9 +35,11 @@ class SmartPatches(object):
                 if any(fname.endswith(f) for f in self.acceptable_formats):
                 
                     labelimage = imread(os.path.join(self.real_mask_dir,fname)).astype(np.uint16)
+
                     self.ndim = len(labelimage.shape)
+                    print(labelimage.shape, self.ndim)
                     properties = regionprops(labelimage)
-                    for count, prop in enumerate(properties):
+                    for count, prop in tqdm(enumerate(properties)):
                             self._label_maker( fname, labelimage , count , prop )
                 
     def _label_maker(self, fname, labelimage, count, prop):
