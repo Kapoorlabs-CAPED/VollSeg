@@ -76,7 +76,7 @@ class SmartPatches(object):
                             
                             region =(slice(int(crop_Zminus), int(crop_Zplus)),slice(int(crop_Yminus), int(crop_Yplus)),
                                                                         slice(int(crop_Xminus), int(crop_Xplus)))
-                            
+                    print(region, self.crop_labelimage.shape[2], self.patch_size[2],self.crop_labelimage.shape[1], self.patch_size[1])        
                     self.crop_labelimage = labelimage[region] 
                     self.crop_labelimage = remove_small_objects(
                                 self.crop_labelimage.astype('uint16'), min_size=10)
