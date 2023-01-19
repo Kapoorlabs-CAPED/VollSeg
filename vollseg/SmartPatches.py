@@ -40,7 +40,7 @@ class SmartPatches(object):
                     self.ndim = len(labelimage.shape)
                     properties = regionprops(labelimage)
                     for count, prop in tqdm(enumerate(properties)):
-                            print(self.main_count)
+                            print(self.main_count, self.max_patch_per_image)
                             if self.main_count > self.max_patch_per_image:
                                    break
                             self._label_maker( fname, labelimage , count , prop )
