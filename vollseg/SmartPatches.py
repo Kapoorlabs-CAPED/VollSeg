@@ -40,6 +40,8 @@ class SmartPatches(object):
                     self.ndim = len(labelimage.shape)
                     properties = regionprops(labelimage)
                     for count, prop in tqdm(enumerate(properties)):
+                            if self.main_count > self.max_patch_per_image:
+                                   break
                             self._label_maker( fname, labelimage , count , prop )
                 
     def _label_maker(self, fname, labelimage, count, prop):
@@ -89,9 +91,7 @@ class SmartPatches(object):
           
             self._region_selector()
             if self.valid:
-                self.main_count = self.main_count + 1
-                if self.main_count <= self.max_patch_per_image:
-                      
+                    self.main_count = self.main_count + 1
                     if self.erosion_iterations > 0:
                         eroded_crop_labelimage = erode_labels(self.crop_labelimage.astype('uint16'), self.erosion_iterations)
                     else:
