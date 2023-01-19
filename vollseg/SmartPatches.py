@@ -37,7 +37,6 @@ class SmartPatches(object):
                     labelimage = imread(os.path.join(self.real_mask_dir,fname)).astype(np.uint16)
 
                     self.ndim = len(labelimage.shape)
-                    print(labelimage.shape, self.ndim)
                     properties = regionprops(labelimage)
                     for count, prop in tqdm(enumerate(properties)):
                             self._label_maker( fname, labelimage , count , prop )
@@ -79,7 +78,6 @@ class SmartPatches(object):
                                                                         slice(int(crop_Xminus), int(crop_Xplus)))
                     if all(crop for crop in crop_minus) > 0:       
                         self.crop_labelimage = labelimage[region] 
-                        print(region, self.crop_labelimage.shape[2], self.patch_size[2],self.crop_labelimage.shape[1], self.patch_size[1]) 
                         self.crop_labelimage = remove_small_objects(
                                     self.crop_labelimage.astype('uint16'), min_size=10)
                         if self.crop_labelimage.shape[0] == self.patch_size[0] and self.crop_labelimage.shape[1] == self.patch_size[1] and self.ndim == 2:
@@ -89,7 +87,6 @@ class SmartPatches(object):
     def _crop_maker(self, region, name, count):
           
             self._region_selector()
-            print(self.valid)
             if self.valid:
 
                 if self.erosion_iterations > 0:
@@ -113,7 +110,6 @@ class SmartPatches(object):
                 if len(total_indices) > 0:
                   norm_foreground = len(non_zero_indices)/ len(total_indices)
                   index_ratio = float(norm_foreground) 
-                  print('index_ratio', index_ratio)
                   if index_ratio >= self.lower_ratio_fore_to_back  and index_ratio <= self.upper_ratio_fore_to_back:
 
                       self.valid = True                
