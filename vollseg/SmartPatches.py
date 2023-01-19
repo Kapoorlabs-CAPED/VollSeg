@@ -8,7 +8,7 @@ from scipy.ndimage import binary_dilation, binary_erosion
 from tqdm import tqdm
 class SmartPatches(object):
     
-    def __init__(self, base_dir,  raw_dir, real_mask_dir, raw_save_dir, real_mask_patch_dir, binary_mask_dir, patch_size, max_patch_per_image = 50, erosion_iterations = 2, pattern = '.tif', lower_ratio_fore_to_back = 0.5,
+    def __init__(self, base_dir,  raw_dir, real_mask_dir, raw_save_dir, real_mask_patch_dir, binary_mask_dir, patch_size,  erosion_iterations = 2, max_patch_per_image = 50, pattern = '.tif', lower_ratio_fore_to_back = 0.5,
      upper_ratio_fore_to_back = 0.9):
         
         self.base_dir = base_dir
@@ -40,7 +40,6 @@ class SmartPatches(object):
                     self.ndim = len(labelimage.shape)
                     properties = regionprops(labelimage)
                     for count, prop in tqdm(enumerate(properties)):
-                            print(self.main_count, self.max_patch_per_image)
                             if self.main_count > self.max_patch_per_image:
                                    break
                             self._label_maker( fname, labelimage , count , prop )
