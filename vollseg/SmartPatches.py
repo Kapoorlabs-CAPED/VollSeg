@@ -8,7 +8,7 @@ from scipy.ndimage import binary_dilation, binary_erosion
 from tqdm import tqdm
 class SmartPatches(object):
     
-    def __init__(self, base_dir,  raw_dir, real_mask_dir, raw_save_dir, real_mask_patch_dir, binary_mask_dir, patch_size, erosion_iterations = 2, pattern = '.tif', lower_ratio_fore_to_back = 0.3,
+    def __init__(self, base_dir,  raw_dir, real_mask_dir, raw_save_dir, real_mask_patch_dir, binary_mask_dir, patch_size, erosion_iterations = 2, pattern = '.tif', lower_ratio_fore_to_back = 0.7,
      upper_ratio_fore_to_back = 0.9):
         
         self.base_dir = base_dir
