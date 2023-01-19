@@ -15,7 +15,7 @@ This package can be installed by
 
 `pip install --user vollseg`
 
-
+`mamba install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia`
 
 If you are building this from the source, clone the repository and install via
 
@@ -25,6 +25,8 @@ git clone https://github.com/kapoorlab/vollseg/
 cd vollseg
 
 pip install --user -e .
+
+`mamba install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia`
 
 ```
 
@@ -44,7 +46,7 @@ pipenv sync
 
 # make the current package available
 pipenv run python setup.py develop
-
+`mamba install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia`
 # you can run the example notebooks by starting the jupyter notebook inside the virtual env
 pipenv run jupyter notebook
 ```
