@@ -33,7 +33,7 @@ class SmartPatches(object):
             Path(self.real_mask_patch_dir).mkdir(exist_ok = True)
             files = os.listdir(self.real_mask_dir)
             for fname in files:
-                if any(fname.endswith(f) for f in self.acceptable_formats) and fname.startswith('third'):
+                if any(fname.endswith(f) for f in self.acceptable_formats):
                 
                     labelimage = imread(os.path.join(self.real_mask_dir,fname)).astype(np.uint16)
                     self.main_count = 0

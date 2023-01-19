@@ -17,6 +17,7 @@ from .CARE import CARE
 from .SmartPatches import SmartPatches
 from ._version import __version__
 from csbdeep.utils.tf import keras_import
+from .CellPose import CellPose
 
 get_file = keras_import('utils', 'get_file')
 
@@ -37,6 +38,7 @@ __all__ = (
     "Projection3D",
     "CARE",
     "SmartPatches",
+    "CellPose",
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
