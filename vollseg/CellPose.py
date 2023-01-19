@@ -91,7 +91,7 @@ class CellPose(object):
 
 def slicer(image, i):
      
-     return image[i]
+     return image[i,:]
      
      
                 
