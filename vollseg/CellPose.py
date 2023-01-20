@@ -71,8 +71,8 @@ class CellPose(object):
                             future_labels = []
                             future_raw = []
                             with concurrent.futures.ThreadPoolExecutor(max_workers = os.cpu_count() - 1) as executor: 
-                                 future_labels.append(executor.submit(slicer(labelimage, i)) for i in range(labelimage.shape[0]))
-                                 future_raw.append(executor.submit(slicer(image, i)) for i in range(image.shape[0]))
+                                 future_labels.append(executor.submit(slicer, labelimage, i) for i in range(labelimage.shape[0]))
+                                 future_raw.append(executor.submit(slicer, image, i) for i in range(image.shape[0]))
                             current_labels = [r.result() for r in concurrent.futures.as_completed(future_labels)]   
                             current_raw = [r.result() for r in concurrent.futures.as_completed(future_raw)]  
                             for i in range(len(current_labels)):
