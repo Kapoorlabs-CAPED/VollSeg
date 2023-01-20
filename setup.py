@@ -23,6 +23,7 @@ setup(
     long_description_content_type='text/markdown',
     install_requires=[
         
+       
         "pandas",
         "stardist",
         "scipy",
@@ -30,6 +31,7 @@ setup(
         "matplotlib",
         "napari",
         "cellpose",
+        "torch"
        
     ],
     
