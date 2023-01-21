@@ -1775,6 +1775,148 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
 
         return SizedMask, Skeleton, image 
 
+def VollSeg3DC(image,  unet_model_membrane, star_model_membrane, unet_model_nuclei, star_model_nuclei,  axes='ZYX', noise_model_nuclei=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
+              n_tiles=(1, 2, 2),  save_dir=None, Name='Result', UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
+
+    nuclei_res =  VollSeg3D(image,  unet_model_nuclei, star_model_nuclei, axes=axes, noise_model=noise_model_nuclei, roi_model=roi_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
+              n_tiles=n_tiles, UseProbability=UseProbability, ExpandLabels = ExpandLabels, dounet=dounet, seedpool=seedpool, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
+   
+    membrane_res =  VollSeg3D(image,  unet_model_membrane, star_model_membrane, axes=axes, noise_model=None, roi_model=None, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
+              n_tiles=n_tiles, UseProbability=UseProbability, ExpandLabels = ExpandLabels, dounet=dounet, seedpool=seedpool, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
+
+
+    #Nuclei
+    if noise_model_nuclei is None and star_model_nuclei is not None and  roi_model is not None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton, roi_image = nuclei_res
+
+    if noise_model_nuclei is None and star_model_nuclei is not None and  roi_model is None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton = nuclei_res    
+
+    elif noise_model_nuclei is not None and star_model_nuclei is not None and  roi_model is not None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image, roi_image = nuclei_res
+
+    elif noise_model_nuclei is not None and star_model_nuclei is not None and  roi_model is None:
+        Sizedsmart_seeds, SizedMask, star_labels, proabability_map, Markers, Skeleton,  image = nuclei_res    
+        
+    elif noise_model_nuclei is not None and star_model_nuclei is None and roi_model is None:
+         SizedMask, Skeleton, image = nuclei_res
+   
+    
+    elif star_model_nuclei is None and  roi_model is None and unet_model_nuclei is not None and noise_model_nuclei is not None :
+
+        SizedMask, Skeleton, image = nuclei_res
+
+    elif star_model_nuclei is None and  roi_model is not None and unet_model_nuclei is not None and noise_model_nuclei is not None :
+
+        SizedMask, Skeleton, image = nuclei_res    
+
+    elif star_model_nuclei is None and  roi_model is None and unet_model_nuclei is not None and noise_model_nuclei is None :
+
+        SizedMask, Skeleton, image = nuclei_res    
+
+    elif star_model_nuclei is None and  roi_model is not None and unet_model_nuclei is None and noise_model_nuclei is None :
+
+        roi_image, Skeleton, image = nuclei_res
+        SizedMask = roi_image
+
+    elif star_model_nuclei is None and  roi_model is not None and unet_model_nuclei is None and noise_model_nuclei is not None :
+
+        roi_image, Skeleton, image = nuclei_res
+        SizedMask = roi_image    
+
+    elif star_model_nuclei is None and  roi_model is not None and unet_model_nuclei is not None and noise_model_nuclei is None :
+
+        roi_image, Skeleton, image = nuclei_res
+        SizedMask = roi_image
+
+    #Membrane
+    if star_model_membrane is not None:
+        Sizedsmart_seeds_membrane, SizedMask_membrane, star_labels_membrane, proabability_map_membrane, Markers_membrane, Skeleton_membrane = membrane_res    
+ 
+
+    elif star_model_membrane is None and  unet_model_membrane is not None :
+
+        SizedMask_membrane, Skeleton_membrane, image_membrane = membrane_res    
+
+
+    if save_dir is not None:
+        print('Saving Results ...')
+        Path(save_dir).mkdir(exist_ok=True)
+
+        if  roi_model is not None:
+            roi_results = save_dir + 'Roi/'
+            Path(roi_results).mkdir(exist_ok=True)
+            imwrite((roi_results + Name + '.tif'),
+                    np.asarray(roi_image).astype('uint16'))
+
+        if unet_model_nuclei is not None:
+            unet_results = save_dir + 'BinaryMask_Nuclei/'
+            skel_unet_results = save_dir + 'Skeleton_Nuclei/'
+            Path(unet_results).mkdir(exist_ok=True)
+            Path(skel_unet_results).mkdir(exist_ok=True)
+             
+            imwrite((unet_results + Name + '.tif'),
+                    np.asarray(SizedMask).astype('uint16'))
+            imwrite((skel_unet_results + Name + '.tif'),
+                    np.asarray(Skeleton).astype('uint16'))        
+        if star_model_nuclei is not None:
+            vollseg_results = save_dir + 'VollSeg_Nuclei/'
+            stardist_results = save_dir + 'StarDist_Nuclei/'
+            probability_results = save_dir + 'Probability_Nuclei/'
+            marker_results = save_dir + 'Markers_Nuclei/'
+            skel_results = save_dir + 'Skeleton_Nuclei/'
+            Path(skel_results).mkdir(exist_ok=True)
+            Path(vollseg_results).mkdir(exist_ok=True)
+            Path(stardist_results).mkdir(exist_ok=True)
+            Path(probability_results).mkdir(exist_ok=True)
+            Path(marker_results).mkdir(exist_ok=True)
+            imwrite((stardist_results + Name + '.tif'),
+                    np.asarray(star_labels).astype('uint16'))
+            imwrite((vollseg_results + Name + '.tif'),
+                    np.asarray(Sizedsmart_seeds).astype('uint16'))
+            imwrite((probability_results + Name + '.tif'),
+                    np.asarray(proabability_map).astype('float32'))
+            imwrite((marker_results + Name + '.tif'),
+                    np.asarray(Markers).astype('uint16'))
+            imwrite((skel_results + Name + '.tif'), np.asarray(Skeleton))
+      
+        if unet_model_membrane is not None:
+            unet_results = save_dir + 'BinaryMask_Membrane/'
+            skel_unet_results = save_dir + 'Skeleton_Membrane/'
+            Path(unet_results).mkdir(exist_ok=True)
+            Path(skel_unet_results).mkdir(exist_ok=True)
+             
+            imwrite((unet_results + Name + '.tif'),
+                    np.asarray(SizedMask_membrane).astype('uint16'))
+            imwrite((skel_unet_results + Name + '.tif'),
+                    np.asarray(Skeleton_membrane).astype('uint16'))        
+        if star_model_membrane is not None:
+            vollseg_results = save_dir + 'VollSeg_Membrane/'
+            stardist_results = save_dir + 'StarDist_Membrane/'
+            probability_results = save_dir + 'Probability_Membrane/'
+            marker_results = save_dir + 'Markers_Membrane/'
+            skel_results = save_dir + 'Skeleton_Membrane/'
+            Path(skel_results).mkdir(exist_ok=True)
+            Path(vollseg_results).mkdir(exist_ok=True)
+            Path(stardist_results).mkdir(exist_ok=True)
+            Path(probability_results).mkdir(exist_ok=True)
+            Path(marker_results).mkdir(exist_ok=True)
+            imwrite((stardist_results + Name + '.tif'),
+                    np.asarray(star_labels_membrane).astype('uint16'))
+            imwrite((vollseg_results + Name + '.tif'),
+                    np.asarray(Sizedsmart_seeds_membrane).astype('uint16'))
+            imwrite((probability_results + Name + '.tif'),
+                    np.asarray(proabability_map_membrane).astype('float32'))
+            imwrite((marker_results + Name + '.tif'),
+                    np.asarray(Markers_membrane).astype('uint16'))
+            imwrite((skel_results + Name + '.tif'), np.asarray(Skeleton_membrane)) 
+
+        if noise_model_nuclei is not None:
+            denoised_results = save_dir + 'Denoised_Nuclei/'
+            Path(denoised_results).mkdir(exist_ok=True)
+            imwrite((denoised_results + Name + '.tif'),
+                    np.asarray(image).astype('float32'))
+
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
