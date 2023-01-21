@@ -145,6 +145,7 @@ class SmartSeeds3D(object):
          self.startfilter = startfilter
          self.n_patches_per_image =  n_patches_per_image
          self.load_data_sequence = load_data_sequence
+         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
          self.Train()
          
      class DataSequencer(Sequence):
@@ -184,22 +185,22 @@ class SmartSeeds3D(object):
          
 
                     Raw_path = os.path.join(self.base_dir,self.raw_dir)
-                    Raw = list(Raw_path.glob(self.search_pattern))
+                    Raw = os.listdir(Raw_path)
 
                     Val_Raw_path = os.path.join(self.base_dir, self.val_raw_dir)
-                    ValRaw = list(Val_Raw_path.glob(self.search_pattern))
+                    ValRaw = os.listdir(Val_Raw_path)
                     
                     Mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
                     Mask_path.mkdir(exist_ok=True)
-                    Mask = list(Mask_path.glob(self.search_pattern))
+                    Mask = os.listdir(Mask_path)
 
                     Real_Mask_path = os.path.join(self.base_dir, self.real_mask_dir)
                     Real_Mask_path.mkdir(exist_ok=True)
-                    RealMask = list(Real_Mask_path.glob(self.search_pattern))
+                    RealMask = os.listdir(Real_Mask_path)
     
                     Val_Real_Mask_path = os.path.join(self.base_dir, self.val_real_mask_dir)
                     Val_Real_Mask_path.mkdir(exist_ok=True)
-                    ValRealMask = list(Val_Real_Mask_path.glob(self.search_pattern))
+                    ValRealMask = os.listdir(Val_Real_Mask_path)
 
                  
                     print('Instance segmentation masks:', len(RealMask))
@@ -210,36 +211,36 @@ class SmartSeeds3D(object):
                         Mask = sorted(glob.glob(self.base_dir + self.binary_mask_dir + '*' +  self.pattern))
                         
                         for fname in Mask:
-                    
-                           image = imread(fname)
-                    
-                           Name = os.path.basename(os.path.splitext(fname)[0])
-                           if np.max(image) == 1:
-                               image = image * 255
-                           Binaryimage = label(image) 
-                    
-                           imwrite((self.base_dir + self.real_mask_dir + Name + self.pattern), Binaryimage.astype('uint16'))
-                           
+                           if any(fname.endswith(f) for f in self.acceptable_formats): 
+                                image = imread(fname)
+                            
+                                Name = os.path.basename(os.path.splitext(fname)[0])
+                                if np.max(image) == 1:
+                                    image = image * 255
+                                Binaryimage = label(image) 
+                            
+                                imwrite((self.base_dir + self.real_mask_dir + Name + self.pattern), Binaryimage.astype('uint16'))
+                                
                 
                     
                     
                     if len(RealMask) > 0  and len(Mask) < len(RealMask):
                         print('Generating Binary images')
                
-                               
-                        RealfilesMask = sorted(glob.glob(self.base_dir + self.real_mask_dir +'*' +  self.pattern))  
+                        RealfilesMask_path = os.path.join(self.base_dir,self.real_mask_dir)
+                        RealfilesMask = os.listdir(RealfilesMask_path)       
                 
                 
                         for fname in RealfilesMask:
-                    
-                            image = imread(fname)
-                            if self.erosion_iterations > 0:
-                               image = erode_labels(image.astype('uint16'), self.erosion_iterations)
-                            Name = os.path.basename(os.path.splitext(fname)[0])
-                    
-                            Binaryimage = image > 0
-                    
-                            imwrite((self.base_dir + self.binary_mask_dir + Name + self.pattern), Binaryimage.astype('uint16'))
+                            if any(fname.endswith(f) for f in self.acceptable_formats):
+                                image = imread(fname)
+                                if self.erosion_iterations > 0:
+                                   image = erode_labels(image.astype('uint16'), self.erosion_iterations)
+                                Name = os.path.basename(os.path.splitext(fname)[0])
+                        
+                                Binaryimage = image > 0
+                        
+                                imwrite((self.base_dir + self.binary_mask_dir + Name + self.pattern), Binaryimage.astype('uint16'))
                             
                     if self.generate_npz:
                         
