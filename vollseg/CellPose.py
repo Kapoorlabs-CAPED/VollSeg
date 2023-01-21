@@ -7,7 +7,7 @@ import concurrent
 class CellPose(object):
 
     def __init__(self, base_dir, model_name, model_dir, raw_dir, real_mask_dir, test_raw_dir, test_real_mask_dir, 
-                 n_epochs = 400, learning_rate = 0.0001, nimg_per_epochs=10, weight_decay = 1.0E-4,
+                 n_epochs = 400, learning_rate = 0.0001, nimg_per_epochs=10, weight_decay = 1.0E-4,channels=1,
                  cellpose_model_name = None, pretrained_cellpose_model_path = None, gpu = True, real_train_3D = False):
         
         self.base_dir = base_dir
@@ -23,6 +23,7 @@ class CellPose(object):
         self.weight_decay = weight_decay
         self.cellpose_model_name = cellpose_model_name 
         self.real_train_3D = real_train_3D
+        self.channels = channels
         self.pretrained_cellpose_model_path = pretrained_cellpose_model_path
         self.gpu = gpu
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
@@ -44,7 +45,7 @@ class CellPose(object):
              self.cellpose_model = models.CellposeModel(gpu = self.gpu, pretrained_model = self.pretrained_cellpose_model_path)      
         
         self.new_cellpose_model_path = self.cellpose_model.train(self.train_images, self.train_labels, test_data = self.test_images, test_labels = self.test_labels,
-                                                       save_path = self.model_dir, n_epochs = self.n_epochs, learning_rate = self.learning_rate,
+                                                       save_path = self.model_dir, n_epochs = self.n_epochs, learning_rate = self.learning_rate, channels = self.channels,
                                                        weight_decay = self.weight_decay, nimg_per_epoch = self.nimg_per_epochs, model_name = self.model_name)
         self.diam_labels = self.cellpose_model.diam_labels.copy()
 
