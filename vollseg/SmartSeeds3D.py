@@ -191,15 +191,15 @@ class SmartSeeds3D(object):
                     ValRaw = os.listdir(Val_Raw_path)
                     
                     Mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
-                    Mask_path.mkdir(exist_ok=True)
+                    Path(Mask_path).mkdir(exist_ok=True)
                     Mask = os.listdir(Mask_path)
 
                     Real_Mask_path = os.path.join(self.base_dir, self.real_mask_dir)
-                    Real_Mask_path.mkdir(exist_ok=True)
+                    Path(Real_Mask_path).mkdir(exist_ok=True)
                     RealMask = os.listdir(Real_Mask_path)
     
                     Val_Real_Mask_path = os.path.join(self.base_dir, self.val_real_mask_dir)
-                    Val_Real_Mask_path.mkdir(exist_ok=True)
+                    Path(Val_Real_Mask_path).mkdir(exist_ok=True)
                     ValRealMask = os.listdir(Val_Real_Mask_path)
 
                  
