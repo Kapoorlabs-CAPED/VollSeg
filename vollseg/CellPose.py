@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from tifffile import imread
-from cellpose import models, metrics
+from cellpose_vollseg import models, metrics
 import concurrent
 
 class CellPose(object):

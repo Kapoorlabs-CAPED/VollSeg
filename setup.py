@@ -30,7 +30,7 @@ setup(
         "tifffile",
         "matplotlib",
         "napari",
-        "cellpose",
+        "cellpose-vollseg",
         "torch"
        
     ],
