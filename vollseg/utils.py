@@ -45,7 +45,7 @@ from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
 from skimage.filters import threshold_otsu
 from scipy.ndimage.measurements import find_objects
-from cellpose import models
+from cellpose_vollseg import models
 from multiprocessing.pool import ThreadPool
 from concurrent.futures import ThreadPoolExecutor
 from threading import Thread
