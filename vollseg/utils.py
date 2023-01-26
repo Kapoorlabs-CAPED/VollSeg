@@ -289,7 +289,7 @@ def match_labels(ys, iou_threshold=0.5):
     from stardist.data import test_image_nuclei_2d
     from stardist.matching import match_labels
     _y = test_image_nuclei_2d(return_mask=True)[1]
-    labels = np.stack([_y, 2*np.roll(_y,10)], axis=0)
+    labels = np.stack([_y, 2*np.roll(_y,10)], axes=0)
     labels_new = match_labels(labels)
     Parameters
     ----------
@@ -610,11 +610,11 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
     # Smart Seed prediction
     print('Stardist segmentation on Image')
     if RGB:
-        axis = (0,1,2)
+        axes = (0,1,2)
     else:
-        axis = (0,1)    
+        axes = (0,1)    
     if donormalize:
-        patch_star = normalize(patch.astype('float32'), lower_perc, upper_perc, axis=axis) 
+        patch_star = normalize(patch.astype('float32'), lower_perc, upper_perc, axes=axes) 
     else:
         patch_star = patch
     smart_seeds, Markers, star_labels, proabability_map = SuperSTARPrediction(
@@ -791,7 +791,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                 tiles = (n_tiles[1], n_tiles[2])
             else:
                 tiles = n_tiles
-            maximage = np.amax(image, axis=0)
+            maximage = np.amax(image, axes=0)
             s_Binary = UNETPrediction3D(
                 maximage, roi_model, tiles, 'YX', ExpandLabels = ExpandLabels)
 
@@ -834,7 +834,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
             Finalimage = relabel_sequential(Binary)[0]
 
-            Skeleton = skeletonize(find_boundaries(Finalimage > 0))
+            Skeleton = skeletonize(find_boundaries(Finalimage))
         
 
 
@@ -1555,8 +1555,8 @@ def VollCellSeg(image: np.ndarray,
 def _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = 1, seedpool_cellpose = True):
     
     if 'T' not in axes:   
-            cellpose_base = np.max(flows[0], axis = -1)
-            cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
+            cellpose_base = np.max(flows[0], axes = -1)
+            cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axes= (0,1,2)) 
             vollcellseg = CellPoseWater(cellpose_base, cellpose_masks, Sizedsmart_seeds, SizedMask, min_size_mask, max_size,nms_thresh, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
             
     if 'T' in axes:
@@ -1564,9 +1564,9 @@ def _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_masks, Sizedsm
             cellpose_base = []
             vollcellseg = []
             for time in range(image_membrane.shape[0]):
-                cellpose_base_time = np.max(flows[0], axis = -1)[time]
+                cellpose_base_time = np.max(flows[0], axes = -1)[time]
                 cellpose_masks_time = cellpose_masks[time]
-                cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
+                cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axes= (0,1,2))
                
                 vollcellseg_time = CellPoseWater(cellpose_base_time, cellpose_masks_time, Sizedsmart_seeds[time], SizedMask, min_size_mask, max_size,nms_thresh, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
                 cellpose_base.append(cellpose_base_time)
@@ -1961,7 +1961,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 tiles = (n_tiles[-2], n_tiles[-1])
             else:
                 tiles = n_tiles
-            maximage = np.amax(image, axis=0)
+            maximage = np.amax(image, axes=0)
             roi_image = UNETPrediction3D(
                 maximage, roi_model, tiles, 'YX', iou_threshold=nms_thresh, ExpandLabels = ExpandLabels)
             roi_bbox = Bbox_region(roi_image)
@@ -2077,7 +2077,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             print('Stardist segmentation on Image')
             if donormalize:
                 
-                patch_star = normalize(patch, lower_perc, upper_perc, axis= (0,1,2)) 
+                patch_star = normalize(patch, lower_perc, upper_perc, axes= (0,1,2)) 
             else:
                 patch_star = patch
 
@@ -2292,9 +2292,9 @@ def Integer_to_border(Label):
 
 
 
-def SuperUNETPrediction(image, model, n_tiles, axis):
+def SuperUNETPrediction(image, model, n_tiles, axes):
 
-    Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
+    Segmented = model.predict(image.astype('float32'), axes, n_tiles=n_tiles)
 
     thresholds = threshold_otsu(Segmented)
     Binary = Segmented > thresholds
@@ -2363,56 +2363,9 @@ def CleanMask(star_labels, OverAllunet_mask):
     return OverAllunet_mask
 
 
-def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge=False, erosion_iterations = 15, ExpandLabels = True):
+def UNETPrediction3D(image, model, n_tiles, axes, iou_threshold=0.3, slice_merge=False, erosion_iterations = 15, ExpandLabels = True):
 
-    model_dim = model.config.n_dim
-    
-    if model_dim < len(image.shape):
-        Segmented = np.zeros_like(image)
-        
-        for i in range(image.shape[0]):
-            Segmented[i] = model.predict(image[i].astype('float32'), axis.replace('Z', ''), n_tiles= (n_tiles[-2], n_tiles[-1]))
-                
-    else:
-        
-        Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
-
-    try:
-        thresholds = threshold_multiotsu(Segmented, classes=2)
-
-        # Using the threshold values, we generate the three regions.
-        regions = np.digitize(Segmented, bins=thresholds)
-    except:
-
-        regions = Segmented
-
-    Binary = regions > 0
-    overall_mask = Binary.copy()
-    ndim = len(image.shape)
-    if ndim == 3:
-                for i in range(image.shape[0]):
-                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
-                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
-                    overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
-                    Binary[i, :] = binary_erosion(Binary[i, :], iterations = GLOBAL_ERODE // 2)
-    
-    Binary = label(Binary)
-    
-        
-    if ndim == 3 and slice_merge or model_dim < len(image.shape):
-        for i in range(image.shape[0]):
-            Binary[i, :] = label(Binary[i, :])
-        Binary = match_labels(Binary.astype('uint16'),
-                              iou_threshold=iou_threshold)
-        
-    # Postprocessing steps
-    Finalimage = fill_label_holes(Binary)
-    Finalimage = relabel_sequential(Finalimage)[0]
-
-    if ExpandLabels:
-        Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
-    else:
-        Finalimage = VollSeg_nolabel_precondition(image, Finalimage)
+    Finalimage, _, _ = VollSeg_unet(image, unet_model=model,  n_tiles=n_tiles, axes=axes, ExpandLabels = ExpandLabels,  iou_threshold=iou_threshold, slice_merge=slice_merge, erosion_iterations = erosion_iterations)
 
     return Finalimage
 
@@ -2447,7 +2400,7 @@ prob_thresh=None, nms_thresh=None, seedpool = True):
     grid = model.config.grid
     Probability = zoom(SmallProbability, zoom=(
         grid[1], grid[0]))
-    Distance = MaxProjectDist(SmallDistance, axis=-1)
+    Distance = MaxProjectDist(SmallDistance, axes=-1)
     Distance = zoom(Distance, zoom=(
         grid[1], grid[0]))
 
@@ -2498,14 +2451,14 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     
     if UseProbability == False:
 
-        SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
+        SmallDistance = MaxProjectDist(SmallDistance, axes=-1)
         Distance = np.zeros([SmallDistance.shape[0] * grid[0],
                             SmallDistance.shape[1] * grid[1], SmallDistance.shape[2] * grid[2]])
 
     Probability = np.zeros([SmallProbability.shape[0] * grid[0],
                            SmallProbability.shape[1] * grid[1], SmallProbability.shape[2] * grid[2]])
 
-    # We only allow for the grid parameter to be 1 along the Z axis
+    # We only allow for the grid parameter to be 1 along the Z axes
     for i in range(0, SmallProbability.shape[0]):
         Probability[i, :] = zoom(SmallProbability[i, :], zoom=(
             grid[2], grid[1]))
@@ -2691,20 +2644,20 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh 
     return watershedImage, markers
 
 
-def MaxProjectDist(Image, axis=-1):
+def MaxProjectDist(Image, axes=-1):
 
-    MaxProject = np.amax(Image, axis=axis)
+    MaxProject = np.amax(Image, axes=axes)
 
     return MaxProject
 
 
-def MidProjectDist(Image, axis=-1, slices=1):
+def MidProjectDist(Image, axes=-1, slices=1):
 
     assert len(Image.shape) >= 3
     SmallImage = Image.take(indices=range(
-        Image.shape[axis]//2 - slices, Image.shape[axis]//2 + slices), axis=axis)
+        Image.shape[axes]//2 - slices, Image.shape[axes]//2 + slices), axes=axes)
 
-    MaxProject = np.amax(SmallImage, axis=axis)
+    MaxProject = np.amax(SmallImage, axes=axes)
     return MaxProject
 
 
@@ -2713,7 +2666,7 @@ def MidProjectDist(Image, axis=-1, slices=1):
 
 
 
-def normalizeFloatZeroOne(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32):
+def normalizeFloatZeroOne(x, pmin=3, pmax=99.8, axes=None, eps=1e-20, dtype=np.float32):
     """Percentile based Normalization
     Normalize patches of image before feeding into the network
     Parameters
@@ -2721,12 +2674,12 @@ def normalizeFloatZeroOne(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.f
     x : np array Image patch
     pmin : minimum percentile value for normalization
     pmax : maximum percentile value for normalization
-    axis : axis along which the normalization has to be carried out
+    axes : axes along which the normalization has to be carried out
     eps : avoid dividing by zero
     dtype: type of numpy array, float 32 default
     """
-    mi = np.percentile(x, pmin, axis=axis, keepdims=True)
-    ma = np.percentile(x, pmax, axis=axis, keepdims=True)
+    mi = np.percentile(x, pmin, axes=axes, keepdims=True)
+    ma = np.percentile(x, pmax, axes=axes, keepdims=True)
     return normalizer(x, mi, ma, eps=eps, dtype=dtype)
 
 # https://docs.python.org/3/library/itertools.html#itertools-recipes
@@ -2785,7 +2738,7 @@ def normalizer(x, mi, ma, eps=1e-20, dtype=np.float32):
    # CARE csbdeep modification of implemented function
 
 
-def normalizeFloat(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32):
+def normalizeFloat(x, pmin=3, pmax=99.8, axes=None, eps=1e-20, dtype=np.float32):
     """Percentile based Normalization
     Normalize patches of image before feeding into the network
     Parameters
@@ -2793,12 +2746,12 @@ def normalizeFloat(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32)
     x : np array Image patch
     pmin : minimum percentile value for normalization
     pmax : maximum percentile value for normalization
-    axis : axis along which the normalization has to be carried out
+    axes : axes along which the normalization has to be carried out
     eps : avoid dividing by zero
     dtype: type of numpy array, float 32 default
     """
-    mi = np.percentile(x, pmin, axis=axis, keepdims=True)
-    ma = np.percentile(x, pmax, axis=axis, keepdims=True)
+    mi = np.percentile(x, pmin, axes=axes, keepdims=True)
+    ma = np.percentile(x, pmax, axes=axes, keepdims=True)
     return normalize_mi_ma(x, mi, ma, eps=eps, dtype=dtype)
 
 
