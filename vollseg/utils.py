@@ -2378,7 +2378,7 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge
         Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
 
     try:
-        thresholds = threshold_multiotsu(Segmented, classes=2)
+        thresholds = threshold_otsu(Segmented)
 
         # Using the threshold values, we generate the three regions.
         regions = np.digitize(Segmented, bins=thresholds)
