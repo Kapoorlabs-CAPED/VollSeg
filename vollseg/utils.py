@@ -14,7 +14,7 @@ from six import string_types
 from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
-from scipy.model_dimage import zoom
+from scipy.ndimage import zoom, binary_dilation, binary_erosion
 from skimage.morphology import remove_small_objects
 from matplotlib import cm
 from scipy import spatial
@@ -23,14 +23,13 @@ import matplotlib.pyplot as plt
 from skimage.segmentation import watershed
 from pathlib import Path
 from skimage.segmentation import relabel_sequential
-from scipy.model_dimage import binary_dilation, binary_erosion
-from scipy.model_dimage.morphology import binary_fill_holes
+from scipy.ndimage.morphology import binary_fill_holes
 from skimage.util import invert as invertimage
 from skimage import measure
 from skimage.measure import label
 from csbdeep.utils import normalize
 from tqdm import tqdm
-from scipy.model_dimage import distance_transform_edt
+from scipy.ndimage import distance_transform_edt
 from skimage.morphology import skeletonize
 import math
 import pandas as pd
@@ -44,7 +43,7 @@ from vollseg.nmslabel import NMSLabel
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
 from skimage.filters import threshold_otsu
-from scipy.model_dimage.measurements import find_objects
+from scipy.ndimage.measurements import find_objects
 from cellpose_vollseg import models
 from multiprocessing.pool import ThreadPool
 from concurrent.futures import ThreadPoolExecutor
