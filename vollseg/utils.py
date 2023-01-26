@@ -14,7 +14,7 @@ from six import string_types
 from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
-from scipy.ndimage import zoom
+from scipy.model_dimage import zoom
 from skimage.morphology import remove_small_objects
 from matplotlib import cm
 from scipy import spatial
@@ -23,14 +23,14 @@ import matplotlib.pyplot as plt
 from skimage.segmentation import watershed
 from pathlib import Path
 from skimage.segmentation import relabel_sequential
-from scipy.ndimage import binary_dilation, binary_erosion
-from scipy.ndimage.morphology import binary_fill_holes
+from scipy.model_dimage import binary_dilation, binary_erosion
+from scipy.model_dimage.morphology import binary_fill_holes
 from skimage.util import invert as invertimage
 from skimage import measure
 from skimage.measure import label
 from csbdeep.utils import normalize
 from tqdm import tqdm
-from scipy.ndimage import distance_transform_edt
+from scipy.model_dimage import distance_transform_edt
 from skimage.morphology import skeletonize
 import math
 import pandas as pd
@@ -44,7 +44,7 @@ from vollseg.nmslabel import NMSLabel
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
 from skimage.filters import threshold_otsu
-from scipy.ndimage.measurements import find_objects
+from scipy.model_dimage.measurements import find_objects
 from cellpose_vollseg import models
 from multiprocessing.pool import ThreadPool
 from concurrent.futures import ThreadPoolExecutor
@@ -185,7 +185,7 @@ def expand_labels(label_image, distance=1):
     There is an important edge case when a pixel has the same distance to
     multiple regions, as it is not defined which region expands into that
     space. Here, the exact behavior depends on the upstream implementation
-    of ``scipy.ndimage.distance_transform_edt``.
+    of ``scipy.model_dimage.distance_transform_edt``.
     See Also
     --------
     :func:`skimage.measure.label`, :func:`skimage.segmentation.watershed`, :func:`skimage.morphology.dilation`
@@ -202,7 +202,7 @@ def expand_labels(label_image, distance=1):
     >>> expand_labels(labels, distance=3)
     array([1, 1, 1, 1, 2, 2, 2])
     In case of ties, behavior is undefined, but currently resolves to the
-    label closest to ``(0,) * ndim`` in lexicographical order.
+    label closest to ``(0,) * model_dim`` in lexicographical order.
     >>> labels_tied = np.array([0, 1, 0, 2, 0])
     >>> expand_labels(labels_tied, 1)
     array([1, 1, 1, 2, 2])
@@ -297,7 +297,7 @@ def match_labels(ys, iou_threshold=0.5):
           list/array of integer labels (2D or 3D)
     """
     ys = np.asarray(ys)
-    if not ys.ndim in (3, 4):
+    if not ys.model_dim in (3, 4):
         raise ValueError('label image y should be 3 or 4 dimensional!')
 
     def _match_single(x, y):
@@ -341,7 +341,7 @@ def remove_big_objects(ar: np.ndarray, max_size):
         component_sizes = np.bincount(ccs.ravel())
     except ValueError:
         raise ValueError("Negative value labels are not supported. Try "
-                         "relabeling the input with `scipy.ndimage.label` or "
+                         "relabeling the input with `scipy.model_dimage.label` or "
                          "`skimage.morphology.label`.")
 
     too_big = component_sizes > max_size
@@ -659,8 +659,8 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
 def VollSeg_nolabel_precondition(image, Finalimage):
 
    
-    ndim = len(image.shape) 
-    if ndim == 3:
+    model_dim = len(image.shape) 
+    if model_dim == 3:
         for i in range(image.shape[0]):
               Finalimage[i] = expand_labels(Finalimage[i], distance = GLOBAL_ERODE)
 
@@ -669,8 +669,8 @@ def VollSeg_nolabel_precondition(image, Finalimage):
 
 def VollSeg_label_precondition(image, overall_mask, Finalimage):
 
-        ndim = len(image.shape)
-        if ndim == 3:
+        model_dim = len(image.shape)
+        if model_dim == 3:
           for i in range(image.shape[0]):
               Finalimage[i] = expand_labels(Finalimage[i], distance = 50)
           pixel_condition = (overall_mask == 0)
@@ -704,11 +704,11 @@ def VollSeg_nolabel_expansion(image, Finalimage, Skeleton, RGB):
 
 def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='YX', ExpandLabels = True, noise_model=None, min_size_mask=100, max_size=10000000,  RGB=False, iou_threshold=0.3, slice_merge=False, dounet=True, erosion_iterations = 15):
 
-    ndim = len(image.shape)    
-    if len(n_tiles)!=ndim:
-        if ndim == 3:
+    model_dim = len(image.shape)    
+    if len(n_tiles)!=model_dim:
+        if model_dim == 3:
             n_tiles = (n_tiles[-3], n_tiles[-2], n_tiles[-1])
-        if ndim == 2:
+        if model_dim == 2:
             n_tiles = (n_tiles[-2], n_tiles[-1])    
 
     if roi_model is None:
@@ -736,7 +736,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
         Binary = Segmented > thresholds
         overall_mask = Binary.copy()
         
-        if ndim == 3:
+        if model_dim == 3:
                 for i in range(image.shape[0]):
                     overall_mask[i] = binary_dilation(overall_mask[i], iterations = erosion_iterations)
                     overall_mask[i] = binary_erosion(overall_mask[i], iterations = erosion_iterations)
@@ -746,7 +746,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
         Binary = label(Binary)
 
-        if ndim == 2:
+        if model_dim == 2:
             Binary = remove_small_objects(
                 Binary.astype('uint16'), min_size=min_size_mask)
             Binary = remove_big_objects(
@@ -755,21 +755,21 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             Finalimage = relabel_sequential(Binary)[0]
             Skeleton = Skel(Finalimage, RGB)
             Skeleton = Skeleton > 0
-        if ndim == 3 and slice_merge:
+        if model_dim == 3 and slice_merge:
             for i in range(image.shape[0]):
                 Binary[i] = label(Binary[i])
             
             Binary = match_labels(Binary, iou_threshold=iou_threshold)
             Binary = fill_label_holes(Binary)
 
-        if ndim == 3: 
+        if model_dim == 3: 
             for i in range(image.shape[0]):
                 Binary[i]  = remove_small_objects(
                     Binary[i] .astype('uint16'), min_size=min_size_mask)
                 Binary[i]  = remove_big_objects(
                     Binary[i] .astype('uint16'), max_size=max_size)    
             Finalimage = relabel_sequential(Binary)[0]
-            Skeleton = np.zeros_like(Finalimage)
+            Skeleton = Skel(Finalimage)
 
 
             if ExpandLabels:
@@ -804,7 +804,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
             s_Finalimage = relabel_sequential(s_Binary)[0]
 
-            s_Skeleton = skeletonize(find_boundaries(s_Finalimage > 0))
+            s_Skeleton = Skel(s_Finalimage)
             Binary = np.zeros_like(image)
             Skeleton = np.zeros_like(image)
             Finalimage = np.zeros_like(image)
@@ -819,7 +819,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                 image, roi_model, n_tiles, axes, ExpandLabels = ExpandLabels)
 
             Binary = label(Binary)
-            if ndim == 3 and slice_merge:
+            if model_dim == 3 and slice_merge:
                 for i in range(image.shape[0]):
                     Binary[i] = label(Binary[i])
                     
@@ -834,7 +834,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
 
             Finalimage = relabel_sequential(Binary)[0]
 
-            Skeleton = skeletonize(find_boundaries(Finalimage))
+            Skeleton = Skel(Finalimage)
         
 
 
@@ -2158,11 +2158,11 @@ def image_pixel_duplicator(image, size):
 
     assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'
     
-    ndim = len(size)
+    model_dim = len(size)
 
 
 
-    if ndim == 3:
+    if model_dim == 3:
                     size_y = size[0]
                     size_x = size[1]
                     size_z = size[2]
@@ -2204,7 +2204,7 @@ def image_pixel_duplicator(image, size):
 
                       
 
-    if ndim == 2:
+    if model_dim == 2:
 
 
                     size_y = size[0]
@@ -2256,8 +2256,8 @@ def image_conditionals(image, pixel_condition, pixel_replace_condition):
 def image_embedding(image, size):
 
     
-    ndim = len(image.shape)
-    if ndim == 2:
+    model_dim = len(image.shape)
+    if model_dim == 2:
         assert len(image.shape) == len(size), f'The provided size {len(size)} should match the image dimensions {len(image.shape)}'
         for i in range(len(size)):
           assert image.shape[i] <= size[i] , f'The image size should be smaller than the volume it is to be embedded in'
@@ -2267,7 +2267,7 @@ def image_embedding(image, size):
           width = np.asarray(width)
     
           ResizeImage = np.pad(image, width, 'constant', constant_values = 0)
-    if ndim == 3:
+    if model_dim == 3:
         ResizeImage = []
         width = []
         for i in range(len(size)):
@@ -2363,57 +2363,67 @@ def CleanMask(star_labels, OverAllunet_mask):
     return OverAllunet_mask
 
 
-def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, slice_merge=False, erosion_iterations = 15, ExpandLabels = True):
+def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, min_size_mask = 10, max_size = 100000, slice_merge=False, erosion_iterations = 15, ExpandLabels = True):
 
-    model_dim = model.config.n_dim
-    
-    if model_dim < len(image.shape):
-        Segmented = np.zeros_like(image)
+        model_dim = model.config.n_dim
         
-        for i in range(image.shape[0]):
-            Segmented[i] = model.predict(image[i].astype('float32'), axis.replace('Z', ''), n_tiles= (n_tiles[-2], n_tiles[-1]))
-                
-    else:
-        
-        Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
+        if model_dim < len(image.shape):
+            Segmented = np.zeros_like(image)
+            
+            for i in range(image.shape[0]):
+                Segmented[i] = model.predict(image[i].astype('float32'), axis.replace('Z', ''), n_tiles= (n_tiles[-2], n_tiles[-1]))
+                    
+        else:
+            
+            Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
 
-    try:
+        
         thresholds = threshold_otsu(Segmented)
 
-        # Using the threshold values, we generate the three regions.
-        regions = np.digitize(Segmented, bins=thresholds)
-    except:
-
-        regions = Segmented
-
-    Binary = regions > 0
-    overall_mask = Binary.copy()
-    ndim = len(image.shape)
-    if ndim == 3:
+        Binary = Segmented > thresholds
+        overall_mask = Binary.copy()
+        
+        if model_dim == 3:
                 for i in range(image.shape[0]):
-                    overall_mask[i,:] = binary_dilation(overall_mask[i,:], iterations = erosion_iterations)
-                    overall_mask[i,:] = binary_erosion(overall_mask[i,:], iterations = erosion_iterations)
-                    overall_mask[i,:] = fill_label_holes(overall_mask[i,:])
+                    overall_mask[i] = binary_dilation(overall_mask[i], iterations = erosion_iterations)
+                    overall_mask[i] = binary_erosion(overall_mask[i], iterations = erosion_iterations)
+                    overall_mask[i] = fill_label_holes(overall_mask[i])
     
-    Binary = label(Binary)
-    
-        
-    if ndim == 3 and slice_merge or model_dim < len(image.shape):
-        for i in range(image.shape[0]):
-            Binary[i, :] = label(Binary[i, :])
-        Binary = match_labels(Binary.astype('uint16'),
-                              iou_threshold=iou_threshold)
-        
-    # Postprocessing steps
-    Finalimage = fill_label_holes(Binary)
-    Finalimage = relabel_sequential(Finalimage)[0]
+       
 
-    if ExpandLabels:
-        Finalimage = VollSeg_label_precondition(image, overall_mask, Finalimage)
-    else:
-        Finalimage = VollSeg_nolabel_precondition(image, Finalimage)
+        Binary = label(Binary)
 
-    return Finalimage
+        if model_dim == 2:
+            Binary = remove_small_objects(
+                Binary.astype('uint16'), min_size=min_size_mask)
+            Binary = remove_big_objects(
+                Binary.astype('uint16'), max_size=max_size)
+            Binary = fill_label_holes(Binary)
+            Finalimage = relabel_sequential(Binary)[0]
+            Skeleton = Skel(Finalimage)
+            Skeleton = Skeleton > 0
+        if model_dim == 3 and slice_merge:
+            for i in range(image.shape[0]):
+                Binary[i] = label(Binary[i])
+            
+            Binary = match_labels(Binary, iou_threshold=iou_threshold)
+            Binary = fill_label_holes(Binary)
+
+        if model_dim == 3: 
+            for i in range(image.shape[0]):
+                Binary[i]  = remove_small_objects(
+                    Binary[i] .astype('uint16'), min_size=min_size_mask)
+                Binary[i]  = remove_big_objects(
+                    Binary[i] .astype('uint16'), max_size=max_size)    
+            Finalimage = relabel_sequential(Binary)[0]
+            Skeleton = Skel(Finalimage)
+
+
+            if ExpandLabels:
+                       
+                    Finalimage, Skeleton = VollSeg_label_expansion(image, overall_mask, Finalimage, Skeleton)
+
+        return Finalimage
 
 
 def Bbox_region(image):
