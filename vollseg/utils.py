@@ -2119,16 +2119,12 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             print('Stardist segmentation on Membrane Image')
             if donormalize:
                 
-                patch_star = normalize(patch, lower_perc, upper_perc, axis= (0,1,2)) 
-            else:
-                patch_star = patch
+                patch_membrane = normalize(patch_membrane, lower_perc, upper_perc, axis= (0,1,2)) 
+            
  
-            if sized_membrane_mask is not None:
-                 unet_mask = sized_membrane_mask
-            else:
-                 unet_mask = Mask_patch     
+               
             smart_seeds_membrane, proabability_map_membrane, star_labels_membrane, Markers_membrane = STARPrediction3D(
-                patch_membrane, axes, star_membrane_model,  n_tiles, unet_mask=unet_mask, UseProbability=UseProbability,seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+                patch_membrane, axes, star_membrane_model,  n_tiles,  UseProbability=UseProbability,seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
             print('Removing small/large objects')
             for i in tqdm(range(0, smart_seeds_membrane.shape[0])):
                 smart_seeds_membrane[i] = remove_small_objects(
