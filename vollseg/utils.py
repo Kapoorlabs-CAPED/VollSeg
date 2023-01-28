@@ -42,7 +42,7 @@ from vollseg.unetstarmask import UnetStarMask
 from vollseg.nmslabel import NMSLabel
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
-from skimage.filters import threshold_otsu
+from skimage.filters import threshold_multiotsu
 from scipy.ndimage.measurements import find_objects
 from cellpose_vollseg import models
 from multiprocessing.pool import ThreadPool
@@ -584,9 +584,15 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         if RGB:
                 Segmented = Segmented[:, :, 0]
 
-        thresholds = threshold_otsu(Segmented)
+        try:
+                thresholds = threshold_multiotsu(Segmented, classes=2)
 
-        Binary = Segmented > thresholds
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(Segmented, bins=thresholds)
+        except:
+
+                regions = Segmented
+        Binary = regions > 0
         Mask = Binary.copy() 
             
         Mask = Region_embedding(image, roi_bbox, Mask, RGB = RGB)
@@ -594,8 +600,16 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
     elif noise_model is not None and dounet == False:
 
         Mask = np.zeros(patch.shape)
-        thresholds = threshold_otsu(patch)
-        Mask = patch > thresholds
+        try:
+            thresholds = threshold_multiotsu(patch, classes=2)
+
+            # Using the threshold values, we generate the three regions.
+            regions = np.digitize(patch, bins=thresholds)
+        except:
+
+            regions = patch
+        Mask = regions > 0
+
         Mask = label(Mask)
         Mask = remove_small_objects(
             Mask.astype('uint16'), min_size=min_size_mask)
@@ -730,9 +744,15 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
         if RGB:
             Segmented = Segmented[:, :, 0]
 
-        thresholds = threshold_otsu(Segmented)
+        try:
+            thresholds = threshold_multiotsu(Segmented, classes=2)
 
-        Binary = Segmented > thresholds
+            # Using the threshold values, we generate the three regions.
+            regions = np.digitize(Segmented, bins=thresholds)
+        except:
+
+            regions = Segmented
+        Binary = regions > 0
         overall_mask = Binary.copy()
         
         if model_dim == 3:
@@ -2134,7 +2154,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             smart_seeds_membrane = fill_label_holes(smart_seeds_membrane.astype('uint16'))
             
             if startZ > 0:
-                smart_seeds[0:startZ] = 0
+                smart_seeds_membrane[0:startZ] = 0
             smart_seeds_membrane = Region_embedding(image, roi_bbox, smart_seeds_membrane)
             sized_membrane_mask[:, :smart_seeds_membrane.shape[1],
                             :smart_seeds_membrane.shape[2]] = smart_seeds_membrane
@@ -2171,8 +2191,16 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
 
         for i in range(0, Mask.shape[0]):
 
-            thresholds = threshold_otsu(patch[i])
-            Mask[i] = patch[i] > thresholds
+            try:
+                thresholds = threshold_multiotsu(patch[i, :], classes=2)
+
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(patch[i], bins=thresholds)
+
+            except:
+
+                regions = patch[i]
+            Mask[i] = regions > 0
             Mask[i] = label(Mask[i, :])
 
             Mask[i] = remove_small_objects(
@@ -2437,8 +2465,16 @@ def SuperUNETPrediction(image, model, n_tiles, axis):
 
     Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
 
-    thresholds = threshold_otsu(Segmented)
-    Binary = Segmented > thresholds
+    try:
+        thresholds = threshold_multiotsu(Segmented, classes=2)
+
+        # Using the threshold values, we generate the three regions.
+        regions = np.digitize(Segmented, bins=thresholds)
+    except:
+
+        regions = Segmented
+
+    Binary = regions > 0
     Finalimage = label(Binary)
 
     Finalimage = relabel_sequential(Finalimage)[0]
@@ -2519,9 +2555,16 @@ def UNETPrediction3D(image, model, n_tiles, axis, iou_threshold=0.3, min_size_ma
             Segmented = model.predict(image.astype('float32'), axis, n_tiles=n_tiles)
 
         
-        thresholds = threshold_otsu(Segmented)
+        try:
+            thresholds = threshold_multiotsu(Segmented, classes=2)
 
-        Binary = Segmented > thresholds
+            # Using the threshold values, we generate the three regions.
+            regions = np.digitize(Segmented, bins=thresholds)
+        except:
+
+            regions = Segmented
+
+        Binary = regions > 0
         overall_mask = Binary.copy()
         
         if model_dim == 3:
