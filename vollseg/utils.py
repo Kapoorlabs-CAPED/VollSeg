@@ -2878,11 +2878,6 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
             watershed_image = fill_label_holes(watershed_image)
             
             empy_region_indices = zip(*np.where(CopyMasks == 0))
-
-            for index in empy_region_indices:
-                CopyMasks[index] = membrane_mask[index]
-
-            empy_region_indices = zip(*np.where(CopyMasks == 0))
             
             for index in empy_region_indices:
                 CopyMasks[index] = watershed_image[index]
