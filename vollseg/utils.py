@@ -2849,7 +2849,6 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     
    
     CopyMasks = Masks.copy()
-    CopyMasks = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
 
     starproperties = measure.regionprops(Seeds)
     
@@ -2886,6 +2885,13 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
 
        
     CopyMasks = label(CopyMasks)
+    
+    for i in tqdm(range(0, CopyMasks.shape[0])):
+                   
+                    CopyMasks[i] = remove_small_objects(
+                            CopyMasks[i].astype('uint16'), min_size=min_size)
+                    CopyMasks[i] = remove_big_objects(
+                            CopyMasks[i].astype('uint16'), max_size=max_size)
     relabeled = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
     #relabeled = NMSLabel(relabeled,nms_thresh, z_thresh = z_thresh).supresslabels()
     
