@@ -1331,7 +1331,17 @@ def VollCellSeg(image: np.ndarray,
         cellpose_labels, flows, styles = cellres
             
     cellpose_labels = np.asarray(cellpose_labels)
-    
+
+    if 'T' not in axes:
+        
+        cellpose_labels = CleanCellPose(Masks=cellpose_labels, nms_thresh=nms_thresh, z_thresh=z_thresh)
+    if 'T' in axes:
+
+         clean_cellpose_labels = []
+         for i in range(cellpose_labels.shape[0]):
+              cellpose_labelstime = CleanCellPose(Masks=cellpose_labels[i,:], nms_thresh=nms_thresh, z_thresh=z_thresh)
+              clean_cellpose_labels.append(cellpose_labelstime)
+         cellpose_labels = np.asarray(clean_cellpose_labels)     
 
     cellpose_labels_copy = cellpose_labels.copy()
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is None and unet_membrane_model is None and star_membrane_model is None:
@@ -1346,7 +1356,7 @@ def VollCellSeg(image: np.ndarray,
         Markers = np.asarray(Markers)
         skeleton = np.asarray(skeleton)
         roi_image = np.asarray(roi_image)  
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        vollcellseg = _cellpose_block(axes, cellpose_labels_copy, sized_mask, nms_thresh, image_membrane,  z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
     
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None and star_membrane_model is None:
         sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton, roi_image = res   
@@ -1358,7 +1368,8 @@ def VollCellSeg(image: np.ndarray,
         Markers = np.asarray(Markers)
         skeleton = np.asarray(skeleton)
         roi_image = np.asarray(roi_image) 
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        vollcellseg = _cellpose_block(axes, cellpose_labels_copy, sized_membrane_mask, nms_thresh, image_membrane,  z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+
 
 
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and star_membrane_model is not None:
@@ -1372,7 +1383,8 @@ def VollCellSeg(image: np.ndarray,
         Markers = np.asarray(Markers)
         skeleton = np.asarray(skeleton)
         roi_image = np.asarray(roi_image) 
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose, probability_map_membrane = probability_map_membrane)
+        vollcellseg = _cellpose_block(axes, cellpose_labels_copy, sized_membrane_mask, nms_thresh, image_membrane,  z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+
 
 
 
@@ -1388,7 +1400,8 @@ def VollCellSeg(image: np.ndarray,
         probability_map = np.asarray(probability_map)
         Markers = np.asarray(Markers)
         skeleton = np.asarray(skeleton)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        vollcellseg = _cellpose_block(axes, cellpose_labels_copy, sized_mask, nms_thresh, image_membrane,  z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+
     
     if noise_model is None and star_model is not None and  roi_model is None and cellpose_model is not None and unet_membrane_model is not None and star_membrane_model is None:
         sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton = res
@@ -1399,7 +1412,8 @@ def VollCellSeg(image: np.ndarray,
         probability_map = np.asarray(probability_map)
         Markers = np.asarray(Markers)
         skeleton = np.asarray(skeleton)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        vollcellseg = _cellpose_block(axes, cellpose_labels_copy, sized_membrane_mask, nms_thresh, image_membrane,  z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+
   
     if noise_model is None and star_model is not None and  roi_model is None and cellpose_model is not None and star_membrane_model is not None:
         sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map,probability_map_membrane, Markers, skeleton = res
@@ -1411,9 +1425,7 @@ def VollCellSeg(image: np.ndarray,
         probability_map_membrane = np.asarray(probability_map_membrane)
         Markers = np.asarray(Markers)
         skeleton = np.asarray(skeleton)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose, probability_map_membrane = probability_map_membrane)
-  
-
+        vollcellseg = _cellpose_block(axes, cellpose_labels_copy, sized_membrane_mask, nms_thresh, image_membrane,  z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
 
 
     if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is None and unet_membrane_model is None and star_membrane_model is None:
@@ -1430,7 +1442,8 @@ def VollCellSeg(image: np.ndarray,
         skeleton = np.asarray(skeleton) 
         image = np.asarray(image)
         roi_image = np.asarray(roi_image)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        vollcellseg = _cellpose_block(axes, cellpose_labels_copy, sized_mask, nms_thresh, image_membrane,  z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+
    
     if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None and star_membrane_model is None:
         sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image = res   
@@ -1443,7 +1456,8 @@ def VollCellSeg(image: np.ndarray,
         skeleton = np.asarray(skeleton) 
         image = np.asarray(image)
         roi_image = np.asarray(roi_image)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        vollcellseg = _cellpose_block(axes, cellpose_labels_copy, sized_membrane_mask, nms_thresh, image_membrane,  z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+
 
     if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and star_membrane_model is not None:
         sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, probability_map_membrane, Markers, skeleton,  image, roi_image = res   
@@ -1457,8 +1471,7 @@ def VollCellSeg(image: np.ndarray,
         skeleton = np.asarray(skeleton) 
         image = np.asarray(image)
         roi_image = np.asarray(roi_image)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose, probability_map_membrane = probability_map_membrane)
-
+        vollcellseg = _cellpose_block(axes, cellpose_labels_copy, sized_membrane_mask, nms_thresh, image_membrane,  z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
 
 
     if noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
@@ -1474,9 +1487,8 @@ def VollCellSeg(image: np.ndarray,
               Markers = np.asarray(Markers)
               skeleton = np.asarray(skeleton) 
               roi_image = np.asarray(roi_image)
-              cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
-      
-    
+              vollcellseg = _cellpose_block(axes, cellpose_labels_copy, sized_mask, nms_thresh, image_membrane,  z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+
         
     elif noise_model is not None and star_model is None and roi_model is None and unet_model is None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
 
@@ -1671,36 +1683,25 @@ def VollCellSeg(image: np.ndarray,
         return sized_mask, skeleton, image    
 
 
-def _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels, sized_smart_seeds, sized_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = 1, seedpool_cellpose = True, probability_map_membrane = None):
+def _cellpose_block(axes, cellpose_labels, sized_mask, nms_thresh, image_membrane, z_thresh = 1, seedpool_cellpose = True):
     
     if 'T' not in axes:   
-            if probability_map_membrane is None:
-               cellpose_base = np.max(flows[0], axis = -1)
-            else:
-               cellpose_base = probability_map_membrane     
-            cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
-            vollcellseg = CellPoseWater(cellpose_base, cellpose_labels, sized_smart_seeds, sized_mask, min_size_mask, max_size,nms_thresh, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+            
+            vollcellseg = CellPoseWater(cellpose_labels, sized_mask, nms_thresh, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
             
     if 'T' in axes:
                 
-            cellpose_base = []
             vollcellseg = []
             for time in range(image_membrane.shape[0]):
-                if probability_map_membrane is None:
-                   cellpose_base_time = np.max(flows[0], axis = -1)[time]
-                else:
-                   cellpose_base_time = probability_map_membrane[time]    
-
-                cellpose_labels_time = cellpose_labels[time]
-                cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
                
-                vollcellseg_time = CellPoseWater(cellpose_base_time, cellpose_labels_time, sized_smart_seeds[time], sized_mask, min_size_mask, max_size,nms_thresh, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
-                cellpose_base.append(cellpose_base_time)
+                cellpose_labels_time = cellpose_labels[time]
+               
+                vollcellseg_time = CellPoseWater(cellpose_labels_time, sized_mask, nms_thresh, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
                 vollcellseg.append(vollcellseg_time)
             cellpose_base = np.asarray(cellpose_base)
             vollcellseg = np.asarray(vollcellseg_time) 
        
-    return cellpose_base, vollcellseg        
+    return vollcellseg        
 
 
 def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX', noise_model=None, prob_thresh=None, ExpandLabels = False, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
@@ -2845,49 +2846,33 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh = 
     return watershedImage, markers
 
 
-def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thresh, z_thresh = 1, seedpool_cellpose = True):
+def CleanCellPose(Masks, nms_thresh,z_thresh = 1):
+      
+      CopyMasks = Masks.copy()
+      relabeled = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
+
+      return relabeled
+
+def CellPoseWater(Masks, membrane_mask, nms_thresh, z_thresh = 1, seedpool_cellpose = True):
     
    
     CopyMasks = Masks.copy()
-    
+    CopyMasks = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
     if seedpool_cellpose:
-            starproperties = measure.regionprops(Seeds)
             membrane_mask = label(membrane_mask)
-            Coordinates = [prop.centroid for prop in starproperties]
-            KeepCoordinates = []
-            if len(Coordinates) > 0:
-                    for i in range(0, len(Coordinates)):
-
-                        star = Coordinates[i]
-                        value=CopyMasks[int(star[0]),int(star[1]),int(star[2])]
-
-                        if value==0:
-                            KeepCoordinates.append(Coordinates[i])
-                            
-                            
-            KeepCoordinates.append((0, 0, 0))
-            KeepCoordinates = np.asarray(KeepCoordinates)
-
-            coordinates_int = np.round(KeepCoordinates).astype(int)
-            markers_raw = np.zeros_like(Image)
-            markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
-
-            markers = morphology.dilation(
-                markers_raw.astype('uint16'), morphology.ball(2))                
-            watershed_image = watershed(-Image, markers, mask = membrane_mask)
-            watershed_image = fill_label_holes(watershed_image)
-            
-            empy_region_indices = zip(*np.where(CopyMasks == 0))
-            
-            for index in empy_region_indices:
-                CopyMasks[index] = watershed_image[index]
+            properties = measure.regionprops(membrane_mask)
+            Starlabels = [prop.label for prop in properties]
+            for label in Starlabels:
+              region_indices = zip(*np.where(membrane_mask == label))
+              condition =  all(CopyMasks[index] for index in region_indices) == 0
+              if condition:
+                    for index in region_indices:
+                       CopyMasks[index] = membrane_mask[index]
 
        
     CopyMasks = label(CopyMasks)
     
-    
     relabeled = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
-    relabeled = NMSLabel(relabeled,nms_thresh, z_thresh = z_thresh).supresslabels()
     
     return relabeled
 
