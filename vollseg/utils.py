@@ -544,8 +544,17 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         model_dim = roi_model.config.n_dim
         assert model_dim == len(
             image.shape), f'For 2D images the region of interest model has to be 2D, model provided had {model_dim} instead'
-        roi_image = UNETPrediction3D(
-            image, roi_model, n_tiles, axes,ExpandLabels = ExpandLabels)
+        Segmented = roi_model.predict(image.astype('float32'), 'YX', n_tiles=n_tiles)
+        try:
+                    thresholds = threshold_multiotsu(Segmented, classes=2)
+
+                    # Using the threshold values, we generate the three regions.
+                    regions = np.digitize(Segmented, bins=thresholds)
+        except:
+
+                    regions = Segmented
+
+        roi_image = regions > 0  
         roi_bbox = Bbox_region(roi_image)
         if roi_bbox is not None:
                 rowstart = roi_bbox[0]
@@ -811,8 +820,19 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             else:
                 tiles = n_tiles
             maximage = np.amax(image, axis=0)
-            s_Binary = UNETPrediction3D(
-                maximage, roi_model, tiles, 'YX', ExpandLabels = ExpandLabels)
+            Segmented = roi_model.predict(maximage.astype('float32'), 'YX', n_tiles=n_tiles)
+            try:
+                        thresholds = threshold_multiotsu(Segmented, classes=2)
+
+                        # Using the threshold values, we generate the three regions.
+                        regions = np.digitize(Segmented, bins=thresholds)
+            except:
+
+                        regions = Segmented
+
+            s_Binary = regions > 0
+
+
 
             s_Binary = label(s_Binary)
             s_Binary = remove_small_objects(
@@ -834,8 +854,19 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
                Finalimage[i] = s_Finalimage
 
         elif model_dim == len(image.shape):
-            Binary = UNETPrediction3D(
-                image, roi_model, n_tiles, axes, ExpandLabels = ExpandLabels)
+
+            Segmented = roi_model.predict(image.astype('float32'), 'YX', n_tiles=n_tiles)
+            try:
+                        thresholds = threshold_multiotsu(Segmented, classes=2)
+
+                        # Using the threshold values, we generate the three regions.
+                        regions = np.digitize(Segmented, bins=thresholds)
+            except:
+
+                        regions = Segmented
+
+            Binary = regions > 0
+
 
             Binary = label(Binary)
             if model_dim == 3 and slice_merge:
@@ -2055,8 +2086,18 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             else:
                 tiles = n_tiles
             maximage = np.amax(image, axis=0)
-            roi_image = UNETPrediction3D(
-                maximage, roi_model, tiles, 'YX', iou_threshold=nms_thresh, ExpandLabels = ExpandLabels)
+            Segmented = roi_model.predict(maximage.astype('float32'), 'YX', n_tiles=n_tiles)
+            try:
+                    thresholds = threshold_multiotsu(Segmented, classes=2)
+
+                    # Using the threshold values, we generate the three regions.
+                    regions = np.digitize(Segmented, bins=thresholds)
+            except:
+
+                    regions = Segmented
+
+            roi_image = regions > 0   
+            
             roi_bbox = Bbox_region(roi_image)
             if roi_bbox is not None:
                 rowstart = roi_bbox[0]
@@ -2066,8 +2107,17 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 region = (slice(0, image.shape[0]), slice(rowstart, endrow),
                         slice(colstart, endcol))
         elif model_dim == len(image.shape):
-            roi_image = UNETPrediction3D(
-                image, roi_model, n_tiles, axes, ExpandLabels = ExpandLabels)
+            Segmented = roi_model.predict(maximage.astype('float32'), 'YX', n_tiles=n_tiles)
+            try:
+                    thresholds = threshold_multiotsu(Segmented, classes=2)
+
+                    # Using the threshold values, we generate the three regions.
+                    regions = np.digitize(Segmented, bins=thresholds)
+            except:
+
+                    regions = Segmented
+
+            roi_image = regions > 0  
           
             roi_bbox = Bbox_region(roi_image)
             if roi_bbox is not None:
