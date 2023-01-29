@@ -555,6 +555,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
                     regions = Segmented
 
         roi_image = regions > 0  
+        roi_image = label(roi_image)
         roi_bbox = Bbox_region(roi_image)
         if roi_bbox is not None:
                 rowstart = roi_bbox[0]
@@ -2097,7 +2098,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                     regions = Segmented
 
             roi_image = regions > 0   
-            
+            roi_image = label(roi_image)
             roi_bbox = Bbox_region(roi_image)
             if roi_bbox is not None:
                 rowstart = roi_bbox[0]
@@ -2118,7 +2119,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                     regions = Segmented
 
             roi_image = regions > 0  
-          
+            roi_image = label(roi_image)
             roi_bbox = Bbox_region(roi_image)
             if roi_bbox is not None:
                 zstart = roi_bbox[0]
