@@ -2851,7 +2851,7 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     CopyMasks = Masks.copy()
 
     starproperties = measure.regionprops(Seeds)
-    
+    membrane_mask = label(membrane_mask)
     Coordinates = [prop.centroid for prop in starproperties]
     KeepCoordinates = []
     if len(Coordinates) > 0:
@@ -2877,21 +2877,21 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     watershed_image = fill_label_holes(watershed_image)
     
     empy_region_indices = zip(*np.where(CopyMasks == 0))
-    
+
+    for index in empy_region_indices:
+          CopyMasks[index] = membrane_mask[index]
+
+    empy_region_indices = zip(*np.where(CopyMasks == 0))
     if seedpool_cellpose:
        for index in empy_region_indices:
           CopyMasks[index] = watershed_image[index]
+          
     
 
        
     CopyMasks = label(CopyMasks)
     
-    for i in tqdm(range(0, CopyMasks.shape[0])):
-                   
-                    CopyMasks[i] = remove_small_objects(
-                            CopyMasks[i].astype('uint16'), min_size=min_size)
-                    CopyMasks[i] = remove_big_objects(
-                            CopyMasks[i].astype('uint16'), max_size=max_size)
+    
     relabeled = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
     #relabeled = NMSLabel(relabeled,nms_thresh, z_thresh = z_thresh).supresslabels()
     
