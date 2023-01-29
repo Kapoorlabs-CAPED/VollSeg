@@ -820,7 +820,7 @@ def VollSeg_unet(image, unet_model=None, roi_model=None, n_tiles=(2, 2), axes='Y
             else:
                 tiles = n_tiles
             maximage = np.amax(image, axis=0)
-            Segmented = roi_model.predict(maximage.astype('float32'), 'YX', n_tiles=n_tiles)
+            Segmented = roi_model.predict(maximage.astype('float32'), 'YX', n_tiles=tiles)
             try:
                         thresholds = threshold_multiotsu(Segmented, classes=2)
 
@@ -2086,7 +2086,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             else:
                 tiles = n_tiles
             maximage = np.amax(image, axis=0)
-            Segmented = roi_model.predict(maximage.astype('float32'), 'YX', n_tiles=n_tiles)
+            Segmented = roi_model.predict(maximage.astype('float32'), 'YX', n_tiles=tiles)
             try:
                     thresholds = threshold_multiotsu(Segmented, classes=2)
 
