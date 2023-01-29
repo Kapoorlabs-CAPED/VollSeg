@@ -468,7 +468,8 @@ def Skel(smart_seedsLabels, RGB = False):
 
 
 def Region_embedding(image, region, sourceimage, RGB = False):
-
+            
+            returnimage = np.zeros_like(image)
             if len(region) == 4 and len(image.shape) == 2:
                 rowstart = region[0]
                 colstart = region[1]
