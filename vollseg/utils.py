@@ -1680,7 +1680,6 @@ def _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels, sized_
                cellpose_base = probability_map_membrane     
             cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
             vollcellseg = CellPoseWater(cellpose_base, cellpose_labels, sized_smart_seeds, sized_mask, nms_thresh, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
-            
     if 'T' in axes:
                 
             cellpose_base = []
@@ -2880,7 +2879,7 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, nms_thresh, z_thresh = 1, 
             watershed_image = watershed(-Image, markers, mask = membrane_mask)
             watershed_image = fill_label_holes(watershed_image)
             
-            watershed_image = relabel_sequential(watershed_image, offset = max_label)
+            watershed_image = relabel_sequential(watershed_image, offset = max_label)[0]
 
             empy_region_indices = zip(*np.where(CopyMasks == 0))
             
