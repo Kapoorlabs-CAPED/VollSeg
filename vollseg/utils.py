@@ -2804,13 +2804,11 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     
     empy_region_indices = zip(*np.where(CopyMasks == 0))
     
-    if seedpool_cellpose:
-       for index in empy_region_indices:
-          CopyMasks[index] = watershed_image[index]
+    #if seedpool_cellpose:
+       #for index in empy_region_indices:
+          #CopyMasks[index] = watershed_image[index]
 
-    for i in range(CopyMasks.shape[0]):
-       CopyMasks[i,:,:] = remove_small_objects(CopyMasks[i,:,:], min_size = min_size) 
-       CopyMasks[i,:,:] = remove_big_objects(CopyMasks[i,:,:], max_size = max_size)    
+    
 
        
     CopyMasks = label(CopyMasks)
