@@ -2849,51 +2849,50 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     
    
     CopyMasks = Masks.copy()
-
-    starproperties = measure.regionprops(Seeds)
-    membrane_mask = label(membrane_mask)
-    Coordinates = [prop.centroid for prop in starproperties]
-    KeepCoordinates = []
-    if len(Coordinates) > 0:
-            for i in range(0, len(Coordinates)):
-
-                star = Coordinates[i]
-                value=CopyMasks[int(star[0]),int(star[1]),int(star[2])]
-
-                if value==0:
-                    KeepCoordinates.append(Coordinates[i])
-                    
-                    
-    KeepCoordinates.append((0, 0, 0))
-    KeepCoordinates = np.asarray(KeepCoordinates)
-
-    coordinates_int = np.round(KeepCoordinates).astype(int)
-    markers_raw = np.zeros_like(Image)
-    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
-
-    markers = morphology.dilation(
-        markers_raw.astype('uint16'), morphology.ball(2))                
-    watershed_image = watershed(-Image, markers, mask = membrane_mask)
-    watershed_image = fill_label_holes(watershed_image)
     
-    empy_region_indices = zip(*np.where(CopyMasks == 0))
-
-    for index in empy_region_indices:
-          CopyMasks[index] = membrane_mask[index]
-
-    empy_region_indices = zip(*np.where(CopyMasks == 0))
     if seedpool_cellpose:
-       for index in empy_region_indices:
-          CopyMasks[index] = watershed_image[index]
-          
-    
+            starproperties = measure.regionprops(Seeds)
+            membrane_mask = label(membrane_mask)
+            Coordinates = [prop.centroid for prop in starproperties]
+            KeepCoordinates = []
+            if len(Coordinates) > 0:
+                    for i in range(0, len(Coordinates)):
+
+                        star = Coordinates[i]
+                        value=CopyMasks[int(star[0]),int(star[1]),int(star[2])]
+
+                        if value==0:
+                            KeepCoordinates.append(Coordinates[i])
+                            
+                            
+            KeepCoordinates.append((0, 0, 0))
+            KeepCoordinates = np.asarray(KeepCoordinates)
+
+            coordinates_int = np.round(KeepCoordinates).astype(int)
+            markers_raw = np.zeros_like(Image)
+            markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
+
+            markers = morphology.dilation(
+                markers_raw.astype('uint16'), morphology.ball(2))                
+            watershed_image = watershed(-Image, markers, mask = membrane_mask)
+            watershed_image = fill_label_holes(watershed_image)
+            
+            empy_region_indices = zip(*np.where(CopyMasks == 0))
+
+            for index in empy_region_indices:
+                CopyMasks[index] = membrane_mask[index]
+
+            empy_region_indices = zip(*np.where(CopyMasks == 0))
+            
+            for index in empy_region_indices:
+                CopyMasks[index] = watershed_image[index]
 
        
     CopyMasks = label(CopyMasks)
     
     
     relabeled = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
-    #relabeled = NMSLabel(relabeled,nms_thresh, z_thresh = z_thresh).supresslabels()
+    relabeled = NMSLabel(relabeled,nms_thresh, z_thresh = z_thresh).supresslabels()
     
     return relabeled
 
