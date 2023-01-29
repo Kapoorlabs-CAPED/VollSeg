@@ -2848,7 +2848,8 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     
    
     CopyMasks = Masks.copy()
-    properties = measure.regionprops(CopyMasks)
+    CopyMasks = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
+
     starproperties = measure.regionprops(Seeds)
     
     Coordinates = [prop.centroid for prop in starproperties]
@@ -2877,10 +2878,9 @@ def CellPoseWater(Image, Masks, Seeds, membrane_mask, min_size, max_size,nms_thr
     
     empy_region_indices = zip(*np.where(CopyMasks == 0))
     
-    #if seedpool_cellpose:
-       #for index in empy_region_indices:
-          #CopyMasks[index] = watershed_image[index]
-
+    if seedpool_cellpose:
+       for index in empy_region_indices:
+          CopyMasks[index] = watershed_image[index]
     
 
        
