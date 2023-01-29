@@ -469,8 +469,6 @@ def Skel(smart_seedsLabels, RGB = False):
 
 def Region_embedding(image, region, sourceimage, RGB = False):
 
-    returnimage = np.zeros(image.shape)
-    if region is not None:
             if len(region) == 4 and len(image.shape) == 2:
                 rowstart = region[0]
                 colstart = region[1]
@@ -504,9 +502,8 @@ def Region_embedding(image, region, sourceimage, RGB = False):
                 returnimage[rowstart:endrow,
                             colstart:endcol] = sourceimage
 
-    else:
-        returnimage = image
-    return returnimage
+     
+            return returnimage
 
 
 def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  prob_thresh=None, nms_thresh=None, axes='YX', min_size_mask=5, min_size=5,
@@ -568,7 +565,14 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
                 patch = image[region]
         else:
 
-                 patch = image        
+                 patch = image
+                 region = (slice(0, image.shape[0]),
+                  slice(0, image.shape[1]))
+                 rowstart = 0
+                 colstart = 0
+                 endrow = image.shape[1]
+                 endcol = image.shape[0]
+                 roi_bbox = [colstart, rowstart, endcol, endrow]        
 
     
 
@@ -2107,6 +2111,14 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 endcol = roi_bbox[3]
                 region = (slice(0, image.shape[0]), slice(rowstart, endrow),
                         slice(colstart, endcol))
+            else:
+                 region = (slice(0, image.shape[0]), slice(0, image.shape[1]),
+                  slice(0, image.shape[2]))
+                 rowstart = 0
+                 colstart = 0
+                 endrow = image.shape[2]
+                 endcol = image.shape[1]
+                 roi_bbox = [colstart, rowstart, endcol, endrow]    
         elif model_dim == len(image.shape):
             Segmented = roi_model.predict(maximage.astype('float32'), 'YX', n_tiles=n_tiles)
             try:
@@ -2130,6 +2142,16 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 endcol = roi_bbox[5]
                 region = (slice(zstart, zend), slice(rowstart, endrow),
                         slice(colstart, endcol))
+            else:
+                 
+                 region = (slice(0, image.shape[0]), slice(0, image.shape[1]),
+                  slice(0, image.shape[2]))
+                 rowstart = 0
+                 colstart = 0
+                 endrow = image.shape[2]
+                 endcol = image.shape[1]
+                 roi_bbox = [colstart, rowstart, endcol, endrow]
+                     
         # The actual pixels in that region.
         if roi_bbox is not None:
             patch = image[region]
