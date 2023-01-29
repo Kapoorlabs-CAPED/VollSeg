@@ -934,7 +934,6 @@ def _star_time_block(
                         UseProbability,
                         dounet,
                         seedpool,
-                        startZ,
                         slice_merge,
                         iou_threshold,
                         lower_perc,
@@ -953,7 +952,7 @@ def _star_time_block(
                      zip(
                         *tuple(VollSeg3D(image_nuclei[i],  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
                                         n_tiles=n_tiles, image_membrane = image_membrane[i], UseProbability=UseProbability, unet_membrane_model = unet_membrane_model,
-                                        dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for i in tqdm(range(image_nuclei.shape[0])))))
+                                        dounet=dounet, seedpool=seedpool,  slice_merge=slice_merge, iou_threshold=iou_threshold) for i in tqdm(range(image_nuclei.shape[0])))))
     
     return res
 
@@ -984,7 +983,6 @@ def _cellpose_star_time_block(cellpose_model,
                         UseProbability,
                         dounet,
                         seedpool,
-                        startZ,
                         slice_merge,
                         iou_threshold,
                         lower_perc,
@@ -1019,7 +1017,6 @@ def _cellpose_star_time_block(cellpose_model,
                                 UseProbability,
                                 dounet,
                                 seedpool,
-                                startZ,
                                 slice_merge,
                                 iou_threshold,
                                 lower_perc,
@@ -1078,7 +1075,6 @@ def _cellpose_star_block(cellpose_model,
                         UseProbability,
                         dounet,
                         seedpool,
-                        startZ,
                         slice_merge,
                         iou_threshold,
                         lower_perc,
@@ -1115,7 +1111,7 @@ def _cellpose_star_block(cellpose_model,
     if star_model is not None:
                 
                 res = VollSeg3D(image_nuclei,  unet_model,  star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-                                    n_tiles=n_tiles, image_membrane = image_membrane, UseProbability=UseProbability,unet_membrane_model = unet_membrane_model, star_membrane_model = star_membrane_model,  dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
+                                    n_tiles=n_tiles, image_membrane = image_membrane, UseProbability=UseProbability,unet_membrane_model = unet_membrane_model, star_membrane_model = star_membrane_model,  dounet=dounet, seedpool=seedpool,  slice_merge=slice_merge, iou_threshold=iou_threshold)
                     
     return cellres, res
 
@@ -1156,7 +1152,6 @@ def VollCellSeg(image: np.ndarray,
                 seedpool_cellpose: bool = True,
                 save_dir: str = None, 
                 Name : str ='Result',  
-                startZ : int = 0, 
                 slice_merge : bool = False, 
                 iou_threshold: float = 0.3, 
                 do_3D: bool =False,
@@ -1200,7 +1195,6 @@ def VollCellSeg(image: np.ndarray,
                         UseProbability,
                         dounet,
                         seedpool,
-                        startZ,
                         slice_merge,
                         iou_threshold,
                         lower_perc,
@@ -1241,7 +1235,6 @@ def VollCellSeg(image: np.ndarray,
                         UseProbability,
                         dounet,
                         seedpool,
-                        startZ,
                         slice_merge,
                         iou_threshold,
                         lower_perc,
@@ -1285,7 +1278,6 @@ def VollCellSeg(image: np.ndarray,
                         UseProbability,
                         dounet,
                         seedpool,
-                        startZ,
                         slice_merge,
                         iou_threshold,
                         lower_perc,
@@ -1417,7 +1409,7 @@ def VollCellSeg(image: np.ndarray,
         cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask, min_size_mask, max_size, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
 
     if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and star_membrane_model is not None:
-        sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image = res   
+        sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, probability_map_membrane, Markers, skeleton,  image, roi_image = res   
         sized_smart_seeds = np.asarray(sized_smart_seeds)
         sized_mask = np.asarray(sized_mask)
         sized_membrane_mask = np.asarray(sized_membrane_mask)
@@ -1675,7 +1667,7 @@ def _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels, sized_
 
 
 def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX', noise_model=None, prob_thresh=None, ExpandLabels = False, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-            n_tiles=(1, 1, 1), UseProbability=True,  donormalize=True, lower_perc=1, upper_perc=99.8, dounet=True, seedpool=True, save_dir=None, Name='Result',  startZ=0, slice_merge=False, iou_threshold=0.3, RGB=False):
+            n_tiles=(1, 1, 1), UseProbability=True,  donormalize=True, lower_perc=1, upper_perc=99.8, dounet=True, seedpool=True, save_dir=None, Name='Result',   slice_merge=False, iou_threshold=0.3, RGB=False):
 
     if len(image.shape) == 2:
 
@@ -1698,7 +1690,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
         # this is a 3D image and if stardist model is supplied we use this method
         if star_model is not None:
             res = VollSeg3D(image,  unet_model, star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-                            n_tiles=n_tiles, UseProbability=UseProbability,  dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
+                            n_tiles=n_tiles, UseProbability=UseProbability,  dounet=dounet, seedpool=seedpool,  slice_merge=slice_merge, iou_threshold=iou_threshold)
 
         # If there is no stardist model we use unet model with or without denoising model
         if star_model is None:
@@ -1736,7 +1728,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
             zip(
                 *tuple(VollSeg3D(_x,  unet_model, star_model, axes=axes, noise_model=noise_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
                                  n_tiles=n_tiles, UseProbability=UseProbability,
-                                 dounet=dounet, seedpool=seedpool, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold) for _x in tqdm(image))))
+                                 dounet=dounet, seedpool=seedpool,  slice_merge=slice_merge, iou_threshold=iou_threshold) for _x in tqdm(image))))
 
  
 
@@ -1874,13 +1866,13 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
         return sized_mask, skeleton, image 
 
 def VollSeg3DC(image,  unet_model_membrane, star_model_membrane, unet_model_nuclei, star_model_nuclei,  axes='ZYX', noise_model_nuclei=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2),  save_dir=None, Name='Result', UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
+              n_tiles=(1, 2, 2),  save_dir=None, Name='Result', UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, slice_merge=False, iou_threshold=0.3):
 
     nuclei_res =  VollSeg3D(image,  unet_model_nuclei, star_model_nuclei, axes=axes, noise_model=noise_model_nuclei, roi_model=roi_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-              n_tiles=n_tiles, UseProbability=UseProbability, ExpandLabels = ExpandLabels, dounet=dounet, seedpool=seedpool, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
+              n_tiles=n_tiles, UseProbability=UseProbability, ExpandLabels = ExpandLabels, dounet=dounet, seedpool=seedpool, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, slice_merge=slice_merge, iou_threshold=iou_threshold)
    
     membrane_res =  VollSeg3D(image,  unet_model_membrane, star_model_membrane, axes=axes, noise_model=None, roi_model=None, prob_thresh=prob_thresh, nms_thresh=nms_thresh, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-              n_tiles=n_tiles, UseProbability=UseProbability, ExpandLabels = ExpandLabels, dounet=dounet, seedpool=seedpool, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, startZ=startZ, slice_merge=slice_merge, iou_threshold=iou_threshold)
+              n_tiles=n_tiles, UseProbability=UseProbability, ExpandLabels = ExpandLabels, dounet=dounet, seedpool=seedpool, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc,  slice_merge=slice_merge, iou_threshold=iou_threshold)
 
 
     #Nuclei
@@ -2018,7 +2010,7 @@ def VollSeg3DC(image,  unet_model_membrane, star_model_membrane, unet_model_nucl
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2), image_membrane = None, unet_membrane_model = None, star_membrane_model = None, UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, startZ=0, slice_merge=False, iou_threshold=0.3):
+              n_tiles=(1, 2, 2), image_membrane = None, unet_membrane_model = None, star_membrane_model = None, UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8,  slice_merge=False, iou_threshold=0.3):
 
    
 
@@ -2038,9 +2030,9 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
         sized_probability_map_membrane = np.zeros([sizeZ, sizeY, sizeX], dtype='float32')
 
     sized_smart_seeds = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
-    Sizedprobability_map = np.zeros([sizeZ, sizeY, sizeX], dtype='float32')
-    Sizedmarkers = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
-    Sizedstardist = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
+    sized_probability_map = np.zeros([sizeZ, sizeY, sizeX], dtype='float32')
+    sized_markers = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
+    sized_stardist = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     Mask = None
     Mask_patch = None
     roi_image = None
@@ -2153,8 +2145,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                     smart_seeds_membrane[i, :].astype('uint16'), max_size=max_size)
             smart_seeds_membrane = fill_label_holes(smart_seeds_membrane.astype('uint16'))
             
-            if startZ > 0:
-                smart_seeds_membrane[0:startZ] = 0
+            
             smart_seeds_membrane = Region_embedding(image, roi_bbox, smart_seeds_membrane)
             sized_membrane_mask[:, :smart_seeds_membrane.shape[1],
                             :smart_seeds_membrane.shape[2]] = smart_seeds_membrane
@@ -2231,24 +2222,23 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 smart_seeds[i] = remove_big_objects(
                     smart_seeds[i, :].astype('uint16'), max_size=max_size)
             smart_seeds = fill_label_holes(smart_seeds.astype('uint16'))
-            if startZ > 0:
-                smart_seeds[0:startZ] = 0
+           
             smart_seeds = Region_embedding(image, roi_bbox, smart_seeds)
             sized_smart_seeds[:, :smart_seeds.shape[1],
                             :smart_seeds.shape[2]] = smart_seeds
             Markers = Region_embedding(image, roi_bbox, Markers)
-            Sizedmarkers[:, :smart_seeds.shape[1],
+            sized_markers[:, :smart_seeds.shape[1],
                         :smart_seeds.shape[2]] = Markers
             probability_map = Region_embedding(image, roi_bbox, probability_map)
-            Sizedprobability_map[:, :probability_map.shape[1],
+            sized_probability_map[:, :probability_map.shape[1],
                                 :probability_map.shape[2]] = probability_map
             star_labels = Region_embedding(image, roi_bbox, star_labels)
-            Sizedstardist[:, :star_labels.shape[1],
+            sized_stardist[:, :star_labels.shape[1],
                         :star_labels.shape[2]] = star_labels
             skeleton = np.zeros_like(sized_smart_seeds)
             for i in range(0, sized_smart_seeds.shape[0]):
                 skeleton[i] = SmartSkel(sized_smart_seeds[i],
-                                        Sizedprobability_map[i])
+                                        sized_probability_map[i])
             skeleton = skeleton > 0
 
 
