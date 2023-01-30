@@ -1152,7 +1152,7 @@ def _cellpose_star_block(cellpose_model,
                     
     return cellres, res
 
-def voll_cell_seg(image: np.ndarray, 
+def VollCellSeg(image: np.ndarray, 
                 diameter_cellpose: float = 34.6,
                 stitch_threshold: float = 0.5,
                 channel_membrane: int = 0,
@@ -1186,7 +1186,6 @@ def voll_cell_seg(image: np.ndarray,
                 upper_perc: float =99.8, 
                 dounet: bool = True, 
                 seedpool: bool = True, 
-                seedpool_cellpose: bool = True,
                 save_dir: str = None, 
                 Name : str ='Result',  
                 slice_merge : bool = False, 
