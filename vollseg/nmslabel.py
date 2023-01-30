@@ -108,9 +108,9 @@ class NMSLabel(object):
                 zB = min(boxA[3], boxB[3])
                 yB = min(boxA[4], boxB[4])
                 xB = min(boxA[5], boxB[5])
-                if boxA[0] <= boxB[0] and boxA[3] >= boxB[3] and  boxA[1] <= boxB[1] and boxA[4] >= boxB[4] and boxA[2] <= boxB[2] and boxA[5] >= boxB[5]: 
+                if  boxA[1] <= boxB[1] and boxA[4] >= boxB[4] and boxA[2] <= boxB[2] and boxA[5] >= boxB[5]: 
                     self.supresslabel[labelB] = labelA
-                elif boxB[0] <= boxA[0] and boxB[3] >= boxA[3] and boxB[1] <= boxA[1] and boxB[4] >= boxA[4] and boxB[2] <= boxA[2] and boxB[5] >= boxA[5]:
+                elif boxB[1] <= boxA[1] and boxB[4] >= boxA[4] and boxB[2] <= boxA[2] and boxB[5] >= boxA[5]:
                     self.supresslabel[labelA] = labelB
                     
                 else:    
