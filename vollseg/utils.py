@@ -1332,7 +1332,21 @@ def voll_cell_seg(image: np.ndarray,
             
     cellpose_labels = np.asarray(cellpose_labels)
     cellpose_labels = CleanCellPose(cellpose_mask=cellpose_labels,nms_thresh=nms_thresh, z_thresh=z_thresh)
-
+    if 'T' in axes:
+       for i in range(cellpose_labels.shape[0]):
+                for j in range(cellpose_labels.shape[1]):   
+                    cellpose_labels[i,j,:] = remove_small_objects(
+                            cellpose_labels[i,j,:].astype('uint16'), min_size=min_size_mask)
+                    cellpose_labels[i,j,:] = remove_big_objects(
+                            cellpose_labels[i,j,:].astype('uint16'), max_size=max_size)
+    if 'T' not in axes:
+         for i in range(cellpose_labels.shape[0]):
+                   
+                    cellpose_labels[i,:] = remove_small_objects(
+                            cellpose_labels[i,:].astype('uint16'), min_size=min_size_mask)
+                    cellpose_labels[i,:] = remove_big_objects(
+                            cellpose_labels[i,:].astype('uint16'), max_size=max_size)
+                          
     cellpose_labels_copy = cellpose_labels.copy()
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is None and unet_membrane_model is None and star_membrane_model is None:
         sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, roi_image = res
