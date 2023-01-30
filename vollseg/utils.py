@@ -645,7 +645,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
         patch_star = normalize(patch.astype('float32'), lower_perc, upper_perc, axis=axis) 
     else:
         patch_star = patch
-    smart_seeds, Markers, star_labels, probability_map = SuperSTARPrediction(
+    smart_seeds, markers, star_labels, probability_map = SuperSTARPrediction(
         patch_star, star_model, n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability, prob_thresh=prob_thresh, nms_thresh=nms_thresh, seedpool = seedpool)
     smart_seeds = remove_small_objects(
         smart_seeds.astype('uint16'), min_size=min_size)
@@ -661,7 +661,7 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
     smart_seeds = expand_labels(smart_seeds, distance=1)
 
     smart_seeds = Region_embedding(image, roi_bbox, smart_seeds, RGB = RGB)
-    Markers = Region_embedding(image, roi_bbox, Markers, RGB = RGB)
+    markers = Region_embedding(image, roi_bbox, markers, RGB = RGB)
     star_labels = Region_embedding(image, roi_bbox, star_labels, RGB = RGB)
     probability_map = Region_embedding(image, roi_bbox, probability_map, RGB = RGB)
     skeleton = Region_embedding(image, roi_bbox, skeleton, RGB = RGB)
@@ -670,17 +670,17 @@ def VollSeg2D(image, unet_model, star_model, noise_model=None, roi_model=None,  
    
 
     if noise_model is None and roi_image is not None:
-        return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16'), roi_image.astype('uint16')
+        return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16'), roi_image.astype('uint16')
     
     if noise_model is None and roi_image is None:
-        return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16')
+        return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16')
 
 
     if noise_model is not None and roi_image is not None:
-        return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16'), image, roi_image.astype('uint16')
+        return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16'), image, roi_image.astype('uint16')
 
     if noise_model is not None and roi_image is None:
-        return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16'), image
+        return smart_seeds.astype('uint16'), Mask.astype('uint16'), star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16'), image
 
 
 
@@ -1152,7 +1152,7 @@ def _cellpose_star_block(cellpose_model,
                     
     return cellres, res
 
-def VollCellSeg(image: np.ndarray, 
+def voll_cell_seg(image: np.ndarray, 
                 diameter_cellpose: float = 34.6,
                 stitch_threshold: float = 0.5,
                 channel_membrane: int = 0,
@@ -1326,189 +1326,188 @@ def VollCellSeg(image: np.ndarray,
 
   
     if cellpose_model is not None and custom_cellpose_model:
-        cellpose_labels, flows, styles, diams = cellres
+        cellpose_labels = cellres[0]
     if cellpose_model is not None and not custom_cellpose_model:
-        cellpose_labels, flows, styles = cellres
+        cellpose_labels = cellres[0]
             
     cellpose_labels = np.asarray(cellpose_labels)
-    
+    cellpose_labels = CleanCellPose(cellpose_mask=cellpose_labels,nms_thresh=nms_thresh, z_thresh=z_thresh)
 
     cellpose_labels_copy = cellpose_labels.copy()
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is None and unet_membrane_model is None and star_membrane_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton, roi_image = res
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, roi_image = res
         
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton, roi_image = res  
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, roi_image = res  
         sized_smart_seeds = np.asarray(sized_smart_seeds)
-        sized_mask = np.asarray(sized_mask)
+        instance_labels = np.asarray(instance_labels)
         star_labels = np.asarray(star_labels)
         probability_map = np.asarray(probability_map)
-        Markers = np.asarray(Markers)
+        markers = np.asarray(markers)
         skeleton = np.asarray(skeleton)
         roi_image = np.asarray(roi_image)  
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_mask,  nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        voll_cell_seg = cellpose_labels_copy
     
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None and star_membrane_model is None:
-        sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton, roi_image = res   
+        sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, markers, skeleton, roi_image = res   
         sized_smart_seeds = np.asarray(sized_smart_seeds)
-        sized_mask = np.asarray(sized_mask)
-        sized_membrane_mask = np.asarray(sized_membrane_mask)
+        instance_labels = np.asarray(instance_labels)
+        membrane_instance_labels = np.asarray(membrane_instance_labels)
         star_labels = np.asarray(star_labels)
         probability_map = np.asarray(probability_map)
-        Markers = np.asarray(Markers)
+        markers = np.asarray(markers)
         skeleton = np.asarray(skeleton)
         roi_image = np.asarray(roi_image) 
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask,  nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        voll_cell_seg = _cellpose_block(axes, cellpose_labels_copy, membrane_instance_labels,  nms_thresh, z_thresh = z_thresh)
 
 
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and star_membrane_model is not None:
-        sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, probability_map_membrane, Markers, skeleton, roi_image = res   
+        sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, probability_map_membrane, markers, skeleton, roi_image = res   
         sized_smart_seeds = np.asarray(sized_smart_seeds)
-        sized_mask = np.asarray(sized_mask)
-        sized_membrane_mask = np.asarray(sized_membrane_mask)
+        instance_labels = np.asarray(instance_labels)
+        membrane_instance_labels = np.asarray(membrane_instance_labels)
         star_labels = np.asarray(star_labels)
         probability_map = np.asarray(probability_map)
         probability_map_membrane = np.asarray(probability_map_membrane)
-        Markers = np.asarray(Markers)
+        markers = np.asarray(markers)
         skeleton = np.asarray(skeleton)
         roi_image = np.asarray(roi_image) 
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask,  nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose, probability_map_membrane = probability_map_membrane)
-
+        voll_cell_seg = _cellpose_block(axes, cellpose_labels_copy, membrane_instance_labels,  nms_thresh, z_thresh = z_thresh)
 
 
 
     if noise_model is None and star_model is not None and  roi_model is None and cellpose_model is None and unet_membrane_model is None and star_membrane_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton = res  
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton = res  
         
     if noise_model is None and star_model is not None and  roi_model is None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton = res
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton = res
         sized_smart_seeds = np.asarray(sized_smart_seeds)
-        sized_mask = np.asarray(sized_mask)
+        instance_labels = np.asarray(instance_labels)
         star_labels = np.asarray(star_labels)
         probability_map = np.asarray(probability_map)
-        Markers = np.asarray(Markers)
+        markers = np.asarray(markers)
         skeleton = np.asarray(skeleton)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_mask,  nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        voll_cell_seg = cellpose_labels_copy
     
     if noise_model is None and star_model is not None and  roi_model is None and cellpose_model is not None and unet_membrane_model is not None and star_membrane_model is None:
-        sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton = res
+        sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, markers, skeleton = res
         sized_smart_seeds = np.asarray(sized_smart_seeds)
-        sized_mask = np.asarray(sized_mask)
-        sized_membrane_mask = np.asarray(sized_membrane_mask)
+        instance_labels = np.asarray(instance_labels)
+        membrane_instance_labels = np.asarray(membrane_instance_labels)
         star_labels = np.asarray(star_labels)
         probability_map = np.asarray(probability_map)
-        Markers = np.asarray(Markers)
+        markers = np.asarray(markers)
         skeleton = np.asarray(skeleton)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask,  nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        voll_cell_seg = _cellpose_block(axes, cellpose_labels_copy, membrane_instance_labels,  nms_thresh, z_thresh = z_thresh)
+
   
     if noise_model is None and star_model is not None and  roi_model is None and cellpose_model is not None and star_membrane_model is not None:
-        sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map,probability_map_membrane, Markers, skeleton = res
+        sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map,probability_map_membrane, markers, skeleton = res
         sized_smart_seeds = np.asarray(sized_smart_seeds)
-        sized_mask = np.asarray(sized_mask)
-        sized_membrane_mask = np.asarray(sized_membrane_mask)
+        instance_labels = np.asarray(instance_labels)
+        membrane_instance_labels = np.asarray(membrane_instance_labels)
         star_labels = np.asarray(star_labels)
         probability_map = np.asarray(probability_map)
         probability_map_membrane = np.asarray(probability_map_membrane)
-        Markers = np.asarray(Markers)
+        markers = np.asarray(markers)
         skeleton = np.asarray(skeleton)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose, probability_map_membrane = probability_map_membrane)
-  
+        voll_cell_seg = _cellpose_block(axes, cellpose_labels_copy, membrane_instance_labels,  nms_thresh, z_thresh = z_thresh)
 
 
 
     if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is None and unet_membrane_model is None and star_membrane_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image = res
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image, roi_image = res
         
         
     if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image = res   
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image, roi_image = res   
         sized_smart_seeds = np.asarray(sized_smart_seeds)
-        sized_mask = np.asarray(sized_mask)
+        instance_labels = np.asarray(instance_labels)
         star_labels = np.asarray(star_labels)
         probability_map = np.asarray(probability_map)
-        Markers = np.asarray(Markers)
+        markers = np.asarray(markers)
         skeleton = np.asarray(skeleton) 
         image = np.asarray(image)
         roi_image = np.asarray(roi_image)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_mask, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        voll_cell_seg = cellpose_labels_copy
    
     if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None and star_membrane_model is None:
-        sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image = res   
+        sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, markers, skeleton,  image, roi_image = res   
         sized_smart_seeds = np.asarray(sized_smart_seeds)
-        sized_mask = np.asarray(sized_mask)
-        sized_membrane_mask = np.asarray(sized_membrane_mask)
+        instance_labels = np.asarray(instance_labels)
+        membrane_instance_labels = np.asarray(membrane_instance_labels)
         star_labels = np.asarray(star_labels)
         probability_map = np.asarray(probability_map)
-        Markers = np.asarray(Markers)
+        markers = np.asarray(markers)
         skeleton = np.asarray(skeleton) 
         image = np.asarray(image)
         roi_image = np.asarray(roi_image)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+        voll_cell_seg = _cellpose_block(axes, cellpose_labels_copy, membrane_instance_labels,  nms_thresh, z_thresh = z_thresh)
 
     if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and star_membrane_model is not None:
-        sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, probability_map_membrane, Markers, skeleton,  image, roi_image = res   
+        sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, probability_map_membrane, markers, skeleton,  image, roi_image = res   
         sized_smart_seeds = np.asarray(sized_smart_seeds)
-        sized_mask = np.asarray(sized_mask)
-        sized_membrane_mask = np.asarray(sized_membrane_mask)
+        instance_labels = np.asarray(instance_labels)
+        membrane_instance_labels = np.asarray(membrane_instance_labels)
         star_labels = np.asarray(star_labels)
         probability_map = np.asarray(probability_map)
         probability_map_membrane = np.asarray(probability_map_membrane)
-        Markers = np.asarray(Markers)
+        markers = np.asarray(markers)
         skeleton = np.asarray(skeleton) 
         image = np.asarray(image)
         roi_image = np.asarray(roi_image)
-        cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_membrane_mask, nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose, probability_map_membrane = probability_map_membrane)
+        voll_cell_seg = _cellpose_block(axes, cellpose_labels_copy, membrane_instance_labels,  nms_thresh, z_thresh = z_thresh)
 
 
 
     if noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image = res    
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image = res    
         
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
         
-              sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton, roi_image = res
+              sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, roi_image = res
               sized_smart_seeds = np.asarray(sized_smart_seeds)
-              sized_mask = np.asarray(sized_mask)
+              instance_labels = np.asarray(instance_labels)
               star_labels = np.asarray(star_labels)
               probability_map = np.asarray(probability_map)
-              Markers = np.asarray(Markers)
+              markers = np.asarray(markers)
               skeleton = np.asarray(skeleton) 
               roi_image = np.asarray(roi_image)
-              cellpose_base, vollcellseg = _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels_copy, sized_smart_seeds, sized_mask,  nms_thresh, image_membrane, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+              voll_cell_seg = cellpose_labels_copy
       
     
         
     elif noise_model is not None and star_model is None and roi_model is None and unet_model is None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
 
-         sized_mask, skeleton, image = res
+         instance_labels, skeleton, image = res
    
     
     elif star_model is None and  roi_model is None and unet_model is not None and noise_model is not None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
 
-        sized_mask, skeleton, image = res
+        instance_labels, skeleton, image = res
 
     elif star_model is None and  roi_model is not None and unet_model is not None and noise_model is not None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
 
-        sized_mask, skeleton, image = res    
+        instance_labels, skeleton, image = res    
 
     elif star_model is None and  roi_model is None and unet_model is not None and noise_model is None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
 
-        sized_mask, skeleton, image = res    
+        instance_labels, skeleton, image = res    
 
     elif star_model is None and  roi_model is not None and unet_model is None and noise_model is None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
 
         roi_image, skeleton, image = res
-        sized_mask = roi_image
+        instance_labels = roi_image
 
     elif star_model is None and  roi_model is not None and unet_model is None and noise_model is not None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
 
         roi_image, skeleton, image = res
-        sized_mask = roi_image    
+        instance_labels = roi_image    
 
     elif star_model is None and  roi_model is not None and unet_model is not None and noise_model is None and cellpose_model is not None and unet_membrane_model is None and star_membrane_model is None:
 
         roi_image, skeleton, image = res
-        sized_mask = roi_image
+        instance_labels = roi_image
 
     if save_dir is not None:
         print('Saving Results ...')
@@ -1523,7 +1522,7 @@ def VollCellSeg(image: np.ndarray,
             vollcellpose_results = save_dir + 'VollCellPose/'
             Path(vollcellpose_results).mkdir(exist_ok=True)
             imwrite((vollcellpose_results + Name + '.tif'),
-                    np.asarray(vollcellseg).astype('uint16'))
+                    np.asarray(voll_cell_seg).astype('uint16'))
             
         if (unet_membrane_model is not None or star_membrane_model is not None):
             
@@ -1531,7 +1530,7 @@ def VollCellSeg(image: np.ndarray,
             Path(unet_membrane_results).mkdir(exist_ok=True)
              
             imwrite((unet_membrane_results + Name + '.tif'),
-                    np.asarray(sized_membrane_mask).astype('uint16'))
+                    np.asarray(membrane_instance_labels).astype('uint16'))
         if star_membrane_model is not None:
                  probability_membrane_results = save_dir + 'Probability_membrane/'
                  Path(probability_membrane_results).mkdir(exist_ok=True)
@@ -1551,14 +1550,14 @@ def VollCellSeg(image: np.ndarray,
             Path(skel_unet_results).mkdir(exist_ok=True)
              
             imwrite((unet_results + Name + '.tif'),
-                    np.asarray(sized_mask).astype('uint16'))
+                    np.asarray(instance_labels).astype('uint16'))
             imwrite((skel_unet_results + Name + '.tif'),
                     np.asarray(skeleton).astype('uint16'))        
         if star_model is not None:
             vollseg_results = save_dir + 'VollSeg/'
             stardist_results = save_dir + 'StarDist/'
             probability_results = save_dir + 'Probability/'
-            marker_results = save_dir + 'Markers/'
+            marker_results = save_dir + 'markers/'
             skel_results = save_dir + 'skeleton/'
             Path(skel_results).mkdir(exist_ok=True)
             Path(vollseg_results).mkdir(exist_ok=True)
@@ -1572,7 +1571,7 @@ def VollCellSeg(image: np.ndarray,
             imwrite((probability_results + Name + '.tif'),
                     np.asarray(probability_map).astype('float32'))
             imwrite((marker_results + Name + '.tif'),
-                    np.asarray(Markers).astype('uint16'))
+                    np.asarray(markers).astype('uint16'))
             imwrite((skel_results + Name + '.tif'), np.asarray(skeleton))
         if noise_model is not None:
             denoised_results = save_dir + 'Denoised/'
@@ -1584,75 +1583,75 @@ def VollCellSeg(image: np.ndarray,
     # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is None:
 
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton, roi_image
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, roi_image
     
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None:
 
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton, roi_image, cellpose_labels, vollcellseg
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, roi_image, cellpose_labels, voll_cell_seg
     
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None and star_membrane_model is None:
 
-        return sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton, roi_image, cellpose_labels, vollcellseg
+        return sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, markers, skeleton, roi_image, cellpose_labels, voll_cell_seg
     
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None and star_membrane_model is not None:
 
-        return sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, probability_map_membrane, Markers, skeleton, roi_image, cellpose_labels, vollcellseg
+        return sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, probability_map_membrane, markers, skeleton, roi_image, cellpose_labels, voll_cell_seg
 
 
     elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is None:
 
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton 
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton 
     
     elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is not None:
 
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton, cellpose_labels, vollcellseg 
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, cellpose_labels, voll_cell_seg 
     
     elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is not None and unet_membrane_model is not None and star_membrane_model is None:
 
-        return sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton, cellpose_labels, vollcellseg
+        return sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, markers, skeleton, cellpose_labels, voll_cell_seg
     elif noise_model is None and star_model is not None and  roi_model is  None and cellpose_model is not None and star_membrane_model is not None:
 
-        return sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, probability_map_membrane, Markers, skeleton, cellpose_labels, vollcellseg  
+        return sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, probability_map_membrane, markers, skeleton, cellpose_labels, voll_cell_seg  
     
 
     # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
     elif noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is None:
       
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image, roi_image
     
     elif noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None:
       
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image, cellpose_labels, vollcellseg
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image, roi_image, cellpose_labels, voll_cell_seg
     
     elif noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and unet_membrane_model is not None and star_membrane_model is None:
       
-        return sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image, cellpose_labels, vollcellseg
+        return sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, markers, skeleton,  image, roi_image, cellpose_labels, voll_cell_seg
     
     elif noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is not None and star_membrane_model is not None:
       
-        return sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, probability_map_membrane, Markers, skeleton,  image, roi_image, cellpose_labels, vollcellseg
+        return sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, probability_map_membrane, markers, skeleton,  image, roi_image, cellpose_labels, voll_cell_seg
     
 
     elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is None:
 
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image
     
     elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None:
 
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image, cellpose_labels, vollcellseg   
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image, cellpose_labels, voll_cell_seg   
     
     elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None and unet_membrane_model is not None and star_membrane_model is None:
 
-        return sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, Markers, skeleton,  image, cellpose_labels, vollcellseg
+        return sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, markers, skeleton,  image, cellpose_labels, voll_cell_seg
     elif noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None and star_membrane_model is not None:
 
-        return sized_smart_seeds, sized_mask, sized_membrane_mask, star_labels, probability_map, probability_map_membrane, Markers, skeleton,  image, cellpose_labels, vollcellseg
+        return sized_smart_seeds, instance_labels, membrane_instance_labels, star_labels, probability_map, probability_map_membrane, markers, skeleton,  image, cellpose_labels, voll_cell_seg
      
 
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
     elif star_model is None and  roi_model is not None and noise_model is not None and cellpose_model is None:
 
-        return sized_mask, skeleton, image
+        return instance_labels, skeleton, image
 
     elif star_model is None and  roi_model is not None and noise_model is None and cellpose_model is None:
 
@@ -1664,42 +1663,30 @@ def VollCellSeg(image: np.ndarray,
     
     elif noise_model is not None and star_model is None and roi_model is None and unet_model is None and cellpose_model is None:
             
-            return  sized_mask , skeleton, image
+            return  instance_labels , skeleton, image
 
     elif star_model is None and  roi_model is  None and noise_model is None and unet_model is not None and cellpose_model is None:
 
-        return sized_mask, skeleton, image    
+        return instance_labels, skeleton, image    
 
 
-def _cellpose_block(axes, flows, lower_perc, upper_perc, cellpose_labels, sized_smart_seeds, sized_mask,  nms_thresh, image_membrane, z_thresh = 1, seedpool_cellpose = True, probability_map_membrane = None):
+def _cellpose_block(axes, cellpose_labels, instance_labels,  nms_thresh, z_thresh = 1):
     
     if 'T' not in axes:   
-            if probability_map_membrane is None:
-               cellpose_base = np.max(flows[0], axis = -1)
-            else:
-               cellpose_base = probability_map_membrane     
-            cellpose_base = normalize(cellpose_base, lower_perc, upper_perc, axis= (0,1,2)) 
-            vollcellseg = CellPoseWater(cellpose_base, cellpose_labels, sized_smart_seeds, sized_mask, nms_thresh, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
+                
+            voll_cell_seg = CellPoseWater(cellpose_labels,  instance_labels, nms_thresh, z_thresh = z_thresh)
     if 'T' in axes:
                 
-            cellpose_base = []
-            vollcellseg = []
-            for time in range(image_membrane.shape[0]):
-                if probability_map_membrane is None:
-                   cellpose_base_time = np.max(flows[0], axis = -1)[time]
-                else:
-                   cellpose_base_time = probability_map_membrane[time]    
+            voll_cell_seg = []
+            for time in range(cellpose_labels.shape[0]):
 
                 cellpose_labels_time = cellpose_labels[time]
-                cellpose_base_time = normalize(cellpose_base_time, lower_perc, upper_perc, axis= (0,1,2))
                
-                vollcellseg_time = CellPoseWater(cellpose_base_time, cellpose_labels_time, sized_smart_seeds[time], sized_mask, nms_thresh, z_thresh = z_thresh, seedpool_cellpose = seedpool_cellpose)
-                cellpose_base.append(cellpose_base_time)
-                vollcellseg.append(vollcellseg_time)
-            cellpose_base = np.asarray(cellpose_base)
-            vollcellseg = np.asarray(vollcellseg_time) 
+                voll_cell_seg_time = CellPoseWater(cellpose_labels_time,  instance_labels[time], nms_thresh, z_thresh = z_thresh)
+                voll_cell_seg.append(voll_cell_seg_time)
+            voll_cell_seg = np.asarray(voll_cell_seg_time) 
        
-    return cellpose_base, vollcellseg        
+    return  voll_cell_seg        
 
 
 def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX', noise_model=None, prob_thresh=None, ExpandLabels = False, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
@@ -1769,48 +1756,48 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
  
 
     if noise_model is None and star_model is not None and  roi_model is not None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton, roi_image = res
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, roi_image = res
 
     if noise_model is None and star_model is not None and  roi_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton = res    
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton = res    
 
     elif noise_model is not None and star_model is not None and  roi_model is not None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image = res
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image, roi_image = res
 
     elif noise_model is not None and star_model is not None and  roi_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image = res    
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image = res    
         
     elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
 
-         sized_mask, skeleton, image = res
+         instance_labels, skeleton, image = res
    
     
     elif star_model is None and  roi_model is None and unet_model is not None and noise_model is not None :
 
-        sized_mask, skeleton, image = res
+        instance_labels, skeleton, image = res
 
     elif star_model is None and  roi_model is not None and unet_model is not None and noise_model is not None :
 
-        sized_mask, skeleton, image = res    
+        instance_labels, skeleton, image = res    
 
     elif star_model is None and  roi_model is None and unet_model is not None and noise_model is None :
 
-        sized_mask, skeleton, image = res    
+        instance_labels, skeleton, image = res    
 
     elif star_model is None and  roi_model is not None and unet_model is None and noise_model is None :
 
         roi_image, skeleton, image = res
-        sized_mask = roi_image
+        instance_labels = roi_image
 
     elif star_model is None and  roi_model is not None and unet_model is None and noise_model is not None :
 
         roi_image, skeleton, image = res
-        sized_mask = roi_image    
+        instance_labels = roi_image    
 
     elif star_model is None and  roi_model is not None and unet_model is not None and noise_model is None :
 
         roi_image, skeleton, image = res
-        sized_mask = roi_image
+        instance_labels = roi_image
 
     if save_dir is not None:
         print('Saving Results ...')
@@ -1829,14 +1816,14 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
             Path(skel_unet_results).mkdir(exist_ok=True)
              
             imwrite((unet_results + Name + '.tif'),
-                    np.asarray(sized_mask).astype('uint16'))
+                    np.asarray(instance_labels).astype('uint16'))
             imwrite((skel_unet_results + Name + '.tif'),
                     np.asarray(skeleton).astype('uint16'))        
         if star_model is not None:
             vollseg_results = save_dir + 'VollSeg/'
             stardist_results = save_dir + 'StarDist/'
             probability_results = save_dir + 'Probability/'
-            marker_results = save_dir + 'Markers/'
+            marker_results = save_dir + 'markers/'
             skel_results = save_dir + 'skeleton/'
             Path(skel_results).mkdir(exist_ok=True)
             Path(vollseg_results).mkdir(exist_ok=True)
@@ -1850,7 +1837,7 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
             imwrite((probability_results + Name + '.tif'),
                     np.asarray(probability_map).astype('float32'))
             imwrite((marker_results + Name + '.tif'),
-                    np.asarray(Markers).astype('uint16'))
+                    np.asarray(markers).astype('uint16'))
             imwrite((skel_results + Name + '.tif'), np.asarray(skeleton))
         if noise_model is not None:
             denoised_results = save_dir + 'Denoised/'
@@ -1862,25 +1849,25 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
     # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
     if noise_model is None and star_model is not None and  roi_model is not None:
 
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton, roi_image
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, roi_image
 
     elif noise_model is None and star_model is not None and  roi_model is  None:
 
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton    
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton    
 
     # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
     elif noise_model is not None and star_model is not None and  roi_model is not None:
       
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image, roi_image
 
     elif noise_model is not None and star_model is not None and  roi_model is None:
 
-        return sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image    
+        return sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image    
 
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
     elif star_model is None and  roi_model is not None and noise_model is not None:
 
-        return sized_mask, skeleton, image
+        return instance_labels, skeleton, image
 
     elif star_model is None and  roi_model is not None and noise_model is None:
 
@@ -1892,14 +1879,14 @@ def VollSeg(image,  unet_model=None, star_model=None, roi_model=None,  axes='ZYX
     
     elif noise_model is not None and star_model is None and roi_model is None and unet_model is None:
             
-            return  sized_mask , skeleton, image
+            return  instance_labels , skeleton, image
                   
 
     
 
     elif star_model is None and  roi_model is  None and noise_model is None and unet_model is not None:
 
-        return sized_mask, skeleton, image 
+        return instance_labels, skeleton, image 
 
 def VollSeg3DC(image,  unet_model_membrane, star_model_membrane, unet_model_nuclei, star_model_nuclei,  axes='ZYX', noise_model_nuclei=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
               n_tiles=(1, 2, 2),  save_dir=None, Name='Result', UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8, slice_merge=False, iou_threshold=0.3):
@@ -1913,56 +1900,56 @@ def VollSeg3DC(image,  unet_model_membrane, star_model_membrane, unet_model_nucl
 
     #Nuclei
     if noise_model_nuclei is None and star_model_nuclei is not None and  roi_model is not None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton, roi_image = nuclei_res
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, roi_image = nuclei_res
 
     if noise_model_nuclei is None and star_model_nuclei is not None and  roi_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton = nuclei_res    
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton = nuclei_res    
 
     elif noise_model_nuclei is not None and star_model_nuclei is not None and  roi_model is not None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image, roi_image = nuclei_res
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image, roi_image = nuclei_res
 
     elif noise_model_nuclei is not None and star_model_nuclei is not None and  roi_model is None:
-        sized_smart_seeds, sized_mask, star_labels, probability_map, Markers, skeleton,  image = nuclei_res    
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image = nuclei_res    
         
     elif noise_model_nuclei is not None and star_model_nuclei is None and roi_model is None:
-         sized_mask, skeleton, image = nuclei_res
+         instance_labels, skeleton, image = nuclei_res
    
     
     elif star_model_nuclei is None and  roi_model is None and unet_model_nuclei is not None and noise_model_nuclei is not None :
 
-        sized_mask, skeleton, image = nuclei_res
+        instance_labels, skeleton, image = nuclei_res
 
     elif star_model_nuclei is None and  roi_model is not None and unet_model_nuclei is not None and noise_model_nuclei is not None :
 
-        sized_mask, skeleton, image = nuclei_res    
+        instance_labels, skeleton, image = nuclei_res    
 
     elif star_model_nuclei is None and  roi_model is None and unet_model_nuclei is not None and noise_model_nuclei is None :
 
-        sized_mask, skeleton, image = nuclei_res    
+        instance_labels, skeleton, image = nuclei_res    
 
     elif star_model_nuclei is None and  roi_model is not None and unet_model_nuclei is None and noise_model_nuclei is None :
 
         roi_image, skeleton, image = nuclei_res
-        sized_mask = roi_image
+        instance_labels = roi_image
 
     elif star_model_nuclei is None and  roi_model is not None and unet_model_nuclei is None and noise_model_nuclei is not None :
 
         roi_image, skeleton, image = nuclei_res
-        sized_mask = roi_image    
+        instance_labels = roi_image    
 
     elif star_model_nuclei is None and  roi_model is not None and unet_model_nuclei is not None and noise_model_nuclei is None :
 
         roi_image, skeleton, image = nuclei_res
-        sized_mask = roi_image
+        instance_labels = roi_image
 
     #Membrane
     if star_model_membrane is not None:
-        sized_smart_seeds_membrane, sized_mask_membrane, star_labels_membrane, probability_map_membrane, Markers_membrane, skeleton_membrane = membrane_res    
+        sized_smart_seeds_membrane, instance_labels_membrane, star_labels_membrane, probability_map_membrane, markers_membrane, skeleton_membrane = membrane_res    
  
 
     elif star_model_membrane is None and  unet_model_membrane is not None :
 
-        sized_mask_membrane, skeleton_membrane, image_membrane = membrane_res    
+        instance_labels_membrane, skeleton_membrane, image_membrane = membrane_res    
 
 
     if save_dir is not None:
@@ -1982,14 +1969,14 @@ def VollSeg3DC(image,  unet_model_membrane, star_model_membrane, unet_model_nucl
             Path(skel_unet_results).mkdir(exist_ok=True)
              
             imwrite((unet_results + Name + '.tif'),
-                    np.asarray(sized_mask).astype('uint16'))
+                    np.asarray(instance_labels).astype('uint16'))
             imwrite((skel_unet_results + Name + '.tif'),
                     np.asarray(skeleton).astype('uint16'))        
         if star_model_nuclei is not None:
             vollseg_results = save_dir + 'VollSeg_Nuclei/'
             stardist_results = save_dir + 'StarDist_Nuclei/'
             probability_results = save_dir + 'Probability_Nuclei/'
-            marker_results = save_dir + 'Markers_Nuclei/'
+            marker_results = save_dir + 'markers_Nuclei/'
             skel_results = save_dir + 'skeleton_Nuclei/'
             Path(skel_results).mkdir(exist_ok=True)
             Path(vollseg_results).mkdir(exist_ok=True)
@@ -2003,7 +1990,7 @@ def VollSeg3DC(image,  unet_model_membrane, star_model_membrane, unet_model_nucl
             imwrite((probability_results + Name + '.tif'),
                     np.asarray(probability_map).astype('float32'))
             imwrite((marker_results + Name + '.tif'),
-                    np.asarray(Markers).astype('uint16'))
+                    np.asarray(markers).astype('uint16'))
             imwrite((skel_results + Name + '.tif'), np.asarray(skeleton))
       
         if unet_model_membrane is not None:
@@ -2013,14 +2000,14 @@ def VollSeg3DC(image,  unet_model_membrane, star_model_membrane, unet_model_nucl
             Path(skel_unet_results).mkdir(exist_ok=True)
              
             imwrite((unet_results + Name + '.tif'),
-                    np.asarray(sized_mask_membrane).astype('uint16'))
+                    np.asarray(instance_labels_membrane).astype('uint16'))
             imwrite((skel_unet_results + Name + '.tif'),
                     np.asarray(skeleton_membrane).astype('uint16'))        
         if star_model_membrane is not None:
             vollseg_results = save_dir + 'VollSeg_Membrane/'
             stardist_results = save_dir + 'StarDist_Membrane/'
             probability_results = save_dir + 'Probability_Membrane/'
-            marker_results = save_dir + 'Markers_Membrane/'
+            marker_results = save_dir + 'markers_Membrane/'
             skel_results = save_dir + 'skeleton_Membrane/'
             Path(skel_results).mkdir(exist_ok=True)
             Path(vollseg_results).mkdir(exist_ok=True)
@@ -2034,7 +2021,7 @@ def VollSeg3DC(image,  unet_model_membrane, star_model_membrane, unet_model_nucl
             imwrite((probability_results + Name + '.tif'),
                     np.asarray(probability_map_membrane).astype('float32'))
             imwrite((marker_results + Name + '.tif'),
-                    np.asarray(Markers_membrane).astype('uint16'))
+                    np.asarray(markers_membrane).astype('uint16'))
             imwrite((skel_results + Name + '.tif'), np.asarray(skeleton_membrane)) 
 
         if noise_model_nuclei is not None:
@@ -2058,11 +2045,11 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 n_tiles = (n_tiles[-3],n_tiles[-2], n_tiles[-1])
     else:
                 tiles = n_tiles
-    sized_mask = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
+    instance_labels = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     if unet_membrane_model is not None:
-        sized_membrane_mask = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
+        membrane_instance_labels = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
     if star_membrane_model is not None:    
-        sized_membrane_mask = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16') 
+        membrane_instance_labels = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16') 
         sized_probability_map_membrane = np.zeros([sizeZ, sizeY, sizeX], dtype='float32')
 
     sized_smart_seeds = np.zeros([sizeZ, sizeY, sizeX], dtype='uint16')
@@ -2197,7 +2184,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 MembraneMask = match_labels(MembraneMask.astype('uint16'), iou_threshold=iou_threshold)
             else:
                 MembraneMask = label(MembraneMask > 0)
-            sized_membrane_mask[:, :MembraneMask.shape[1], :MembraneMask.shape[2]] = MembraneMask
+            membrane_instance_labels[:, :MembraneMask.shape[1], :MembraneMask.shape[2]] = MembraneMask
 
     if star_membrane_model is not None and image_membrane is not None: 
          
@@ -2208,7 +2195,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             
  
                
-            smart_seeds_membrane, probability_map_membrane, star_labels_membrane, Markers_membrane = STARPrediction3D(
+            smart_seeds_membrane, probability_map_membrane, star_labels_membrane, markers_membrane = STARPrediction3D(
                 patch_membrane, axes, star_membrane_model,  n_tiles,  UseProbability=UseProbability,seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
             print('Removing small/large objects')
             for i in tqdm(range(0, smart_seeds_membrane.shape[0])):
@@ -2220,7 +2207,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             
             
             smart_seeds_membrane = Region_embedding(image, roi_bbox, smart_seeds_membrane)
-            sized_membrane_mask[:, :smart_seeds_membrane.shape[1],
+            membrane_instance_labels[:, :smart_seeds_membrane.shape[1],
                             :smart_seeds_membrane.shape[2]] = smart_seeds_membrane
             probability_map_membrane = Region_embedding(image, roi_bbox, probability_map_membrane)
             sized_probability_map_membrane[:, :probability_map_membrane.shape[1],
@@ -2247,7 +2234,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
                 Mask = match_labels(Mask.astype('uint16'), iou_threshold=iou_threshold)
             else:
                 Mask = label(Mask > 0)
-            sized_mask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
+            instance_labels[:, :Mask.shape[1], :Mask.shape[2]] = Mask
 
     elif noise_model is not None and dounet == False:
 
@@ -2277,7 +2264,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             Mask = label(Mask > 0)
         Mask_patch = Mask.copy()    
         Mask = Region_embedding(image, roi_bbox, Mask)
-        sized_mask[:, :Mask.shape[1], :Mask.shape[2]] = Mask
+        instance_labels[:, :Mask.shape[1], :Mask.shape[2]] = Mask
     if star_model is not None:
             print('Stardist segmentation on Image')
             if donormalize:
@@ -2286,7 +2273,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             else:
                 patch_star = patch
 
-            smart_seeds, probability_map, star_labels, Markers = STARPrediction3D(
+            smart_seeds, probability_map, star_labels, markers = STARPrediction3D(
                 patch_star, axes, star_model,  n_tiles, unet_mask=Mask_patch, UseProbability=UseProbability,seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
             print('Removing small/large objects')
             for i in tqdm(range(0, smart_seeds.shape[0])):
@@ -2299,9 +2286,9 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
             smart_seeds = Region_embedding(image, roi_bbox, smart_seeds)
             sized_smart_seeds[:, :smart_seeds.shape[1],
                             :smart_seeds.shape[2]] = smart_seeds
-            Markers = Region_embedding(image, roi_bbox, Markers)
+            markers = Region_embedding(image, roi_bbox, markers)
             sized_markers[:, :smart_seeds.shape[1],
-                        :smart_seeds.shape[2]] = Markers
+                        :smart_seeds.shape[2]] = markers
             probability_map = Region_embedding(image, roi_bbox, probability_map)
             sized_probability_map[:, :probability_map.shape[1],
                                 :probability_map.shape[2]] = probability_map
@@ -2316,71 +2303,71 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
 
 
     if noise_model is None and roi_image is not None and star_model is not None and unet_membrane_model is None and star_membrane_model is None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'), star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16'), roi_image.astype('uint16')
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'), star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16'), roi_image.astype('uint16')
     if noise_model is None and roi_image is None and star_model is not None and unet_membrane_model is None and star_membrane_model is None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'), star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16')    
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'), star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16')    
     if noise_model is not None and roi_image is None and star_model is not None and unet_membrane_model is None and star_membrane_model is None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'), star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16'),  image
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'), star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16'),  image
     if noise_model is not None and roi_image is not None and star_model is not None and unet_membrane_model is None and star_membrane_model is None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'), star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16'),  image, roi_image.astype('uint16')
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'), star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16'),  image, roi_image.astype('uint16')
     
     if noise_model is not None and roi_image is not None and star_model is None and unet_membrane_model is None and star_membrane_model is None:
-        return  sized_mask.astype('uint16'), skeleton, image
+        return  instance_labels.astype('uint16'), skeleton, image
     
     if noise_model is not None and roi_image is None and star_model is None and unet_model is None and unet_membrane_model is None and star_membrane_model is None:
-         return sized_mask.astype('uint16'), skeleton, image
+         return instance_labels.astype('uint16'), skeleton, image
 
     if noise_model is None and roi_image is None and star_model is None and unet_model is not None and unet_membrane_model is None and star_membrane_model is None:
-         return sized_mask.astype('uint16'), skeleton, image
+         return instance_labels.astype('uint16'), skeleton, image
      
     
     #With membrane model
     
     if noise_model is None and roi_image is not None and star_model is not None and unet_membrane_model is not None and star_membrane_model is None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'), sized_membrane_mask.astype('uint16') ,star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16'), roi_image.astype('uint16')
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'), membrane_instance_labels.astype('uint16') ,star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16'), roi_image.astype('uint16')
     
     if noise_model is None and roi_image is not None and star_model is not None and star_membrane_model is not None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'), sized_membrane_mask.astype('uint16') ,star_labels.astype('uint16'), probability_map, probability_map_membrane, Markers.astype('uint16'), skeleton.astype('uint16'), roi_image.astype('uint16')
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'), membrane_instance_labels.astype('uint16') ,star_labels.astype('uint16'), probability_map, probability_map_membrane, markers.astype('uint16'), skeleton.astype('uint16'), roi_image.astype('uint16')
 
 
     if noise_model is None and roi_image is None and star_model is not None and unet_membrane_model is not None and star_membrane_model is None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'), sized_membrane_mask.astype('uint16') , star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16')    
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'), membrane_instance_labels.astype('uint16') , star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16')    
     
     if noise_model is None and roi_image is None and star_model is not None and star_membrane_model is not None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'), sized_membrane_mask.astype('uint16') , star_labels.astype('uint16'), probability_map, probability_map_membrane, Markers.astype('uint16'), skeleton.astype('uint16')    
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'), membrane_instance_labels.astype('uint16') , star_labels.astype('uint16'), probability_map, probability_map_membrane, markers.astype('uint16'), skeleton.astype('uint16')    
 
 
     if noise_model is not None and roi_image is None and star_model is not None and unet_membrane_model is not None and star_membrane_model is None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'), sized_membrane_mask.astype('uint16') , star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16'),  image
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'), membrane_instance_labels.astype('uint16') , star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16'),  image
     
     if noise_model is not None and roi_image is None and star_model is not None and  star_membrane_model is not None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'), sized_membrane_mask.astype('uint16') , star_labels.astype('uint16'), probability_map, probability_map_membrane, Markers.astype('uint16'), skeleton.astype('uint16'),  image
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'), membrane_instance_labels.astype('uint16') , star_labels.astype('uint16'), probability_map, probability_map_membrane, markers.astype('uint16'), skeleton.astype('uint16'),  image
     
 
 
     if noise_model is not None and roi_image is not None and star_model is not None and unet_membrane_model is not None and star_membrane_model is None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'),sized_membrane_mask.astype('uint16') , star_labels.astype('uint16'), probability_map, Markers.astype('uint16'), skeleton.astype('uint16'),  image, roi_image.astype('uint16')
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'),membrane_instance_labels.astype('uint16') , star_labels.astype('uint16'), probability_map, markers.astype('uint16'), skeleton.astype('uint16'),  image, roi_image.astype('uint16')
     if noise_model is not None and roi_image is not None and star_model is not None and star_membrane_model is not None:
-        return sized_smart_seeds.astype('uint16'), sized_mask.astype('uint16'),sized_membrane_mask.astype('uint16') , star_labels.astype('uint16'), probability_map, probability_map_membrane, Markers.astype('uint16'), skeleton.astype('uint16'),  image, roi_image.astype('uint16')
+        return sized_smart_seeds.astype('uint16'), instance_labels.astype('uint16'),membrane_instance_labels.astype('uint16') , star_labels.astype('uint16'), probability_map, probability_map_membrane, markers.astype('uint16'), skeleton.astype('uint16'),  image, roi_image.astype('uint16')
     
 
     if noise_model is not None and roi_image is not None and star_model is None and unet_membrane_model is not None and star_membrane_model is None:
-        return  sized_mask.astype('uint16'),sized_membrane_mask.astype('uint16') , skeleton, image
+        return  instance_labels.astype('uint16'),membrane_instance_labels.astype('uint16') , skeleton, image
     
     if noise_model is not None and roi_image is not None and star_model is None and star_membrane_model is not None:
-        return  sized_mask.astype('uint16'),sized_membrane_mask.astype('uint16'), probability_map_membrane, skeleton, image
+        return  instance_labels.astype('uint16'),membrane_instance_labels.astype('uint16'), probability_map_membrane, skeleton, image
 
     
     if noise_model is not None and roi_image is None and star_model is None and unet_model is None and unet_membrane_model is not None or star_membrane_model is None:
-         return sized_mask.astype('uint16'),sized_membrane_mask.astype('uint16') , skeleton, image
+         return instance_labels.astype('uint16'),membrane_instance_labels.astype('uint16') , skeleton, image
     if noise_model is not None and roi_image is None and star_model is None and unet_model is None and  star_membrane_model is not None:
-         return sized_mask.astype('uint16'),sized_membrane_mask.astype('uint16'), probability_map_membrane, skeleton, image
+         return instance_labels.astype('uint16'),membrane_instance_labels.astype('uint16'), probability_map_membrane, skeleton, image
 
 
     if noise_model is None and roi_image is None and star_model is None and unet_model is not None and unet_membrane_model is not None or star_membrane_model is None:
-         return sized_mask.astype('uint16'),sized_membrane_mask.astype('uint16') , skeleton, image
+         return instance_labels.astype('uint16'),membrane_instance_labels.astype('uint16') , skeleton, image
     if noise_model is None and roi_image is None and star_model is None and unet_model is not None and star_membrane_model is not None:
-         return sized_mask.astype('uint16'),sized_membrane_mask.astype('uint16') , probability_map_membrane, skeleton, image
+         return instance_labels.astype('uint16'),membrane_instance_labels.astype('uint16') , probability_map_membrane, skeleton, image
 
     
      
@@ -2726,11 +2713,11 @@ prob_thresh=None, nms_thresh=None, seedpool = True):
 
     if unet_mask is None:
         unet_mask = star_labels > 0
-    Watershed, Markers = SuperWatershedwithMask(
+    Watershed, markers = SuperWatershedwithMask(
         MaxProjectDistance, star_labels.astype('uint16'), unet_mask.astype('uint16'), nms_thresh = nms_thresh, seedpool = seedpool)
     Watershed = fill_label_holes(Watershed.astype('uint16'))
 
-    return Watershed, Markers, star_labels, MaxProjectDistance
+    return Watershed, markers, star_labels, MaxProjectDistance
 
 
 def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbability=True,  seedpool=True, prob_thresh=None, nms_thresh=None):
@@ -2784,11 +2771,11 @@ def STARPrediction3D(image, axes, model, n_tiles, unet_mask=None,  UseProbabilit
     if unet_mask is None:
          unet_mask = star_labels > 0
 
-    Watershed, Markers = WatershedwithMask3D(MaxProjectDistance.astype(
+    Watershed, markers = WatershedwithMask3D(MaxProjectDistance.astype(
         'uint16'), star_labels.astype('uint16'), unet_mask.astype('uint16'), nms_thresh = nms_thresh, seedpool = seedpool)
     Watershed = fill_label_holes(Watershed.astype('uint16'))
 
-    return Watershed, MaxProjectDistance, star_labels, Markers
+    return Watershed, MaxProjectDistance, star_labels, markers
 
 
 
@@ -2844,47 +2831,26 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh = 
     return watershedImage, markers
 
 
+def CleanCellPose(cellpose_mask, nms_thresh, z_thresh = 1):
+     
+    cellpose_mask_copy = cellpose_mask.copy()
+    cellpose_mask_copy = NMSLabel(cellpose_mask_copy, nms_thresh, z_thresh = z_thresh).supressregions()
 
+    return cellpose_mask_copy
 
-def CellPoseWater(Image, Masks, Seeds, membrane_mask, nms_thresh, z_thresh = 1, seedpool_cellpose = True):
+def CellPoseWater(cellpose_mask,  membrane_mask, nms_thresh, z_thresh = 1):
     
    
-    CopyMasks = Masks.copy()
-    CopyMasks = NMSLabel(CopyMasks, nms_thresh, z_thresh = z_thresh).supressregions()
-    max_label = np.amax(CopyMasks)
-    if seedpool_cellpose:
-            starproperties = measure.regionprops(Seeds)
-            membrane_mask = label(membrane_mask)
-            Coordinates = [prop.centroid for prop in starproperties]
-            KeepCoordinates = []
-            if len(Coordinates) > 0:
-                    for i in range(0, len(Coordinates)):
+    cellpose_mask_copy = cellpose_mask.copy()
+    max_label = np.amax(cellpose_mask_copy)
 
-                        star = Coordinates[i]
-                        value=CopyMasks[int(star[0]),int(star[1]),int(star[2])]
+    
+    watershed_image = relabel_sequential(membrane_mask, offset = max_label)[0]
 
-                        if value==0:
-                            KeepCoordinates.append(Coordinates[i])
-                            
-                            
-            KeepCoordinates.append((0, 0, 0))
-            KeepCoordinates = np.asarray(KeepCoordinates)
-
-            coordinates_int = np.round(KeepCoordinates).astype(int)
-            markers_raw = np.zeros_like(Image)
-            markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
-
-            markers = morphology.dilation(
-                markers_raw.astype('uint16'), morphology.ball(2))                
-            watershed_image = watershed(-Image, markers, mask = membrane_mask)
-            watershed_image = fill_label_holes(watershed_image)
-            
-            watershed_image = relabel_sequential(watershed_image, offset = max_label)[0]
-
-            empy_region_indices = zip(*np.where(CopyMasks == 0))
-            
-            for index in empy_region_indices:
-                CopyMasks[index] = watershed_image[index]
+    empy_region_indices = zip(*np.where(CopyMasks == 0))
+    
+    for index in empy_region_indices:
+        CopyMasks[index] = watershed_image[index]
 
        
     CopyMasks = label(CopyMasks)
