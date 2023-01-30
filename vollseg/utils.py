@@ -2856,20 +2856,13 @@ def CellPoseWater(cellpose_mask,  membrane_mask, nms_thresh, z_thresh = 1):
    
     cellpose_mask_copy = cellpose_mask.copy()
     max_label = np.amax(cellpose_mask_copy)
-
-    
     watershed_image = relabel_sequential(membrane_mask, offset = max_label)[0]
-
-    empy_region_indices = zip(*np.where(CopyMasks == 0))
+    empy_region_indices = zip(*np.where(cellpose_mask_copy == 0))
     
     for index in empy_region_indices:
-        CopyMasks[index] = watershed_image[index]
-
-       
-    CopyMasks = label(CopyMasks)
-    
-    
-    relabeled = NMSLabel(CopyMasks,nms_thresh, z_thresh = z_thresh).supressregions()
+        cellpose_mask_copy[index] = watershed_image[index]
+    cellpose_mask_copy = label(cellpose_mask_copy)
+    relabeled = NMSLabel(cellpose_mask_copy,nms_thresh, z_thresh = z_thresh).supressregions()
     
     return relabeled
 
