@@ -1107,6 +1107,8 @@ def _cellpose_star_block(cellpose_model,
                         noise_model,
                         prob_thresh,
                         nms_thresh,
+                        prob_thresh_membrane,
+                        nms_thresh_membrane,
                         donormalize,
                         n_tiles,
                         UseProbability,
@@ -1148,7 +1150,7 @@ def _cellpose_star_block(cellpose_model,
     if star_model is not None:
                 
                 res = VollSeg3D(image_nuclei,  unet_model,  star_model, roi_model=roi_model,ExpandLabels= ExpandLabels,  axes=axes, noise_model=noise_model, prob_thresh=prob_thresh, nms_thresh=nms_thresh, donormalize=donormalize, lower_perc=lower_perc, upper_perc=upper_perc, min_size_mask=min_size_mask, min_size=min_size, max_size=max_size,
-                                    n_tiles=n_tiles, image_membrane = image_membrane, UseProbability=UseProbability,unet_membrane_model = unet_membrane_model, star_membrane_model = star_membrane_model,  dounet=dounet, seedpool=seedpool,  slice_merge=slice_merge, iou_threshold=iou_threshold)
+                                    n_tiles=n_tiles, image_membrane = image_membrane, UseProbability=UseProbability,unet_membrane_model = unet_membrane_model, star_membrane_model = star_membrane_model,prob_thresh_membrane=prob_thresh_membrane, nms_thresh_membrane=nms_thresh_membrane,  dounet=dounet, seedpool=seedpool,  slice_merge=slice_merge, iou_threshold=iou_threshold)
                     
     return cellres, res
 
@@ -1173,8 +1175,10 @@ def VollCellSeg(image: np.ndarray,
                 gpu: bool = False,
                 axes: str ='ZYX',  
                 prob_thresh: float =None, 
+                prob_thresh_membrane: float =None,
                 ExpandLabels: bool = False, 
                 nms_thresh: float=None, 
+                nms_thresh_membrane: float=None,
                 min_size_mask: int =10, 
                 min_size: int =10, 
                 max_size: int = 10000,
@@ -1198,6 +1202,10 @@ def VollCellSeg(image: np.ndarray,
     if prob_thresh is None and nms_thresh is None:
                         prob_thresh = star_model.thresholds.prob
                         nms_thresh = star_model.thresholds.nms
+    if prob_thresh_membrane is None and nms_thresh_membrane is None:
+                        if star_membrane_model is not None:
+                           prob_thresh_membrane = star_membrane_model.thresholds.prob
+                           nms_thresh_membrane = star_membrane_model.thresholds.nms                    
     
     if len(image.shape) == 3 and 'T' not in axes:
         #Just a 3D image
@@ -1226,6 +1234,8 @@ def VollCellSeg(image: np.ndarray,
                         noise_model,
                         prob_thresh,
                         nms_thresh,
+                        prob_thresh_membrane,
+                        nms_thresh_membrane,
                         donormalize,
                         n_tiles,
                         UseProbability,
@@ -2046,7 +2056,7 @@ def VollSeg3DC(image,  unet_model_membrane, star_model_membrane, unet_model_nucl
 
 
 def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_model=None, prob_thresh=None, nms_thresh=None, min_size_mask=100, min_size=100, max_size=10000000,
-              n_tiles=(1, 2, 2), image_membrane = None, unet_membrane_model = None, star_membrane_model = None, UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8,  slice_merge=False, iou_threshold=0.3):
+              n_tiles=(1, 2, 2), image_membrane = None, unet_membrane_model = None, star_membrane_model = None, prob_thresh_membrane=None, nms_thresh_membrane=None, UseProbability=True, ExpandLabels = True, dounet=True, seedpool=True, donormalize=True, lower_perc=1, upper_perc=99.8,  slice_merge=False, iou_threshold=0.3):
 
    
 
@@ -2209,7 +2219,7 @@ def VollSeg3D(image,  unet_model, star_model, axes='ZYX', noise_model=None, roi_
  
                
             smart_seeds_membrane, probability_map_membrane, star_labels_membrane, markers_membrane = STARPrediction3D(
-                patch_membrane, axes, star_membrane_model,  n_tiles,  UseProbability=UseProbability,seedpool=seedpool, prob_thresh=prob_thresh, nms_thresh=nms_thresh)
+                patch_membrane, axes, star_membrane_model,  n_tiles,  UseProbability=UseProbability,seedpool=seedpool, prob_thresh=prob_thresh_membrane, nms_thresh=nms_thresh_membrane)
             print('Removing small/large objects')
             for i in tqdm(range(0, smart_seeds_membrane.shape[0])):
                 smart_seeds_membrane[i] = remove_small_objects(
