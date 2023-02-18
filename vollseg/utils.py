@@ -42,7 +42,7 @@ from vollseg.unetstarmask import UnetStarMask
 from vollseg.nmslabel import NMSLabel
 from skimage.measure import regionprops
 from qtpy.QtWidgets import QComboBox, QPushButton
-from skimage.filters import threshold_multiotsu
+from skimage.filters import threshold_multiotsu, threshold_otsu
 from scipy.ndimage.measurements import find_objects
 from cellpose_vollseg import models
 from multiprocessing.pool import ThreadPool
@@ -2899,10 +2899,14 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base,  membrane_mas
     markers_raw = np.zeros_like(cellpose_base)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
 
-    probability_mask = normalizeFloatZeroOne(cellpose_base, 1, 99.8)
-    thresholds = threshold_multiotsu(probability_mask, classes=2)
-    regions = np.digitize(probability_mask, bins=thresholds)
-    probability_mask = regions > 0
+    probability_mask = normalizeFloatZeroOne(cellpose_base.copy(), 1, 99.8)
+    threshold = threshold_otsu(probability_mask)
+    probability_mask = probability_mask > threshold
+    probability_mask = binary_erosion(probability_mask, iterations = 4)
+    #thresholds = threshold_multiotsu(probability_mask, classes=2)
+    #regions = np.digitize(probability_mask, bins=thresholds)
+    #probability_mask = regions > 0
+
 
     markers = morphology.dilation(
         markers_raw.astype('uint16'), morphology.ball(2))                
