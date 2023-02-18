@@ -2899,13 +2899,12 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base,  membrane_mas
     markers_raw = np.zeros_like(cellpose_base)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
 
-    probability_mask = normalizeFloatZeroOne(cellpose_base.copy(), 1, 99.8)
-    threshold = threshold_otsu(probability_mask)
-    probability_mask = probability_mask > threshold
+    thresholds = threshold_multiotsu(probability_mask, classes=2)
+    regions = np.digitize(probability_mask, bins=thresholds)
+    probability_mask = regions > 0
+    
     probability_mask = binary_erosion(probability_mask, iterations = 4)
-    #thresholds = threshold_multiotsu(probability_mask, classes=2)
-    #regions = np.digitize(probability_mask, bins=thresholds)
-    #probability_mask = regions > 0
+    
 
 
     markers = morphology.dilation(
