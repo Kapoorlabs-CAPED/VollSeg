@@ -2900,7 +2900,10 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base,  membrane_mas
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
 
     probability_mask = normalizeFloatZeroOne(cellpose_base, 1, 99.8)
-    probability_mask = probability_mask > 0.1
+    thresholds = threshold_multiotsu(probability_mask, classes=2)
+    regions = np.digitize(probability_mask, bins=thresholds)
+    probability_mask = regions > 0
+
     markers = morphology.dilation(
         markers_raw.astype('uint16'), morphology.ball(2))                
     watershed_image_nuclei = watershed(-cellpose_base, markers, mask = probability_mask)
