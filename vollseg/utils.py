@@ -2901,8 +2901,8 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base,  membrane_mas
 
     thresholds = threshold_multiotsu(cellpose_base, classes=2)
     regions = np.digitize(cellpose_base, bins=thresholds)
-    cellpose_base = regions > 0
-    probability_mask = binary_erosion(cellpose_base, iterations = 4)
+    probability_mask = regions > 0
+    probability_mask = binary_erosion(probability_mask, iterations = 4)
     
 
 
