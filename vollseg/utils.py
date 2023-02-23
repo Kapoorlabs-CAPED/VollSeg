@@ -2542,6 +2542,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base, nms_thresh, z
 
     cellpose_mask_copy = label(cellpose_mask_copy)
     relabeled = NMSLabel(cellpose_mask_copy,nms_thresh, z_thresh = z_thresh).supressregions()
+    relabeled = fill_label_holes(relabeled)
     return relabeled
 
 
