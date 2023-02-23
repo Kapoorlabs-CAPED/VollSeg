@@ -2508,9 +2508,10 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base, nms_thresh, z
             for i in range(0, len(Coordinates)):
 
                 star = Coordinates[i]
-                value=cellpose_mask[int(star[0]),int(star[1]),int(star[2])]
+                
+                value = [ cellpose_mask[int(star[j]),int(star[1]),int(star[2])] j for j in range(star.shape[0])  ]
 
-                if value==0:
+                if all(value) == 0:
                     KeepCoordinates.append(Coordinates[i])
                     
                     
