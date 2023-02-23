@@ -45,7 +45,7 @@ class UnetStarMask(object):
 
             self.ndim = len(self.cordB)
             
-            self.include = False
+            self.semiinclude = False
             includelist = [self.Conditioncheck(p) for p in range(1, self.ndim)]
             if True in includelist:
                  self.semiinclude = True        
