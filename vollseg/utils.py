@@ -2521,12 +2521,18 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base, nms_thresh, z
     markers_raw = np.zeros_like(cellpose_base)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
 
+    thresholds = threshold_multiotsu(cellpose_base, classes=2)
+    regions = np.digitize(cellpose_base, bins=thresholds)
+    probability_mask = regions > 0
+    probability_mask = binary_erosion(probability_mask, iterations = 1)
+    
+    probability_mask = binary_fill_holes(probability_mask)
     
     markers = morphology.dilation(
         markers_raw.astype('uint16'), morphology.ball(2))                
-    watershed_image_nuclei = watershed(cellpose_base, markers)
+    watershed_image_nuclei = watershed(cellpose_base, markers, mask = probability_mask)
     watershed_image_nuclei = fill_label_holes(watershed_image_nuclei)
-   
+    watershed_image_nuclei = dilate_label_holes(watershed_image_nuclei, iterations = 1)
     cellpose_mask_copy = cellpose_mask.copy()
     max_label = np.amax(cellpose_mask_copy)
     
