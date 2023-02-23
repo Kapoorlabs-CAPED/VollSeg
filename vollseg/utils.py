@@ -1583,7 +1583,7 @@ def _cellpose_block(axes, sized_smart_seeds, flows, cellpose_labels,  nms_thresh
     
     if 'T' not in axes:   
                 
-            cellpose_base = np.sum(flows[0], axis = -1)    
+            cellpose_base = np.sum(np.absolute(flows[0]), axis = -1)    
             voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds, cellpose_base, nms_thresh, z_thresh = z_thresh)
     if 'T' in axes:
 
@@ -1592,7 +1592,7 @@ def _cellpose_block(axes, sized_smart_seeds, flows, cellpose_labels,  nms_thresh
             for time in range(cellpose_labels.shape[0]):
 
                 cellpose_labels_time = cellpose_labels[time]
-                cellpose_base_time = np.sum(flows[0], axis = -1)[time]
+                cellpose_base_time = np.sum(np.absolute(flows[0]), axis = -1)[time]
                 voll_cell_seg_time = CellPoseWater(cellpose_labels_time, sized_smart_seeds[time], cellpose_base_time, nms_thresh, z_thresh = z_thresh)
                 voll_cell_seg.append(voll_cell_seg_time)
             cellpose_base = np.asarray(cellpose_base)    
@@ -2521,7 +2521,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base, nms_thresh, z
     markers_raw = np.zeros_like(cellpose_base)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
 
-    thresholds = threshold_multiotsu(cellpose_base.astype('float32'), classes=2)
+    thresholds = threshold_multiotsu(cellpose_base, classes=2)
     regions = np.digitize(cellpose_base, bins=thresholds)
     probability_mask = regions > 0
     probability_mask = binary_erosion(probability_mask, iterations = 1)
