@@ -2534,12 +2534,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base, nms_thresh, z
    
     cellpose_mask_copy = cellpose_mask.copy()
     max_label = np.amax(cellpose_mask_copy)
-    watershed_image = relabel_sequential(membrane_mask, offset = max_label)[0]
-
-
-    empy_region_indices = zip(*np.where(cellpose_mask_copy == 0))
-    for index in empy_region_indices:
-        cellpose_mask_copy[index] = watershed_image[index]
+    
    
     empy_region_indices = zip(*np.where(cellpose_mask_copy == 0))
     for index in empy_region_indices:
