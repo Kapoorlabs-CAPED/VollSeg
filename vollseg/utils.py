@@ -1394,7 +1394,17 @@ def VollCellSeg(image: np.ndarray,
    
 
     if noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None:
-        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image = res    
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image = res
+        sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton, roi_image = res
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton) 
+        roi_image = np.asarray(roi_image)
+        voll_cell_seg, voll_cell_prob =_cellpose_block(axes, sized_smart_seeds, flows, cellpose_labels_copy,  nms_thresh, z_thresh = z_thresh)
+    
         
     if noise_model is None and star_model is not None and  roi_model is not None and cellpose_model is not None:
         
@@ -1456,11 +1466,11 @@ def VollCellSeg(image: np.ndarray,
             Path(vollcellpose_results).mkdir(exist_ok=True)
             imwrite((vollcellpose_results + Name + '.tif'),
                     np.asarray(voll_cell_seg).astype('uint16'))
-            
-            probability_membrane_results = save_dir + 'Probability_membrane_cellpose/'
-            Path(probability_membrane_results).mkdir(exist_ok=True)
-            imwrite((probability_membrane_results + Name + '.tif'),
-                    np.asarray(voll_cell_prob).astype('float32'))
+            if star_model is not None:
+                    probability_membrane_results = save_dir + 'Probability_membrane_cellpose/'
+                    Path(probability_membrane_results).mkdir(exist_ok=True)
+                    imwrite((probability_membrane_results + Name + '.tif'),
+                            np.asarray(voll_cell_prob).astype('float32'))
             
        
                  
