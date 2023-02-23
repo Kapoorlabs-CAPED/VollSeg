@@ -14,7 +14,7 @@ from six import string_types
 from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
-from scipy.ndimage import zoom, binary_dilation, binary_erosion, gaussian_filter
+from scipy.ndimage import zoom, binary_dilation, binary_erosion, gaussian_filter, median_filter
 from skimage.morphology import remove_small_objects
 from matplotlib import cm
 from scipy import spatial
@@ -2529,7 +2529,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base, nms_thresh, z
     
     markers = morphology.dilation(
         markers_raw.astype('uint16'), morphology.ball(2))                
-    watershed_image_nuclei = watershed(-gaussian_filter(cellpose_base, sigma = 1), markers, mask = probability_mask)
+    watershed_image_nuclei = watershed(-median_filter(cellpose_base, sigma = 1), markers, mask = probability_mask)
     watershed_image_nuclei = fill_label_holes(watershed_image_nuclei)
    
     cellpose_mask_copy = cellpose_mask.copy()
