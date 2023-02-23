@@ -1358,9 +1358,7 @@ def VollCellSeg(image: np.ndarray,
         markers = np.asarray(markers)
         skeleton = np.asarray(skeleton)
         roi_image = np.asarray(roi_image)  
-        voll_cell_seg = cellpose_labels_copy
-    
-   
+        voll_cell_seg, voll_cell_prob =_cellpose_block(axes, sized_smart_seeds, flows, cellpose_labels_copy,  nms_thresh, z_thresh = z_thresh)
 
 
 
@@ -1376,7 +1374,7 @@ def VollCellSeg(image: np.ndarray,
         probability_map = np.asarray(probability_map)
         markers = np.asarray(markers)
         skeleton = np.asarray(skeleton)
-        voll_cell_seg = cellpose_labels_copy
+        voll_cell_seg, voll_cell_prob =_cellpose_block(axes, sized_smart_seeds, flows, cellpose_labels_copy,  nms_thresh, z_thresh = z_thresh)
     
     if noise_model is not None and star_model is not None and  roi_model is not None and cellpose_model is None:
         sized_smart_seeds, instance_labels, star_labels, probability_map, markers, skeleton,  image, roi_image = res
@@ -1392,7 +1390,7 @@ def VollCellSeg(image: np.ndarray,
         skeleton = np.asarray(skeleton) 
         image = np.asarray(image)
         roi_image = np.asarray(roi_image)
-        voll_cell_seg = cellpose_labels_copy
+        voll_cell_seg, voll_cell_prob =_cellpose_block(axes, sized_smart_seeds, flows, cellpose_labels_copy,  nms_thresh, z_thresh = z_thresh)
    
 
     if noise_model is not None and star_model is not None and  roi_model is None and cellpose_model is not None:
@@ -1408,7 +1406,7 @@ def VollCellSeg(image: np.ndarray,
               markers = np.asarray(markers)
               skeleton = np.asarray(skeleton) 
               roi_image = np.asarray(roi_image)
-              voll_cell_seg = cellpose_labels_copy
+              voll_cell_seg, voll_cell_prob =_cellpose_block(axes, sized_smart_seeds, flows, cellpose_labels_copy,  nms_thresh, z_thresh = z_thresh)
       
     
         
@@ -1571,12 +1569,12 @@ def VollCellSeg(image: np.ndarray,
         return instance_labels, skeleton, image    
 
 
-def _cellpose_block(axes, sized_smart_seeds, flows, cellpose_labels, instance_labels,  nms_thresh, z_thresh = 1):
+def _cellpose_block(axes, sized_smart_seeds, flows, cellpose_labels,  nms_thresh, z_thresh = 1):
     
     if 'T' not in axes:   
                 
             cellpose_base = np.max(flows[0], axis = -1)    
-            voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds, cellpose_base,  instance_labels, nms_thresh, z_thresh = z_thresh)
+            voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds, cellpose_base, nms_thresh, z_thresh = z_thresh)
     if 'T' in axes:
 
             cellpose_base = []    
@@ -1585,7 +1583,7 @@ def _cellpose_block(axes, sized_smart_seeds, flows, cellpose_labels, instance_la
 
                 cellpose_labels_time = cellpose_labels[time]
                 cellpose_base_time = np.max(flows[0], axis = -1)[time]
-                voll_cell_seg_time = CellPoseWater(cellpose_labels_time, sized_smart_seeds[time], cellpose_base_time,  instance_labels[time], nms_thresh, z_thresh = z_thresh)
+                voll_cell_seg_time = CellPoseWater(cellpose_labels_time, sized_smart_seeds[time], cellpose_base_time, nms_thresh, z_thresh = z_thresh)
                 voll_cell_seg.append(voll_cell_seg_time)
             cellpose_base = np.asarray(cellpose_base)    
             voll_cell_seg = np.asarray(voll_cell_seg_time) 
@@ -2490,7 +2488,7 @@ def CleanCellPose(cellpose_mask, nms_thresh, z_thresh = 1):
 
     return cellpose_mask_copy
 
-def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base,  membrane_mask, nms_thresh, z_thresh = 1):
+def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base, nms_thresh, z_thresh = 1):
     
     CopyMasks = sized_smart_seeds.copy()
     starproperties = measure.regionprops(CopyMasks)
