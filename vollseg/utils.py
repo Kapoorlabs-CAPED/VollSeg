@@ -2503,18 +2503,20 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, cellpose_base, nms_thresh, z
     CopyMasks = sized_smart_seeds.copy()
     starproperties = measure.regionprops(CopyMasks)
     Coordinates = [prop.centroid for prop in starproperties]
+
+    properties = measure.regionprops(cellpose_mask)
+    bbox = [prop.bbox for prop in properties]
     KeepCoordinates = []
-    if len(Coordinates) > 0:
-            for i in range(0, len(Coordinates)):
+    if len(bbox) > 0:
+        for i in range(0, len(Coordinates)):
 
-                star = Coordinates[i]
-                
-                value = [ cellpose_mask[j,int(star[1]),int(star[2])]  for j in range(cellpose_mask.shape[0])  ]
-
-                if all(value) == 0:
-                    KeepCoordinates.append(Coordinates[i])
-                    
-                    
+            star = Coordinates[i]
+            include = [UnetStarMask(box, star).semi_masking() for box in bbox ] 
+            if False not in include:
+                 KeepCoordinates.append(Coordinates[i])
+                 
+    
+   
     KeepCoordinates.append((0, 0, 0))
     KeepCoordinates = np.asarray(KeepCoordinates)
 
