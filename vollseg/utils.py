@@ -35,6 +35,7 @@ import math
 import pandas as pd
 import napari
 import glob
+import csv
 from skimage.util import map_array
 from vollseg.matching import matching
 from vollseg.seedpool import SeedPool
@@ -993,6 +994,7 @@ def _star_time_block(
     return res
 
 def _cellpose_star_time_block(cellpose_model,
+                            cellpose_model_3D,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,
@@ -1083,7 +1085,104 @@ def _cellpose_star_time_block(cellpose_model,
     
     return cellres, res
 
+def _create_apply_csv(data_list, save_path, save_name):
+    _create_csv(
+        data_list, save_path, test_split=0, val_split=0, save_name=save_name
+    )
+
+
+def _create_csv(
+    data_list,
+    save_path="list_folder/experiment_name",
+    test_split=0.2,
+    val_split=0.1,
+    shuffle=False,
+    save_name="_train.csv",
+):
+    if shuffle:
+        np.random.shuffle(data_list)
+
+    # Get number of files for each split
+    num_files = len(data_list)
+    num_test_files = int(test_split * num_files)
+    num_val_files = int((num_files - num_test_files) * val_split)
+    num_train_files = num_files - num_test_files - num_val_files
+
+    # Get file indices
+    file_idx = np.arange(num_files)
+
+    # Save csv files
+    if num_test_files > 0:
+        test_idx = sorted(
+            np.random.choice(file_idx, size=num_test_files, replace=False)
+        )
+        with open(save_path + "_test.csv", "w") as fh:
+            writer = csv.writer(fh, delimiter=";")
+            for idx in test_idx:
+                writer.writerow(data_list[idx])
+    else:
+        test_idx = []
+
+    if num_val_files > 0:
+        val_idx = sorted(
+            np.random.choice(
+                list(set(file_idx) - set(test_idx)),
+                size=num_val_files,
+                replace=False,
+            )
+        )
+        with open(save_path + "_val.csv", "w") as fh:
+            writer = csv.writer(fh, delimiter=";")
+            for idx in val_idx:
+                writer.writerow(data_list[idx])
+    else:
+        val_idx = []
+
+    if num_train_files > 0:
+        train_idx = sorted(list(set(file_idx) - set(test_idx) - set(val_idx)))
+        with open(save_path + save_name, "w") as fh:
+            writer = csv.writer(fh, delimiter=";")
+            for idx in train_idx:
+                writer.writerow(data_list[idx])
+
+def _apply_cellpose_network_3D(cellpose_model_3D, image_membrane, patch_size = (8, 256, 256), input_batch = 'image', in_channels = 1,
+                                out_activation = 'tanh' , norm_method = 'instance', 
+                                background_weight = 1, flow_weight = 1,
+                                dist_handling = 'bool_inv', learning_rate = 0.001, 
+                                out_channels = 4, feat_channels = 16,
+                                crop = (2,32,32), overlap = (1,16,16)):
+     
+    # ------------------------
+    # 0 SANITY CHECKS
+    # ------------------------
+    if not isinstance(overlap, (tuple, list)):
+        overlap = (overlap,) * len(patch_size)
+    if not isinstance(crop, (tuple, list)):
+        crop = (crop,) * len(patch_size)
+    assert all(
+        [
+            p - 2 * o - 2 * c > 0
+            for p, o, c in zip(
+                patch_size, overlap, crop
+            )
+        ]
+    ), "Invalid combination of patch size, overlap and crop size."
+    hparams = {
+         'patch_size' : patch_size,
+         'in_channels' : in_channels,
+         'out_channels' : out_channels,
+         'feat_channels': feat_channels,
+         'out_activation': out_activation,
+         'norm_method': norm_method,
+         'background_weight': background_weight,
+         'flow_weight': flow_weight,
+
+    }
+
+
+
 def _cellpose_star_block(cellpose_model,
+                        cellpose_model_3D,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,
@@ -1163,6 +1262,7 @@ def VollCellSeg(image: np.ndarray,
                 roi_model = None,
                 noise_model=None,
                 cellpose_model = None, 
+                cellpose_model_3D = None,
                 custom_cellpose_model: bool = False, 
                 pretrained_cellpose_model_path: str = None,
                 cellpose_model_name = 'cyto2',
@@ -1204,6 +1304,7 @@ def VollCellSeg(image: np.ndarray,
         image_nuclei = image
                             
         cellres, res = _cellpose_star_block(cellpose_model,
+                                            cellpose_model_3D,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,
@@ -1243,6 +1344,7 @@ def VollCellSeg(image: np.ndarray,
             
             
             cellres, res = _cellpose_star_block(cellpose_model,
+                                                cellpose_model_3D,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,
@@ -1285,6 +1387,7 @@ def VollCellSeg(image: np.ndarray,
             image_membrane = image[:,:,channel_membrane,:,:]
             image_nuclei = image[:,:,channel_nuclei,:,:]
             cellres, res = _cellpose_star_time_block(cellpose_model,
+                                                     cellpose_model_3D,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,
