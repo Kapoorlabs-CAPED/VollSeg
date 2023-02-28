@@ -14,7 +14,7 @@ from six import string_types
 from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
-from scipy.ndimage import zoom, binary_dilation, binary_erosion, gaussian_filter, median_filter
+from scipy.ndimage import zoom, binary_dilation, binary_erosion, generic_filter
 from skimage.morphology import remove_small_objects
 from matplotlib import cm
 from scipy import spatial
@@ -36,6 +36,8 @@ import pandas as pd
 import napari
 import glob
 import csv
+import concurrent
+from scipy.spatial import ConvexHull, Delaunay
 from skimage.util import map_array
 from vollseg.matching import matching
 from vollseg.seedpool import SeedPool
@@ -46,9 +48,9 @@ from qtpy.QtWidgets import QComboBox, QPushButton
 from skimage.filters import threshold_multiotsu, threshold_otsu
 from scipy.ndimage.measurements import find_objects
 from cellpose_vollseg import models
-from multiprocessing.pool import ThreadPool
-from concurrent.futures import ThreadPoolExecutor
+
 from threading import Thread
+from scipy.ndimage import filters
 
 Boxname = 'ImageIDBox'
 GLOBAL_THRESH = 1.0E-2
@@ -371,7 +373,7 @@ def CCLabels(fname, max_size=15000):
     image = invertimage(image)
     IntegerImage = label(image)
     labelclean = remove_big_objects(IntegerImage, max_size=max_size)
-    AugmentedLabel = dilation(labelclean, selem=square(3))
+    AugmentedLabel = dilation(labelclean, footprint=square(3))
     AugmentedLabel = np.multiply(AugmentedLabel,  Orig)
 
     return AugmentedLabel
@@ -1034,7 +1036,7 @@ def _cellpose_star_time_block(cellpose_model,
     
     futures = []
     
-    with ThreadPoolExecutor(max_workers = os.cpu_count()) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers = os.cpu_count()) as executor:
         
             futures.append(executor.submit(_star_time_block, 
                                 
@@ -1157,17 +1159,16 @@ def convert_mask_h5(instance_mask,bg_label=0,
             instance_mask = instance_mask.astype(np.uint16)
             instance_mask[instance_mask == bg_label] = 0
 
-            # rescale the mask
-            instance_mask = rescale_data(instance_mask, zoom_factor, order=0)
+         
 
             if corrupt_prob > 0:
                 # Randomly merge neighbouring instances
                 labels = list(set(np.unique(instance_mask)) - {bg_label})
                 instance_mask_eroded = morphology.erosion(
-                    instance_mask, selem=morphology.ball(3)
+                    instance_mask, footprint=morphology.ball(3)
                 )
                 instance_mask_dilated = morphology.dilation(
-                    instance_mask, selem=morphology.ball(3)
+                    instance_mask, footprint=morphology.ball(3)
                 )
                 for label in labels:
                     if np.random.rand() < corrupt_prob:
@@ -1194,7 +1195,7 @@ def convert_mask_h5(instance_mask,bg_label=0,
             if get_boundary:
                 membrane_mask = (
                     morphology.dilation(
-                        instance_mask, selem=morphology.ball(2)
+                        instance_mask, footprint=morphology.ball(2)
                     )
                     - instance_mask
                 )
@@ -1254,6 +1255,47 @@ def convert_mask_h5(instance_mask,bg_label=0,
 
             return save_masks, save_groups    
      
+def calculate_flows(instance_mask, bg_label=0):
+    flow_x = np.zeros(instance_mask.shape, dtype=np.float32)
+    flow_y = np.zeros(instance_mask.shape, dtype=np.float32)
+    flow_z = np.zeros(instance_mask.shape, dtype=np.float32)
+    regions = measure.regionprops(instance_mask)
+
+    futures = []
+
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=os.cpu_count()
+    ) as executor:
+        for props in regions:
+            if props.label != bg_label:
+                futures.append(
+                    executor.submit(_compute_flow, props, instance_mask)
+                )
+
+        for r in concurrent.futures.as_completed(futures):
+            coords, c = r.result()
+            flow_x[coords] = np.tanh((coords[0] - c[0]) / 5)
+            flow_y[coords] = np.tanh((coords[1] - c[1]) / 5)
+            flow_z[coords] = np.tanh((coords[2] - c[2]) / 5)
+
+    return flow_x, flow_y, flow_z
+
+
+def _compute_flow(props, instance_mask):
+    c = props.centroid
+    coords = np.where(instance_mask == props.label)
+    return coords, c
+
+def flood_fill_hull(image):
+    points = np.transpose(np.where(image))
+    hull = ConvexHull(points)
+    deln = Delaunay(points[hull.vertices])
+    idx = np.stack(np.indices(image.shape), axis=-1)
+    out_idx = np.nonzero(deln.find_simplex(idx) + 1)
+    out_img = np.zeros(image.shape)
+    out_img[out_idx] = 1
+
+    return out_img
 
 
 def convert_image_h5(processed_img,
@@ -1261,8 +1303,8 @@ def convert_image_h5(processed_img,
     get_illumination=False,
     get_variance=False,
     variance_size=(5, 5, 5),
-    fg_selem_size=5,
-    zoom_factor=(1, 1, 1),
+    fg_footprint_size=5,
+
     channel=0):
      
             processed_img = processed_img.astype(np.float32)
@@ -1270,12 +1312,6 @@ def convert_image_h5(processed_img,
             # get the desired channel, if the image is a multichannel image
             if processed_img.ndim == 4:
                 processed_img = processed_img[..., channel]
-
-            # rescale the image
-            processed_img = rescale_data(processed_img, zoom_factor, order=3)
-
-          
-
             save_imgs = [
                 processed_img,
             ]
@@ -1284,14 +1320,12 @@ def convert_image_h5(processed_img,
             ]
 
             if get_illumination:
-                print_timestamp("Extracting illumination image...")
-
                 # create downscales image for computantially intensive processing
                 small_img = processed_img
 
                 # create an illuminance image (downscale for faster processing)
                 illu_img = morphology.closing(
-                    small_img, selem=morphology.ball(7)
+                    small_img, footprint=morphology.ball(7)
                 )
                 illu_img = filters.gaussian(illu_img, 2).astype(np.float32)
 
@@ -1313,7 +1347,7 @@ def convert_image_h5(processed_img,
                 save_groups.append("illumination")
 
             if get_distance:
-                print_timestamp("Extracting distance image...")
+               
 
                 # create downscales image for computantially intensive processing
                 small_img = processed_img
@@ -1324,10 +1358,10 @@ def convert_image_h5(processed_img,
 
                 # remove noise and fill holes
                 fg_img = morphology.binary_closing(
-                    fg_img, selem=morphology.ball(fg_selem_size)
+                    fg_img, footprint=morphology.ball(fg_footprint_size)
                 )
                 fg_img = morphology.binary_opening(
-                    fg_img, selem=morphology.ball(fg_selem_size)
+                    fg_img, footprint=morphology.ball(fg_footprint_size)
                 )
                 fg_img = flood_fill_hull(fg_img)
                 fg_img = fg_img.astype(np.bool)
@@ -1355,7 +1389,7 @@ def convert_image_h5(processed_img,
                 save_groups.append("distance")
 
             if get_variance:
-                print_timestamp("Extracting variance image...")
+               
 
                 # create downscales image for computantially intensive processing
                 small_img = processed_img

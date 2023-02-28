@@ -1,5 +1,12 @@
 import numpy as np
 from torch.utils.data import Dataset
+import os
+import h5py
+import csv
+import itertools
+import numpy as np
+
+from scipy.ndimage import filters, distance_transform_edt
 
 class MeristemH5Tiler(Dataset):
     
@@ -36,60 +43,7 @@ class MeristemH5Tiler(Dataset):
         # Read the filelist and construct full paths to each file
         self.image_groups = image_groups
         self.mask_groups = mask_groups
-        self.data_list = self._read_list()
-        self.set_data_idx(0)
         
-        # Get image statistics from up to 10 files
-        if not self.no_img and 'image' in self.image_groups[0]:
-            print('Getting statistics from images...')
-            self.data_statistics = {'min':[], 'max':[], 'mean':[], 'std':[], 'perc02':[], 'perc98':[]}
-            for file_pair in self.data_list[:10]:
-                with h5py.File(file_pair[0], 'r') as f_handle:
-                    image = f_handle[self.image_groups[0]][...].astype(np.float32)
-                    self.data_statistics['min'].append(np.min(image))
-                    self.data_statistics['max'].append(np.max(image))
-                    self.data_statistics['mean'].append(np.mean(image))
-                    self.data_statistics['std'].append(np.std(image))
-                    perc02, perc98 = np.percentile(image, [2,98])
-                    self.data_statistics['perc02'].append(perc02)
-                    self.data_statistics['perc98'].append(perc98)
-            
-            # Construct data set statistics
-            self.data_statistics['min'] = np.min(self.data_statistics['min'])
-            self.data_statistics['max'] = np.max(self.data_statistics['max'])
-            self.data_statistics['mean'] = np.mean(self.data_statistics['mean'])
-            self.data_statistics['std'] = np.mean(self.data_statistics['std'])
-            self.data_statistics['perc02'] = np.mean(self.data_statistics['perc02'])
-            self.data_statistics['perc98'] = np.mean(self.data_statistics['perc98'])
-            
-            if self.norm_method == 'minmax':
-                self.norm1 = self.data_statistics['min']
-                self.norm2 = self.data_statistics['max']-self.data_statistics['min']
-            elif self.norm_method == 'meanstd':
-                self.norm1 = self.data_statistics['mean']
-                self.norm2 = self.data_statistics['std']
-            elif self.norm_method == 'percentile':
-                self.norm1 = self.data_statistics['perc02']
-                self.norm2 = self.data_statistics['perc98']-self.data_statistics['perc02']
-            else:
-                self.norm1 = 0
-                self.norm2 = 1
-        
-        
-    def _read_list(self):
-        
-        # Read the filelist and create full paths to each file
-        filelist = []    
-        with open(self.list_path, 'r') as f:
-            reader = csv.reader(f, delimiter=';')
-            for row in reader:
-                if len(row)==0 or np.sum([len(r) for r in row])==0: continue
-                row = [os.path.abspath(os.path.join(self.data_root, r)) for r in row]
-                filelist.append(row)
-                
-        return filelist
-    
-    
     def get_fading_map(self):
                
         fading_map = np.ones(self.patch_size)
