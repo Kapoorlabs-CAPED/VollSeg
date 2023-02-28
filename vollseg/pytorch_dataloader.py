@@ -14,7 +14,7 @@ class MeristemH5Tiler(Dataset):
     Dataset of fluorescently labeled cell membranes
     """
     
-    def __init__(self, image_membrane, patch_size=(64,128,128), overlap=(10,10,10), crop=(10,10,10), data_norm='percentile',\
+    def __init__(self, data_group, patch_size=(64,128,128), overlap=(10,10,10), crop=(10,10,10), data_norm='percentile',\
                  image_groups=('data/image',), mask_groups=('data/distance', 'data/seeds', 'data/boundary'), \
                  dist_handling='bool', dist_scaling=(100,100), seed_handling='float', boundary_handling='bool', instance_handling='bool',\
                  no_mask=False, no_img=False, reduce_dim=False, **kwargs):
@@ -26,7 +26,7 @@ class MeristemH5Tiler(Dataset):
             assert np.any([p==1 for p in patch_size]), 'Reduce is only possible, if there is a singleton patch dimension.'
         
         # Save parameters
-        self.image_membrane = image_membrane
+        self.data_group = data_group
         self.patch_size = patch_size
         self.overlap = overlap
         self.crop = crop
@@ -68,8 +68,7 @@ class MeristemH5Tiler(Dataset):
     
     def get_whole_image(self):
         
-        with h5py.File(self.data_list[self.data_idx][0], 'r') as f_handle:
-                image = f_handle[self.image_groups] [:]
+        image = self.data_group[self.image_groups] [:]
         return image    
     
     
@@ -81,9 +80,8 @@ class MeristemH5Tiler(Dataset):
             mask_groups = [mask_groups]
         
         mask = None
-        with h5py.File(self.data_list[self.data_idx][1], 'r') as f_handle:
-            for num_group, group_name in enumerate(mask_groups):
-                mask_tmp = f_handle[group_name]
+        for num_group, group_name in enumerate(mask_groups):
+                mask_tmp = self.data_group[group_name]
                 if mask is None:
                     mask = np.zeros((len(mask_groups),)+mask_tmp.shape, dtype=np.float32)                
                 mask[num_group,...] = mask_tmp
@@ -98,12 +96,10 @@ class MeristemH5Tiler(Dataset):
         
         # Get the current data size
         if not self.no_img:
-            with h5py.File(self.data_list[idx][0], 'r') as f_handle:
-                image = f_handle[self.image_groups[0]]
+                image = self.data_group[self.image_groups[0]]
                 self.data_shape = image.shape[:3]
         elif not self.no_mask:
-             with h5py.File(self.data_list[idx][1], 'r') as f_handle:
-                mask = f_handle[self.mask_groups[0]]
+                mask = self.data_group[self.mask_groups[0]]
                 self.data_shape = mask.shape[:3]
         else:
             raise ValueError('Can not determine data shape!')
@@ -183,9 +179,8 @@ class MeristemH5Tiler(Dataset):
         # Load the mask patch
         if not self.no_mask:            
             mask = np.zeros((len(self.mask_groups),)+self.patch_size, dtype=np.float32)
-            with h5py.File(self.data_list[self.data_idx][1], 'r') as f_handle:
-                for num_group, group_name in enumerate(self.mask_groups):
-                    mask_tmp = f_handle[group_name]
+            for num_group, group_name in enumerate(self.mask_groups):
+                    mask_tmp = self.data_group[group_name]
                     mask_tmp = mask_tmp[slicing]
                     
                     # Pad if neccessary
@@ -209,9 +204,8 @@ class MeristemH5Tiler(Dataset):
         if not self.no_img:
             # Load the image patch
             image = np.zeros((len(self.image_groups),)+self.patch_size, dtype=np.float32)
-            with h5py.File(self.data_list[self.data_idx][0], 'r') as f_handle:
-                for num_group, group_name in enumerate(self.image_groups):
-                    image_tmp = f_handle[group_name]   
+            for num_group, group_name in enumerate(self.image_groups):
+                    image_tmp = self.data_group[group_name]   
                     image_tmp = image_tmp[slicing]
                     
                     # Pad if neccessary

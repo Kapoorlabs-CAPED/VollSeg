@@ -1153,14 +1153,12 @@ def convert_mask_h5(instance_mask,bg_label=0,
     get_boundary=False,
     get_seeds=False,
     get_distance=True,
-    corrupt_prob=0.0,
-    zoom_factor=(1, 1, 1) ):
-     
+    corrupt_prob=0.0 ):
+             
+
+            data_group = {} 
             instance_mask = instance_mask.astype(np.uint16)
             instance_mask[instance_mask == bg_label] = 0
-
-         
-
             if corrupt_prob > 0:
                 # Randomly merge neighbouring instances
                 labels = list(set(np.unique(instance_mask)) - {bg_label})
@@ -1252,8 +1250,10 @@ def convert_mask_h5(instance_mask,bg_label=0,
 
                 save_groups.extend(["flow_x", "flow_y", "flow_z"])
                 save_masks.extend([flow_x, flow_y, flow_z])
+            for i in range(len(save_groups)):
+                 data_group[save_groups[i]] = save_masks[i]
 
-            return save_masks, save_groups    
+            return data_group    
      
 def calculate_flows(instance_mask, bg_label=0):
     flow_x = np.zeros(instance_mask.shape, dtype=np.float32)
@@ -1307,6 +1307,9 @@ def convert_image_h5(processed_img,
 
     channel=0):
      
+           
+            data_group = {}
+
             processed_img = processed_img.astype(np.float32)
 
             # get the desired channel, if the image is a multichannel image
@@ -1413,8 +1416,10 @@ def convert_image_h5(processed_img,
 
                 save_imgs.append(std_img.astype(np.float32))
                 save_groups.append("variance")
+                for i in range(len(save_groups)):
+                     data_group[save_groups[i]] = save_imgs[i]
 
-                return save_imgs, save_groups
+                return data_group
      
 
 
