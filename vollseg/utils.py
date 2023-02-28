@@ -1145,12 +1145,254 @@ def _create_csv(
             for idx in train_idx:
                 writer.writerow(data_list[idx])
 
-def _apply_cellpose_network_3D(cellpose_model_3D, image_membrane, patch_size = (8, 256, 256), input_batch = 'image', in_channels = 1,
+
+def convert_mask_h5(instance_mask,bg_label=0,
+    get_flows=True,
+    get_boundary=False,
+    get_seeds=False,
+    get_distance=True,
+    corrupt_prob=0.0,
+    zoom_factor=(1, 1, 1) ):
+     
+            instance_mask = instance_mask.astype(np.uint16)
+            instance_mask[instance_mask == bg_label] = 0
+
+            # rescale the mask
+            instance_mask = rescale_data(instance_mask, zoom_factor, order=0)
+
+            if corrupt_prob > 0:
+                # Randomly merge neighbouring instances
+                labels = list(set(np.unique(instance_mask)) - {bg_label})
+                instance_mask_eroded = morphology.erosion(
+                    instance_mask, selem=morphology.ball(3)
+                )
+                instance_mask_dilated = morphology.dilation(
+                    instance_mask, selem=morphology.ball(3)
+                )
+                for label in labels:
+                    if np.random.rand() < corrupt_prob:
+                        neighbour_labels = list(
+                            instance_mask_eroded[instance_mask == label]
+                        ) + list(instance_mask_dilated[instance_mask == label])
+                        neighbour_labels = list(
+                            set(neighbour_labels) - {label}
+                        )
+                        if len(neighbour_labels) > 0:
+                            replace_label = np.random.choice(neighbour_labels)
+                            instance_mask[
+                                instance_mask == label
+                            ] = replace_label
+
+            save_groups = [
+                "instance",
+            ]
+            save_masks = [
+                instance_mask,
+            ]
+
+            # get the boundary mask
+            if get_boundary:
+                membrane_mask = (
+                    morphology.dilation(
+                        instance_mask, selem=morphology.ball(2)
+                    )
+                    - instance_mask
+                )
+                membrane_mask = membrane_mask != 0
+                membrane_mask = membrane_mask.astype(np.float32)
+                save_groups.append("boundary")
+                save_masks.append(membrane_mask)
+
+            # get the distance mask
+            if get_distance:
+                fg_img = instance_mask
+
+                fg_img = flood_fill_hull(fg_img > 0)
+                fg_img = fg_img.astype(np.bool)
+                distance_mask = distance_transform_edt(
+                    fg_img
+                ) - distance_transform_edt(~fg_img)
+                distance_mask = distance_mask.astype(np.float32)
+                distance_mask = np.repeat(distance_mask, 4, axis=0)
+                distance_mask = np.repeat(distance_mask, 4, axis=1)
+                distance_mask = np.repeat(distance_mask, 4, axis=2)
+                dim_missmatch = np.array(instance_mask.shape) - np.array(
+                    distance_mask.shape
+                )
+                if dim_missmatch[0] < 0:
+                    distance_mask = distance_mask[: dim_missmatch[0], ...]
+                if dim_missmatch[1] < 0:
+                    distance_mask = distance_mask[:, : dim_missmatch[1], :]
+                if dim_missmatch[2] < 0:
+                    distance_mask = distance_mask[..., : dim_missmatch[2]]
+                save_groups.append("distance")
+                save_masks.append(distance_mask)
+
+            # get the centroid mask
+            if get_seeds:
+                centroid_mask = np.zeros(instance_mask.shape, dtype=np.float32)
+                regions = measure.regionprops(instance_mask)
+
+                for props in regions:
+                    if props.label == bg_label:
+                        continue
+
+                    c = props.centroid
+                    centroid_mask[np.int(c[0]), np.int(c[1]), np.int(c[2])] = 1
+
+                save_groups.append("seeds")
+                save_masks.append(centroid_mask)
+
+            # calculate the flow field
+            if get_flows:
+                flow_x, flow_y, flow_z = calculate_flows(
+                    instance_mask, bg_label=bg_label
+                )
+
+                save_groups.extend(["flow_x", "flow_y", "flow_z"])
+                save_masks.extend([flow_x, flow_y, flow_z])
+
+            return save_masks, save_groups    
+     
+
+
+def convert_image_h5(processed_img,
+    get_distance=False,
+    get_illumination=False,
+    get_variance=False,
+    variance_size=(5, 5, 5),
+    fg_selem_size=5,
+    zoom_factor=(1, 1, 1),
+    channel=0):
+     
+            processed_img = processed_img.astype(np.float32)
+
+            # get the desired channel, if the image is a multichannel image
+            if processed_img.ndim == 4:
+                processed_img = processed_img[..., channel]
+
+            # rescale the image
+            processed_img = rescale_data(processed_img, zoom_factor, order=3)
+
+          
+
+            save_imgs = [
+                processed_img,
+            ]
+            save_groups = [
+                "image",
+            ]
+
+            if get_illumination:
+                print_timestamp("Extracting illumination image...")
+
+                # create downscales image for computantially intensive processing
+                small_img = processed_img
+
+                # create an illuminance image (downscale for faster processing)
+                illu_img = morphology.closing(
+                    small_img, selem=morphology.ball(7)
+                )
+                illu_img = filters.gaussian(illu_img, 2).astype(np.float32)
+
+                # rescale illuminance image
+                illu_img = np.repeat(illu_img, 2, axis=0)
+                illu_img = np.repeat(illu_img, 2, axis=1)
+                illu_img = np.repeat(illu_img, 2, axis=2)
+                dim_missmatch = np.array(processed_img.shape) - np.array(
+                    illu_img.shape
+                )
+                if dim_missmatch[0] < 0:
+                    illu_img = illu_img[: dim_missmatch[0], ...]
+                if dim_missmatch[1] < 0:
+                    illu_img = illu_img[:, : dim_missmatch[1], :]
+                if dim_missmatch[2] < 0:
+                    illu_img = illu_img[..., : dim_missmatch[2]]
+
+                save_imgs.append(illu_img.astype(np.float32))
+                save_groups.append("illumination")
+
+            if get_distance:
+                print_timestamp("Extracting distance image...")
+
+                # create downscales image for computantially intensive processing
+                small_img = processed_img
+
+                # find suitable threshold
+                thresh = filters.threshold_otsu(small_img)
+                fg_img = small_img > thresh
+
+                # remove noise and fill holes
+                fg_img = morphology.binary_closing(
+                    fg_img, selem=morphology.ball(fg_selem_size)
+                )
+                fg_img = morphology.binary_opening(
+                    fg_img, selem=morphology.ball(fg_selem_size)
+                )
+                fg_img = flood_fill_hull(fg_img)
+                fg_img = fg_img.astype(np.bool)
+
+                # create distance transform
+                fg_img = distance_transform_edt(
+                    fg_img
+                ) - distance_transform_edt(~fg_img)
+
+                # rescale distance image
+                fg_img = np.repeat(fg_img, 4, axis=0)
+                fg_img = np.repeat(fg_img, 4, axis=1)
+                fg_img = np.repeat(fg_img, 4, axis=2)
+                dim_missmatch = np.array(processed_img.shape) - np.array(
+                    fg_img.shape
+                )
+                if dim_missmatch[0] < 0:
+                    fg_img = fg_img[: dim_missmatch[0], ...]
+                if dim_missmatch[1] < 0:
+                    fg_img = fg_img[:, : dim_missmatch[1], :]
+                if dim_missmatch[2] < 0:
+                    fg_img = fg_img[..., : dim_missmatch[2]]
+
+                save_imgs.append(fg_img.astype(np.float32))
+                save_groups.append("distance")
+
+            if get_variance:
+                print_timestamp("Extracting variance image...")
+
+                # create downscales image for computantially intensive processing
+                small_img = processed_img
+
+                # create variance image
+                std_img = generic_filter(small_img, np.std, size=variance_size)
+
+                # rescale variance image
+                std_img = np.repeat(std_img, 4, axis=0)
+                std_img = np.repeat(std_img, 4, axis=1)
+                std_img = np.repeat(std_img, 4, axis=2)
+                dim_missmatch = np.array(processed_img.shape) - np.array(
+                    std_img.shape
+                )
+                if dim_missmatch[0] < 0:
+                    std_img = std_img[: dim_missmatch[0], ...]
+                if dim_missmatch[1] < 0:
+                    std_img = std_img[:, : dim_missmatch[1], :]
+                if dim_missmatch[2] < 0:
+                    std_img = std_img[..., : dim_missmatch[2]]
+
+                save_imgs.append(std_img.astype(np.float32))
+                save_groups.append("variance")
+
+                return save_imgs, save_groups
+     
+
+
+def _apply_cellpose_network_3D(cellpose_model_3D, image_membrane, savedir = None, patch_size = (8, 256, 256), input_batch = 'image', in_channels = 1,
                                 out_activation = 'tanh' , norm_method = 'instance', 
                                 background_weight = 1, flow_weight = 1,
                                 dist_handling = 'bool_inv', learning_rate = 0.001, 
                                 out_channels = 4, feat_channels = 16,
-                                crop = (2,32,32), overlap = (1,16,16)):
+                                crop = (2,32,32), overlap = (1,16,16),
+                                fg_identifier = 'pred0', flowx_identifier = 'pred1', flowy_identifier = 'pred2', flowz_identifier = 'pred3',
+                                min_diam = 10, max_diam = 1000, step_size = 1, smoothing_var = 1, niter = 200, fg_thresh = 0.5, fg_overlap_thresh = 0.5,
+                                flow_thresh = 1, convexity_thresh = 0.5, normalize_flows = False, invert_flows = False):
      
     # ------------------------
     # 0 SANITY CHECKS
