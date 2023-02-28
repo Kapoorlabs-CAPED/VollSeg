@@ -30,8 +30,8 @@ import torchvision
 from torch import optim
 from torch.utils.data import DataLoader
 
-from dataloader.h5_dataloader import MeristemH5Dataset
-from models.UNet3D import UNet3D_module
+from PredictTiledLoader import PredictTiled
+from UNet3D import UNet3D_module
 
 
 class UNet3D_cellpose(pl.LightningModule):

@@ -3,6 +3,7 @@ from .SmartSeeds2D import SmartSeeds2D
 from .seedpool import SeedPool
 from .unetstarmask import UnetStarMask
 from .utils import *
+from .cellposeutils import *
 from .nmslabel import NMSLabel
 from .OptimizeThreshold import OptimizeThreshold
 from .inrimage import *
