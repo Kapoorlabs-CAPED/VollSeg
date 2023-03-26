@@ -9,12 +9,12 @@ import torch
 import torch.nn.functional as F
 import torchvision
 from torch import optim
-
+from collections import OrderedDict
 
 class CellPose3D(object):
 
     def __init__(self, base_dir, model_dir, model_name, patch_size = (8,256,256), epochs = 100, in_channels = 1, out_channels = 4, feat_channels = 16,
-                  samples_per_epoch = -1, batch_size = 16, learning_rate = 0.001, background_weight = 1, flow_weight = 1, 
+                  samples_per_epoch = -1, batch_size = 16, learning_rate = 0.001, background_weight = 1, flow_weight = 1, out_activation = 'tanh',
                   raw_dir = 'raw/', real_mask_dir = 'real_mask/', identifier="*.tif",
                  save_train = '_train.csv', save_test = '_test.csv', save_val = '_val.csv',
     axis_norm = (0,1,2),
@@ -39,6 +39,7 @@ class CellPose3D(object):
         self.learning_rate = learning_rate
         self.background_weight = background_weight
         self.flow_weight = flow_weight
+        self.out_activation = out_activation
         self.raw_dir = os.path.join(base_dir,raw_dir) 
         self.real_mask_dir = os.path.join(base_dir,real_mask_dir) 
         self.identifier = identifier
@@ -118,6 +119,7 @@ class CellPose3D(object):
                 'learning_rate' : self.learning_rate,
                 'background_weight' : self.background_weight,
                 'flow_weight' : self.flow_weight,
+                'out_activation' : self.out_activation,
         }
 
         save_json(self.hparams, str(self.base_dir) + '/' + self.model_name + '.json')
