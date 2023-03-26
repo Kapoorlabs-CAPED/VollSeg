@@ -3,7 +3,7 @@ from .SmartSeeds2D import SmartSeeds2D
 from .seedpool import SeedPool
 from .unetstarmask import UnetStarMask
 from .utils import *
-from .cellposeutils import *
+from .cellposeutils3D import *
 from .nmslabel import NMSLabel
 from .OptimizeThreshold import OptimizeThreshold
 from .inrimage import *
@@ -22,6 +22,7 @@ from .CellPose import CellPose
 from .UNet3D_cellpose import UNet3D_cellpose
 from .UNet3D import UNet3D_module
 from .PredictTiledLoader import PredictTiled
+from .CellPose3D import CellPose3D
 
 get_file = keras_import('utils', 'get_file')
 

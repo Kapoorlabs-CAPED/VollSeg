@@ -66,7 +66,7 @@ def h52tif(file_dir="", group_names=["data/image"]):
 
     # Save each desired group
     for num_file, file in enumerate(filelist):
-        print_timestamp(
+        print(
             "Processing file {0}/{1}", (num_file + 1, len(filelist))
         )
         with h5py.File(file, "r") as file_handle:
@@ -92,7 +92,7 @@ def replace_h5_group(
         target_group = source_group
 
     for num_pair, pair in enumerate(zip(source_list, target_list)):
-        print_timestamp(
+        print(
             "Processing file {0}/{1}...", [num_pair + 1, len(target_list)]
         )
 
@@ -116,7 +116,7 @@ def add_h5_group(
         target_group = source_group
 
     for num_pair, pair in enumerate(zip(source_list, target_list)):
-        print_timestamp(
+        print(
             "Processing file {0}/{1}...", [num_pair + 1, len(source_list)]
         )
 
@@ -133,7 +133,7 @@ def add_h5_group(
 
 def remove_h5_group(file_list, remove_group="data/nuclei"):
     for num_file, file in enumerate(file_list):
-        print_timestamp(
+        print(
             "Processing file {0}/{1}...", [num_file + 1, len(file_list)]
         )
 
@@ -189,7 +189,7 @@ def rescale_data(data, zoom_factor, order=0):
     if any([zf != 1 for zf in zoom_factor]):
         data_shape = data.shape
         data = zoom(data, zoom_factor, order=3)
-        print_timestamp(
+        print(
             f"Rescaled image from size {data_shape} to {data.shape}"
         )
 
@@ -255,7 +255,7 @@ def prepare_images(
             ]
 
             if get_illumination:
-                print_timestamp("Extracting illumination image...")
+                print("Extracting illumination image...")
 
                 # create downscales image for computantially intensive processing
                 small_img = processed_img
@@ -284,7 +284,7 @@ def prepare_images(
                 save_groups.append("illumination")
 
             if get_distance:
-                print_timestamp("Extracting distance image...")
+                print("Extracting distance image...")
 
                 # create downscales image for computantially intensive processing
                 small_img = processed_img
@@ -326,7 +326,7 @@ def prepare_images(
                 save_groups.append("distance")
 
             if get_variance:
-                print_timestamp("Extracting variance image...")
+                print("Extracting variance image...")
 
                 # create downscales image for computantially intensive processing
                 small_img = processed_img
