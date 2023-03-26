@@ -76,11 +76,20 @@ class CellPose3D(object):
               data_list.append([os.path.join(self.save_raw_h5, imagename), os.path.join(self.save_real_mask_h5, imagename)])
         create_csv(data_list, self.base_dir,save_train = self.save_train, save_test = self.save_test, save_val = self.save_val)
         self.train_list = os.path.join(self.base_dir, self.save_train)
+        self.val_list = os.path.join(self.base_dir, self.save_val)
+        self.test_list = os.path.join(self.base_dir, self.save_test)
         hparams = {
                 'train_list' : self.train_list,
+                'test_list' : self.test_list,
+                'val_list' : self.val_list,
                 'data_root' : '',
                 'patch_size' : self.patch_size,
-                'epochs' : self.epochs, 
+                'epochs' : self.epochs,
+                'image_groups': ('data/image'),
+                'mask_groups':('data/distance', 'data/seeds', 'data/boundary'),
+                'dist_handling':'bool_inv',
+
+
                
 
         }

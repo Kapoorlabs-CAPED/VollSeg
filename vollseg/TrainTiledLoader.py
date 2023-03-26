@@ -6,37 +6,29 @@ import h5py
 import csv
 import numpy as np
 from skimage import io
-from augmenter import geometry_augmenter, intensity_augmenter
 
 
 class TrainTiled(Dataset):
 
     def __init__(self, list_path, data_root='', patch_size=(64,128,128), shuffle=True, samples_per_epoch=-1,\
                  image_groups=('data/image',), mask_groups=('data/distance', 'data/seeds', 'data/boundary'), patches_from_fg=0.0,\
-                 dist_handling='bool', dist_scaling=(100,100), seed_handling='float', boundary_handling='bool', instance_handling='bool',\
-                 correspondence=True, no_img=False, no_mask=False, reduce_dim=False, permute_dim=False, augmentation_dict=None, **kwargs):
+                 dist_handling='bool_inv', 
+                 correspondence=True, no_img=False, no_mask=False):
         
         
         # Sanity checks
         assert len(patch_size)==3, 'Patch size must be 3-dimensional.'
         
-        if reduce_dim:
-            assert np.any([p==1 for p in patch_size]), 'Reduce is only possible, if there is a singleton patch dimension.'
-        
+      
         # Save parameters
         self.data_root = data_root
         self.list_path = list_path 
         self.patch_size = patch_size
         self.patches_from_fg = patches_from_fg
         self.dist_handling = dist_handling
-        self.dist_scaling = dist_scaling
-        self.seed_handling = seed_handling
-        self.instance_handling = instance_handling
-        self.boundary_handling = boundary_handling
         self.correspondence = correspondence
         self.no_img = no_img
         self.no_mask = no_mask
-        self.reduce_dim = reduce_dim
         self.samples_per_epoch = samples_per_epoch
         self.axis_norm = (0,1,2)
         # Read the filelist and construct full paths to each file
@@ -75,17 +67,6 @@ class TrainTiled(Dataset):
             self.norm2 = self.data_statistics['perc98']-self.data_statistics['perc02']
             
             
-        # Construct the augmentation dict
-        if augmentation_dict is None:
-            self.augmentation_dict = {}
-        else:
-            self.augmentation_dict = augmentation_dict
-                
-        self.intensity_augmenter = intensity_augmenter(self.augmentation_dict)
-        self.augmentation_dict = self.intensity_augmenter.augmentation_dict
-        self.geometry_augmenter = geometry_augmenter(self.augmentation_dict)
-        self.augmentation_dict = self.geometry_augmenter.augmentation_dict
-        self.permute_dim = self.augmentation_dict['permute_dim'] if 'permute_dim' in self.augmentation_dict.keys() else False
         
         
     def test(self, test_folder='', num_files=20):
@@ -129,7 +110,18 @@ class TrainTiled(Dataset):
             return self.samples_per_epoch
     
     
-    
+    def _normalize(self, data, group_name):
+        
+        # Normalization
+            
+        if 'distance' in group_name:
+            
+            if self.dist_handling == 'bool':
+                data = data<0
+            elif self.dist_handling == 'bool_inv':
+                data = data>=0
+
+        return data        
         
     
     def __getitem__(self, idx):
@@ -181,8 +173,7 @@ class TrainTiled(Dataset):
                         # sanity check
                         assert mask_tmp.shape == tuple(self.patch_size), 'Mask dimension missmatch after rotation. {0} instead of {1}.'.format(mask_tmp.shape, self.patch_size)
                         
-                    # Apply geometry augmentations 
-                    mask_tmp = self.geometry_augmenter.apply(mask_tmp, reset=num_group==0)     
+                   
                     if 'flow' in group_name and self.permute_dim:
                         num_group = num_group if not num_group-1 in swaps else int(swaps[swaps!=num_group-1]+1)
                    
@@ -192,9 +183,7 @@ class TrainTiled(Dataset):
                         
                 mask = mask.astype(np.float32)
                 
-                if self.reduce_dim:
-                    out_shape = [p for i,p in enumerate(mask.shape) if p!=1 or i==0]
-                    mask = np.reshape(mask, out_shape)
+                
                 
                 sample['mask'] = mask
                 
@@ -208,7 +197,7 @@ class TrainTiled(Dataset):
                     
                     image_tmp = f_handle[group_name]   
                     
-                    # Check if positioning and geometrical augmentations have to be reset
+                    # Check if positioning  have to be reset
                     reset = (self.no_mask or not self.correspondence) and num_group==0
                                 
                     # Determine the patch position
@@ -228,22 +217,12 @@ class TrainTiled(Dataset):
                         # sanity check
                         assert image_tmp.shape == tuple(self.patch_size), 'Image dimension missmatch after rotation. {0} instead of {1}.'.format(image.shape, self.patch_size)
                         
-                    # Apply geometry augmentation
-                    image_tmp = self.geometry_augmenter.apply(image_tmp, reset=reset)
-
-                  
-                    # Apply intensity augmentations
-                    if 'image' in group_name:    
-                        image_tmp = self.intensity_augmenter.apply(image_tmp)
-                    
+                   
                     image[num_group,...] = image_tmp
                         
                 image = image.astype(np.float32)
                         
-                if self.reduce_dim:
-                    out_shape = [p for i,p in enumerate(image.shape) if p!=1 or i==0]
-                    image = np.reshape(image, out_shape)
-                    
+               
                 sample['image'] =  image
                 
         return sample

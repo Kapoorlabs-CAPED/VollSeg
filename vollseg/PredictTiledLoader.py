@@ -14,30 +14,19 @@ class PredictTiled(Dataset):
     Dataset of fluorescently labeled cell membranes
     """
     
-    def __init__(self, data_group, patch_size=(64,128,128), overlap=(10,10,10), crop=(10,10,10), data_norm='percentile',\
-                 image_groups=('data/image',), 
-                 dist_handling='bool', dist_scaling=(100,100), seed_handling='float', boundary_handling='bool', instance_handling='bool',\
-                  reduce_dim=False, **kwargs):
+    def __init__(self, data_group, patch_size=(64,128,128), overlap=(10,10,10), crop=(10,10,10),
+                  image_groups=('data/image',)):
            
         # Sanity checks
         assert len(patch_size)==3, 'Patch size must be 3-dimensional.'
         
-        if reduce_dim:
-            assert np.any([p==1 for p in patch_size]), 'Reduce is only possible, if there is a singleton patch dimension.'
-        
+       
         # Save parameters
         self.data_group = data_group
         self.patch_size = patch_size
         self.overlap = overlap
         self.crop = crop
-        self.norm_method = data_norm
-        self.dist_handling = dist_handling
-        self.dist_scaling = dist_scaling
-        self.seed_handling = seed_handling
-        self.boundary_handling = boundary_handling
-        self.instance_handling = instance_handling
       
-        self.reduce_dim = reduce_dim
         self.image_groups = image_groups
         self.set_data()
         
@@ -91,6 +80,8 @@ class PredictTiled(Dataset):
         
         return len(self.locations)
     
+    
+    
     def __getitem__(self):
         
         self.patch_start = np.array(self.locations[0])
@@ -104,7 +95,6 @@ class PredictTiled(Dataset):
         
         sample = {}
                 
-        # Load the mask patch
         # Load the image patch
         image = np.zeros((len(self.image_groups),)+self.patch_size, dtype=np.float32)
         for num_group, group_name in enumerate(self.image_groups):
@@ -117,9 +107,7 @@ class PredictTiled(Dataset):
                 # Store current image
                 image[num_group,...] = image_tmp
         
-        if self.reduce_dim:
-            out_shape = [p for i,p in enumerate(image.shape) if p!=1 or i==0]
-            image = np.reshape(image, out_shape)
+       
         
         sample['image'] = image
         
