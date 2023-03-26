@@ -1,11 +1,12 @@
 import os
 from pathlib import Path 
-from cellposeutils3D import prepare_images, prepare_masks
-
+from cellposeutils3D import prepare_images, prepare_masks, create_csv
+from . import save_json
 
 class CellPose3D(object):
 
-    def __init__(self, base_dir, model_dir, model_name, raw_dir = 'raw/', real_mask_dir = 'real_mask/', identifier="*.tif",
+    def __init__(self, base_dir, model_dir, model_name, patch_size = (8,256,256), epochs = 100, raw_dir = 'raw/', real_mask_dir = 'real_mask/', identifier="*.tif",
+                 save_train = '_train.csv', save_test = '_test.csv', save_val = '_val.csv',
     axis_norm = (0,1,2),
     variance_size=(5, 5, 5),
     fg_footprint_size=5,
@@ -18,9 +19,14 @@ class CellPose3D(object):
         self.base_dir = base_dir 
         self.model_dir = model_dir
         self.model_name = model_name 
+        self.patch_size = patch_size 
+        self.epochs = epochs
         self.raw_dir = os.path.join(base_dir,raw_dir) 
         self.real_mask_dir = os.path.join(base_dir,real_mask_dir) 
-        self.identifier = identifier 
+        self.identifier = identifier
+        self.save_train = save_train
+        self.save_test = save_test 
+        self.save_val = save_val  
         self.axis_norm = axis_norm 
         self.variance_size = variance_size
         self.fg_footprint_size = fg_footprint_size
@@ -65,6 +71,21 @@ class CellPose3D(object):
                 corrupt_prob=self.corrupt_prob,
                 zoom_factor= self.zoom_factor
             )
+        data_list = []
+        for imagename in os.listdir(self.save_raw_h5):
+              data_list.append([os.path.join(self.save_raw_h5, imagename), os.path.join(self.save_real_mask_h5, imagename)])
+        create_csv(data_list, self.base_dir,save_train = self.save_train, save_test = self.save_test, save_val = self.save_val)
+        self.train_list = os.path.join(self.base_dir, self.save_train)
+        hparams = {
+                'train_list' : self.train_list,
+                'data_root' : '',
+                'patch_size' : self.patch_size,
+                'epochs' : self.epochs, 
+               
+
+        }
+
+        save_json(hparams, str(self.base_dir) + '/' + self.model_name + '.json')
 
 
         

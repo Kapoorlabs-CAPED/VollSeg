@@ -30,6 +30,50 @@ from scipy.spatial import ConvexHull, Delaunay
 from skimage import filters, io, measure, morphology
 from tqdm import tqdm
 from pathlib import Path
+import csv
+
+def create_csv(data_list, save_path, save_train = '_train.csv', save_test = '_test.csv', save_val = '_val.csv', test_split=0.1, val_split=0.1, shuffle=True):
+        
+    if shuffle:
+        np.random.shuffle(data_list)
+    
+    # Get number of files for each split
+    num_files = len(data_list)
+    num_test_files = int(test_split*num_files)
+    num_val_files = int((num_files-num_test_files)*val_split)
+    num_train_files = num_files - num_test_files - num_val_files
+    
+    # Get file indices
+    file_idx = np.arange(num_files)
+    
+    # Save csv files
+    if num_test_files > 0:
+        test_idx = sorted(np.random.choice(file_idx, size=num_test_files, replace=False))
+        with open(save_path + save_test, 'w') as fh:
+            writer = csv.writer(fh, delimiter=';')
+            for idx in test_idx:
+                writer.writerow(data_list[idx])
+    else:
+        test_idx = []
+        
+    if num_val_files > 0:
+        val_idx = sorted(np.random.choice(list(set(file_idx)-set(test_idx)), size=num_val_files, replace=False))
+        with open(save_path + save_val, 'w') as fh:
+            writer = csv.writer(fh, delimiter=';')
+            for idx in val_idx:
+                writer.writerow(data_list[idx])
+    else:
+        val_idx = []
+    
+    if num_train_files > 0:
+        train_idx = sorted(list(set(file_idx) - set(test_idx) - set(val_idx)))
+        with open(save_path + save_train, 'w') as fh:
+            writer = csv.writer(fh, delimiter=';')
+            for idx in train_idx:
+                writer.writerow(data_list[idx])
+            
+
+
 
 def h5_writer(data_list, save_path, group_root="data", group_names=["image"]):
     save_path = os.path.abspath(save_path)

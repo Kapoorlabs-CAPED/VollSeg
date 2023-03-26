@@ -4,17 +4,14 @@ from torch.utils.data import Dataset
 import os
 import h5py
 import csv
-import itertools
 import numpy as np
-from csbdeep.utils import normalize
-from scipy.ndimage import filters, distance_transform_edt
 from skimage import io
 from augmenter import geometry_augmenter, intensity_augmenter
 
 
 class TrainTiled(Dataset):
 
-    def __init__(self, list_path, data_root='', patch_size=(64,128,128), data_norm='percentile', shuffle=True, samples_per_epoch=-1,\
+    def __init__(self, list_path, data_root='', patch_size=(64,128,128), shuffle=True, samples_per_epoch=-1,\
                  image_groups=('data/image',), mask_groups=('data/distance', 'data/seeds', 'data/boundary'), patches_from_fg=0.0,\
                  dist_handling='bool', dist_scaling=(100,100), seed_handling='float', boundary_handling='bool', instance_handling='bool',\
                  correspondence=True, no_img=False, no_mask=False, reduce_dim=False, permute_dim=False, augmentation_dict=None, **kwargs):
@@ -30,7 +27,6 @@ class TrainTiled(Dataset):
         self.data_root = data_root
         self.list_path = list_path 
         self.patch_size = patch_size
-        self.norm_method = data_norm
         self.patches_from_fg = patches_from_fg
         self.dist_handling = dist_handling
         self.dist_scaling = dist_scaling
@@ -75,19 +71,9 @@ class TrainTiled(Dataset):
             self.data_statistics['perc02'] = np.mean(self.data_statistics['perc02'])
             self.data_statistics['perc98'] = np.mean(self.data_statistics['perc98'])
             
-            # Get the normalization values
-            if self.norm_method == 'minmax':
-                self.norm1 = self.data_statistics['min']
-                self.norm2 = self.data_statistics['max']-self.data_statistics['min']
-            elif self.norm_method == 'meanstd':
-                self.norm1 = self.data_statistics['mean']
-                self.norm2 = self.data_statistics['std']
-            elif self.norm_method == 'percentile':
-                self.norm1 = self.data_statistics['perc02']
-                self.norm2 = self.data_statistics['perc98']-self.data_statistics['perc02']
-            else:
-                self.norm1 = 0
-                self.norm2 = 1
+            self.norm1 = self.data_statistics['perc02']
+            self.norm2 = self.data_statistics['perc98']-self.data_statistics['perc02']
+            
             
         # Construct the augmentation dict
         if augmentation_dict is None:
@@ -143,47 +129,7 @@ class TrainTiled(Dataset):
             return self.samples_per_epoch
     
     
-    def _normalize(self, data, group_name):
-        
-        # Normalization
-            
-        if 'distance' in group_name:
-            if self.dist_handling == 'float':
-                data /= self.dist_scaling[0]
-            elif self.dist_handling == 'bool':
-                data = data<0
-            elif self.dist_handling == 'bool_inv':
-                data = data>=0
-            elif self.dist_handling == 'exp':
-                data = (data/self.dist_scaling[0])**3
-            elif self.dist_handling == 'tanh':    
-                foreground = np.float16(data>0)
-                data = np.tanh(data/self.dist_scaling[0])*foreground + np.tanh(data/self.dist_scaling[1])*(1-foreground)
-            else:
-                pass
-            
-        elif 'seed' in group_name:                    
-            if self.seed_handling == 'float':
-                data = data.astype(np.float32)
-                data = filters.gaussian_filter(data, 2)
-                if np.max(data)>1e-4: data /= float(np.max(data))
-            elif self.seed_handling == 'bool':
-                data = data>0.1
-            else:
-                pass
-         
-        elif 'instance' in group_name or 'nuclei' in group_name:
-            if self.instance_handling == 'bool':
-                data = data>0
-         
-        elif 'boundary' in group_name:
-            if self.boundary_handling == 'bool':
-                data = data>0
-                
-        elif 'image' in group_name:
-            data = normalize(data,1,99.8,axis= self.axis_norm)
-                
-        return data
+    
         
     
     def __getitem__(self, idx):
@@ -240,8 +186,6 @@ class TrainTiled(Dataset):
                     if 'flow' in group_name and self.permute_dim:
                         num_group = num_group if not num_group-1 in swaps else int(swaps[swaps!=num_group-1]+1)
                    
-                    # Normalization
-                    mask_tmp = self._normalize(mask_tmp, group_name)
                     
                     # Store current mask
                     mask[num_group,...] = mask_tmp
@@ -287,9 +231,7 @@ class TrainTiled(Dataset):
                     # Apply geometry augmentation
                     image_tmp = self.geometry_augmenter.apply(image_tmp, reset=reset)
 
-                    # Normalization
-                    image_tmp = self._normalize(image_tmp, group_name)
-
+                  
                     # Apply intensity augmentations
                     if 'image' in group_name:    
                         image_tmp = self.intensity_augmenter.apply(image_tmp)

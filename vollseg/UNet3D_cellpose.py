@@ -30,7 +30,7 @@ import torchvision
 from torch import optim
 from torch.utils.data import DataLoader
 
-from PredictTiledLoader import PredictTiled
+from TrainTiledLoader import TrainTiled
 from UNet3D import UNet3D_module
 
 
@@ -39,7 +39,7 @@ class UNet3D_cellpose(pl.LightningModule):
         super().__init__()
 
         
-        self.hparams.update(hparams)
+        self.hparams = hparams
         self.augmentation_dict = {}
 
         # networks
@@ -177,7 +177,7 @@ class UNet3D_cellpose(pl.LightningModule):
         if self.hparams["train_list"] is None:
             return None
         else:
-            dataset = MeristemH5Dataset(
+            dataset = TrainTiled(
                 self.hparams["train_list"],
                 self.hparams["data_root"],
                 patch_size=self.hparams["patch_size"],
@@ -199,7 +199,7 @@ class UNet3D_cellpose(pl.LightningModule):
         if self.hparams["test_list"] is None:
             return None
         else:
-            dataset = MeristemH5Dataset(
+            dataset = TrainTiled(
                 self.hparams["test_list"],
                 self.hparams["data_root"],
                 patch_size=self.hparams["patch_size"],
@@ -215,7 +215,7 @@ class UNet3D_cellpose(pl.LightningModule):
         if self.hparams["val_list"] is None:
             return None
         else:
-            dataset = MeristemH5Dataset(
+            dataset = TrainTiled(
                 self.hparams["val_list"],
                 self.hparams["data_root"],
                 patch_size=self.hparams["patch_size"],
