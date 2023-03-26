@@ -5,7 +5,9 @@ from . import save_json
 
 class CellPose3D(object):
 
-    def __init__(self, base_dir, model_dir, model_name, patch_size = (8,256,256), epochs = 100, raw_dir = 'raw/', real_mask_dir = 'real_mask/', identifier="*.tif",
+    def __init__(self, base_dir, model_dir, model_name, patch_size = (8,256,256), epochs = 100, in_channels = 1, out_channels = 4, feat_channels = 16,
+                  samples_per_epoch = -1, batch_size = 16, learning_rate = 0.001, background_weight = 1, flow_weight = 1, 
+                  raw_dir = 'raw/', real_mask_dir = 'real_mask/', identifier="*.tif",
                  save_train = '_train.csv', save_test = '_test.csv', save_val = '_val.csv',
     axis_norm = (0,1,2),
     variance_size=(5, 5, 5),
@@ -21,6 +23,14 @@ class CellPose3D(object):
         self.model_name = model_name 
         self.patch_size = patch_size 
         self.epochs = epochs
+        self.in_channels = in_channels
+        self.out_channels = out_channels 
+        self.feat_channels = feat_channels
+        self.samples_per_epoch = samples_per_epoch
+        self.batch_size = batch_size
+        self.learning_rate = learning_rate
+        self.background_weight = background_weight
+        self.flow_weight = flow_weight
         self.raw_dir = os.path.join(base_dir,raw_dir) 
         self.real_mask_dir = os.path.join(base_dir,real_mask_dir) 
         self.identifier = identifier
@@ -88,6 +98,15 @@ class CellPose3D(object):
                 'image_groups': ('data/image'),
                 'mask_groups':('data/distance', 'data/seeds', 'data/boundary'),
                 'dist_handling':'bool_inv',
+                'in_channels': self.in_channels,
+                'out_channels': self.out_channels,
+                'feat_channels':self.feat_channels,
+                'norm_method':'instance',
+                'samples_per_epoch' : self.samples_per_epoch,
+                'batch_size' : self.batch_size,
+                'learning_rate' : self.learning_rate,
+                'background_weight' : self.background_weight,
+                'flow_weight' : self.flow_weight,
 
 
                
