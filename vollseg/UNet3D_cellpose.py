@@ -176,6 +176,7 @@ class UNet3D_cellpose(pl.LightningModule):
     def train_dataloader(self):
         if self.hparams["train_list"] is None:
             return None
+        
         else:
             dataset = TrainTiled(
                 self.hparams["train_list"],
@@ -183,7 +184,6 @@ class UNet3D_cellpose(pl.LightningModule):
                 patch_size=self.hparams["patch_size"],
                 image_groups=self.hparams["image_groups"],
                 mask_groups=self.hparams["mask_groups"],
-                augmentation_dict=self.augmentation_dict,
                 dist_handling=self.hparams["dist_handling"],
                 norm_method=self.hparams["data_norm"],
                 sample_per_epoch=self.hparams["samples_per_epoch"],

@@ -2,6 +2,10 @@ import os
 from pathlib import Path 
 from cellposeutils3D import prepare_images, prepare_masks, create_csv
 from . import save_json
+from TrainTiledLoader import TrainTiled
+from torch.utils.data import DataLoader
+from UNet3D import UNet3D_module
+
 
 class CellPose3D(object):
 
@@ -88,7 +92,7 @@ class CellPose3D(object):
         self.train_list = os.path.join(self.base_dir, self.save_train)
         self.val_list = os.path.join(self.base_dir, self.save_val)
         self.test_list = os.path.join(self.base_dir, self.save_test)
-        hparams = {
+        self.hparams = {
                 'train_list' : self.train_list,
                 'test_list' : self.test_list,
                 'val_list' : self.val_list,
@@ -107,13 +111,52 @@ class CellPose3D(object):
                 'learning_rate' : self.learning_rate,
                 'background_weight' : self.background_weight,
                 'flow_weight' : self.flow_weight,
-
-
-               
-
         }
 
-        save_json(hparams, str(self.base_dir) + '/' + self.model_name + '.json')
+        save_json(self.hparams, str(self.base_dir) + '/' + self.model_name + '.json')
+
+        train_dataset = TrainTiled(
+                self.hparams["train_list"],
+                self.hparams["data_root"],
+                patch_size=self.hparams["patch_size"],
+                image_groups=self.hparams["image_groups"],
+                mask_groups=self.hparams["mask_groups"],
+                dist_handling=self.hparams["dist_handling"],
+                norm_method=self.hparams["data_norm"],
+                sample_per_epoch=self.hparams["samples_per_epoch"]
+            )
+        train_loader = DataLoader(
+                train_dataset,
+                batch_size=self.hparams["batch_size"],
+                shuffle=True,
+                drop_last=True
+            )
+        
+        val_dataset = TrainTiled(
+                self.hparams["val_list"],
+                self.hparams["data_root"],
+                patch_size=self.hparams["patch_size"],
+                image_groups=self.hparams["image_groups"],
+                mask_groups=self.hparams["mask_groups"],
+                dist_handling=self.hparams["dist_handling"],
+                norm_method=self.hparams["data_norm"],
+                sample_per_epoch=self.hparams["samples_per_epoch"]
+            )
+        val_loader = DataLoader(
+                val_dataset,
+                batch_size=self.hparams["batch_size"],
+                shuffle=True,
+                drop_last=True
+            )
+        
+        self.network = UNet3D_module(
+            patch_size=self.hparams["patch_size"],
+            in_channels=self.hparams["in_channels"],
+            out_channels=self.hparams["out_channels"],
+            feat_channels=self.hparams["feat_channels"],
+            out_activation=self.hparams["out_activation"],
+            norm_method=self.hparams["norm_method"],
+        )
 
 
         

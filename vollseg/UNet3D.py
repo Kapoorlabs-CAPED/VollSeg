@@ -28,7 +28,7 @@ class UNet3D_module(nn.Module):
     """Implementation of the 3D U-Net architecture.
     """
 
-    def __init__(self, patch_size, in_channels, out_channels, feat_channels=16, activation='leakyrelu', out_activation='sigmoid', norm_method='none', **kwargs):
+    def __init__(self, patch_size, in_channels, out_channels, feat_channels=16, activation='leakyrelu', out_activation='sigmoid', norm_method='none'):
         super(UNet3D_module, self).__init__()
         
         self.patch_size = patch_size

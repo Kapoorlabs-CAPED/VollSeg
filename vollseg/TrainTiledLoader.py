@@ -1,5 +1,3 @@
-
-
 from torch.utils.data import Dataset
 import os
 import h5py
@@ -10,10 +8,9 @@ from skimage import io
 
 class TrainTiled(Dataset):
 
-    def __init__(self, list_path, data_root='', patch_size=(64,128,128), shuffle=True, samples_per_epoch=-1,\
+    def __init__(self, list_path, data_root='', patch_size=(64,128,128), samples_per_epoch=-1,\
                  image_groups=('data/image',), mask_groups=('data/distance', 'data/seeds', 'data/boundary'), patches_from_fg=0.0,\
-                 dist_handling='bool_inv', 
-                 correspondence=True, no_img=False, no_mask=False):
+                 dist_handling='bool_inv', correspondence=True, no_img=False, no_mask=False):
         
         
         # Sanity checks
@@ -32,41 +29,9 @@ class TrainTiled(Dataset):
         self.samples_per_epoch = samples_per_epoch
         self.axis_norm = (0,1,2)
         # Read the filelist and construct full paths to each file
-        self.shuffle = shuffle
         self.image_groups = image_groups
         self.mask_groups = mask_groups
         self.data_list = self._read_list()
-        
-        if self.samples_per_epoch < len(self.data_list) and self.samples_per_epoch>0:
-            print('Only {0}/{1} files are used for training! Increase the samples per epoch.'.format(self.samples_per_epoch, len(self.data_list)))
-        
-        # Get image statistics from up to 10 files
-        if not self.no_img and 'image' in self.image_groups[0]:
-            print('Getting statistics from images...')
-            self.data_statistics = {'min':[], 'max':[], 'mean':[], 'std':[], 'perc02':[], 'perc98':[]}
-            for file_pair in self.data_list[:20]:
-                with h5py.File(file_pair[0], 'r') as f_handle:
-                    image = f_handle[self.image_groups[0]][...].astype(np.float32)
-                    self.data_statistics['min'].append(np.min(image))
-                    self.data_statistics['max'].append(np.max(image))
-                    self.data_statistics['mean'].append(np.mean(image))
-                    self.data_statistics['std'].append(np.std(image))
-                    perc02, perc98 = np.percentile(image, [2,98])
-                    self.data_statistics['perc02'].append(perc02)
-                    self.data_statistics['perc98'].append(perc98)
-            
-            # Construct data set statistics
-            self.data_statistics['min'] = np.min(self.data_statistics['min'])
-            self.data_statistics['max'] = np.max(self.data_statistics['max'])
-            self.data_statistics['mean'] = np.mean(self.data_statistics['mean'])
-            self.data_statistics['std'] = np.mean(self.data_statistics['std'])
-            self.data_statistics['perc02'] = np.mean(self.data_statistics['perc02'])
-            self.data_statistics['perc98'] = np.mean(self.data_statistics['perc98'])
-            
-            self.norm1 = self.data_statistics['perc02']
-            self.norm2 = self.data_statistics['perc98']-self.data_statistics['perc02']
-            
-            
         
         
     def test(self, test_folder='', num_files=20):
@@ -95,9 +60,6 @@ class TrainTiled(Dataset):
                 if len(row)==0 or np.sum([len(r) for r in row])==0: continue
                 row = [os.path.join(self.data_root, r) for r in row]
                 filelist.append(row)
-        
-        if self.shuffle:
-            np.random.shuffle(filelist)
                 
         return filelist
     
@@ -196,7 +158,6 @@ class TrainTiled(Dataset):
                 for num_group, group_name in enumerate(self.image_groups):
                     
                     image_tmp = f_handle[group_name]   
-                    
                     # Check if positioning  have to be reset
                     reset = (self.no_mask or not self.correspondence) and num_group==0
                                 
