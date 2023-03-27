@@ -14,7 +14,7 @@ from six import string_types
 from tifffile import imread, imwrite
 from skimage import morphology
 from skimage.morphology import dilation, square
-from scipy.ndimage import zoom, binary_dilation, binary_erosion, gaussian_filter, median_filter
+from scipy.ndimage import zoom, binary_dilation, binary_erosion, generic_filter
 from skimage.morphology import remove_small_objects
 from matplotlib import cm
 from scipy import spatial
@@ -35,6 +35,9 @@ import math
 import pandas as pd
 import napari
 import glob
+import csv
+import concurrent
+from scipy.spatial import ConvexHull, Delaunay
 from skimage.util import map_array
 from vollseg.matching import matching
 from vollseg.seedpool import SeedPool
@@ -45,9 +48,9 @@ from qtpy.QtWidgets import QComboBox, QPushButton
 from skimage.filters import threshold_multiotsu, threshold_otsu
 from scipy.ndimage.measurements import find_objects
 from cellpose_vollseg import models
-from multiprocessing.pool import ThreadPool
-from concurrent.futures import ThreadPoolExecutor
+
 from threading import Thread
+from scipy.ndimage import filters
 
 Boxname = 'ImageIDBox'
 GLOBAL_THRESH = 1.0E-2
@@ -370,7 +373,7 @@ def CCLabels(fname, max_size=15000):
     image = invertimage(image)
     IntegerImage = label(image)
     labelclean = remove_big_objects(IntegerImage, max_size=max_size)
-    AugmentedLabel = dilation(labelclean, selem=square(3))
+    AugmentedLabel = dilation(labelclean, footprint=square(3))
     AugmentedLabel = np.multiply(AugmentedLabel,  Orig)
 
     return AugmentedLabel
@@ -993,6 +996,7 @@ def _star_time_block(
     return res
 
 def _cellpose_star_time_block(cellpose_model,
+                            cellpose_model_3D,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,
@@ -1032,7 +1036,7 @@ def _cellpose_star_time_block(cellpose_model,
     
     futures = []
     
-    with ThreadPoolExecutor(max_workers = os.cpu_count()) as executor:
+    with concurrent.futures.ThreadPoolExecutor(max_workers = os.cpu_count()) as executor:
         
             futures.append(executor.submit(_star_time_block, 
                                 
@@ -1083,7 +1087,383 @@ def _cellpose_star_time_block(cellpose_model,
     
     return cellres, res
 
+def _create_apply_csv(data_list, save_path, save_name):
+    _create_csv(
+        data_list, save_path, test_split=0, val_split=0, save_name=save_name
+    )
+
+
+def _create_csv(
+    data_list,
+    save_path="list_folder/experiment_name",
+    test_split=0.2,
+    val_split=0.1,
+    shuffle=False,
+    save_name="_train.csv",
+):
+    if shuffle:
+        np.random.shuffle(data_list)
+
+    # Get number of files for each split
+    num_files = len(data_list)
+    num_test_files = int(test_split * num_files)
+    num_val_files = int((num_files - num_test_files) * val_split)
+    num_train_files = num_files - num_test_files - num_val_files
+
+    # Get file indices
+    file_idx = np.arange(num_files)
+
+    # Save csv files
+    if num_test_files > 0:
+        test_idx = sorted(
+            np.random.choice(file_idx, size=num_test_files, replace=False)
+        )
+        with open(save_path + "_test.csv", "w") as fh:
+            writer = csv.writer(fh, delimiter=";")
+            for idx in test_idx:
+                writer.writerow(data_list[idx])
+    else:
+        test_idx = []
+
+    if num_val_files > 0:
+        val_idx = sorted(
+            np.random.choice(
+                list(set(file_idx) - set(test_idx)),
+                size=num_val_files,
+                replace=False,
+            )
+        )
+        with open(save_path + "_val.csv", "w") as fh:
+            writer = csv.writer(fh, delimiter=";")
+            for idx in val_idx:
+                writer.writerow(data_list[idx])
+    else:
+        val_idx = []
+
+    if num_train_files > 0:
+        train_idx = sorted(list(set(file_idx) - set(test_idx) - set(val_idx)))
+        with open(save_path + save_name, "w") as fh:
+            writer = csv.writer(fh, delimiter=";")
+            for idx in train_idx:
+                writer.writerow(data_list[idx])
+
+
+def convert_mask_h5(instance_mask,bg_label=0,
+    get_flows=True,
+    get_boundary=False,
+    get_seeds=False,
+    get_distance=True,
+    corrupt_prob=0.0 ):
+             
+
+            data_group = {} 
+            instance_mask = instance_mask.astype(np.uint16)
+            instance_mask[instance_mask == bg_label] = 0
+            if corrupt_prob > 0:
+                # Randomly merge neighbouring instances
+                labels = list(set(np.unique(instance_mask)) - {bg_label})
+                instance_mask_eroded = morphology.erosion(
+                    instance_mask, footprint=morphology.ball(3)
+                )
+                instance_mask_dilated = morphology.dilation(
+                    instance_mask, footprint=morphology.ball(3)
+                )
+                for label in labels:
+                    if np.random.rand() < corrupt_prob:
+                        neighbour_labels = list(
+                            instance_mask_eroded[instance_mask == label]
+                        ) + list(instance_mask_dilated[instance_mask == label])
+                        neighbour_labels = list(
+                            set(neighbour_labels) - {label}
+                        )
+                        if len(neighbour_labels) > 0:
+                            replace_label = np.random.choice(neighbour_labels)
+                            instance_mask[
+                                instance_mask == label
+                            ] = replace_label
+
+            save_groups = [
+                "instance",
+            ]
+            save_masks = [
+                instance_mask,
+            ]
+
+            # get the boundary mask
+            if get_boundary:
+                membrane_mask = (
+                    morphology.dilation(
+                        instance_mask, footprint=morphology.ball(2)
+                    )
+                    - instance_mask
+                )
+                membrane_mask = membrane_mask != 0
+                membrane_mask = membrane_mask.astype(np.float32)
+                save_groups.append("boundary")
+                save_masks.append(membrane_mask)
+
+            # get the distance mask
+            if get_distance:
+                fg_img = instance_mask
+
+                fg_img = flood_fill_hull(fg_img > 0)
+                fg_img = fg_img.astype(np.bool)
+                distance_mask = distance_transform_edt(
+                    fg_img
+                ) - distance_transform_edt(~fg_img)
+                distance_mask = distance_mask.astype(np.float32)
+                distance_mask = np.repeat(distance_mask, 4, axis=0)
+                distance_mask = np.repeat(distance_mask, 4, axis=1)
+                distance_mask = np.repeat(distance_mask, 4, axis=2)
+                dim_missmatch = np.array(instance_mask.shape) - np.array(
+                    distance_mask.shape
+                )
+                if dim_missmatch[0] < 0:
+                    distance_mask = distance_mask[: dim_missmatch[0], ...]
+                if dim_missmatch[1] < 0:
+                    distance_mask = distance_mask[:, : dim_missmatch[1], :]
+                if dim_missmatch[2] < 0:
+                    distance_mask = distance_mask[..., : dim_missmatch[2]]
+                save_groups.append("distance")
+                save_masks.append(distance_mask)
+
+            # get the centroid mask
+            if get_seeds:
+                centroid_mask = np.zeros(instance_mask.shape, dtype=np.float32)
+                regions = measure.regionprops(instance_mask)
+
+                for props in regions:
+                    if props.label == bg_label:
+                        continue
+
+                    c = props.centroid
+                    centroid_mask[np.int(c[0]), np.int(c[1]), np.int(c[2])] = 1
+
+                save_groups.append("seeds")
+                save_masks.append(centroid_mask)
+
+            # calculate the flow field
+            if get_flows:
+                flow_x, flow_y, flow_z = calculate_flows(
+                    instance_mask, bg_label=bg_label
+                )
+
+                save_groups.extend(["flow_x", "flow_y", "flow_z"])
+                save_masks.extend([flow_x, flow_y, flow_z])
+            for i in range(len(save_groups)):
+                 data_group[save_groups[i]] = save_masks[i]
+
+            return data_group    
+     
+def calculate_flows(instance_mask, bg_label=0):
+    flow_x = np.zeros(instance_mask.shape, dtype=np.float32)
+    flow_y = np.zeros(instance_mask.shape, dtype=np.float32)
+    flow_z = np.zeros(instance_mask.shape, dtype=np.float32)
+    regions = measure.regionprops(instance_mask)
+
+    futures = []
+
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=os.cpu_count()
+    ) as executor:
+        for props in regions:
+            if props.label != bg_label:
+                futures.append(
+                    executor.submit(_compute_flow, props, instance_mask)
+                )
+
+        for r in concurrent.futures.as_completed(futures):
+            coords, c = r.result()
+            flow_x[coords] = np.tanh((coords[0] - c[0]) / 5)
+            flow_y[coords] = np.tanh((coords[1] - c[1]) / 5)
+            flow_z[coords] = np.tanh((coords[2] - c[2]) / 5)
+
+    return flow_x, flow_y, flow_z
+
+
+def _compute_flow(props, instance_mask):
+    c = props.centroid
+    coords = np.where(instance_mask == props.label)
+    return coords, c
+
+def flood_fill_hull(image):
+    points = np.transpose(np.where(image))
+    hull = ConvexHull(points)
+    deln = Delaunay(points[hull.vertices])
+    idx = np.stack(np.indices(image.shape), axis=-1)
+    out_idx = np.nonzero(deln.find_simplex(idx) + 1)
+    out_img = np.zeros(image.shape)
+    out_img[out_idx] = 1
+
+    return out_img
+
+
+def convert_image_h5(processed_img,
+    get_distance=False,
+    get_illumination=False,
+    get_variance=False,
+    variance_size=(5, 5, 5),
+    fg_footprint_size=5,
+
+    channel=0):
+     
+           
+            data_group = {}
+
+            processed_img = processed_img.astype(np.float32)
+
+            # get the desired channel, if the image is a multichannel image
+            if processed_img.ndim == 4:
+                processed_img = processed_img[..., channel]
+            save_imgs = [
+                processed_img,
+            ]
+            save_groups = [
+                "image",
+            ]
+
+            if get_illumination:
+                # create downscales image for computantially intensive processing
+                small_img = processed_img
+
+                # create an illuminance image (downscale for faster processing)
+                illu_img = morphology.closing(
+                    small_img, footprint=morphology.ball(7)
+                )
+                illu_img = filters.gaussian(illu_img, 2).astype(np.float32)
+
+                # rescale illuminance image
+                illu_img = np.repeat(illu_img, 2, axis=0)
+                illu_img = np.repeat(illu_img, 2, axis=1)
+                illu_img = np.repeat(illu_img, 2, axis=2)
+                dim_missmatch = np.array(processed_img.shape) - np.array(
+                    illu_img.shape
+                )
+                if dim_missmatch[0] < 0:
+                    illu_img = illu_img[: dim_missmatch[0], ...]
+                if dim_missmatch[1] < 0:
+                    illu_img = illu_img[:, : dim_missmatch[1], :]
+                if dim_missmatch[2] < 0:
+                    illu_img = illu_img[..., : dim_missmatch[2]]
+
+                save_imgs.append(illu_img.astype(np.float32))
+                save_groups.append("illumination")
+
+            if get_distance:
+               
+
+                # create downscales image for computantially intensive processing
+                small_img = processed_img
+
+                # find suitable threshold
+                thresh = filters.threshold_otsu(small_img)
+                fg_img = small_img > thresh
+
+                # remove noise and fill holes
+                fg_img = morphology.binary_closing(
+                    fg_img, footprint=morphology.ball(fg_footprint_size)
+                )
+                fg_img = morphology.binary_opening(
+                    fg_img, footprint=morphology.ball(fg_footprint_size)
+                )
+                fg_img = flood_fill_hull(fg_img)
+                fg_img = fg_img.astype(np.bool)
+
+                # create distance transform
+                fg_img = distance_transform_edt(
+                    fg_img
+                ) - distance_transform_edt(~fg_img)
+
+                # rescale distance image
+                fg_img = np.repeat(fg_img, 4, axis=0)
+                fg_img = np.repeat(fg_img, 4, axis=1)
+                fg_img = np.repeat(fg_img, 4, axis=2)
+                dim_missmatch = np.array(processed_img.shape) - np.array(
+                    fg_img.shape
+                )
+                if dim_missmatch[0] < 0:
+                    fg_img = fg_img[: dim_missmatch[0], ...]
+                if dim_missmatch[1] < 0:
+                    fg_img = fg_img[:, : dim_missmatch[1], :]
+                if dim_missmatch[2] < 0:
+                    fg_img = fg_img[..., : dim_missmatch[2]]
+
+                save_imgs.append(fg_img.astype(np.float32))
+                save_groups.append("distance")
+
+            if get_variance:
+               
+
+                # create downscales image for computantially intensive processing
+                small_img = processed_img
+
+                # create variance image
+                std_img = generic_filter(small_img, np.std, size=variance_size)
+
+                # rescale variance image
+                std_img = np.repeat(std_img, 4, axis=0)
+                std_img = np.repeat(std_img, 4, axis=1)
+                std_img = np.repeat(std_img, 4, axis=2)
+                dim_missmatch = np.array(processed_img.shape) - np.array(
+                    std_img.shape
+                )
+                if dim_missmatch[0] < 0:
+                    std_img = std_img[: dim_missmatch[0], ...]
+                if dim_missmatch[1] < 0:
+                    std_img = std_img[:, : dim_missmatch[1], :]
+                if dim_missmatch[2] < 0:
+                    std_img = std_img[..., : dim_missmatch[2]]
+
+                save_imgs.append(std_img.astype(np.float32))
+                save_groups.append("variance")
+                for i in range(len(save_groups)):
+                     data_group[save_groups[i]] = save_imgs[i]
+
+                return data_group
+     
+
+
+def _apply_cellpose_network_3D(cellpose_model_3D, image_membrane, savedir = None, patch_size = (8, 256, 256), input_batch = 'image', in_channels = 1,
+                                out_activation = 'tanh' , norm_method = 'instance', 
+                                background_weight = 1, flow_weight = 1,
+                                dist_handling = 'bool_inv', learning_rate = 0.001, 
+                                out_channels = 4, feat_channels = 16,
+                                crop = (2,32,32), overlap = (1,16,16),
+                                fg_identifier = 'pred0', flowx_identifier = 'pred1', flowy_identifier = 'pred2', flowz_identifier = 'pred3',
+                                min_diam = 10, max_diam = 1000, step_size = 1, smoothing_var = 1, niter = 200, fg_thresh = 0.5, fg_overlap_thresh = 0.5,
+                                flow_thresh = 1, convexity_thresh = 0.5, normalize_flows = False, invert_flows = False):
+     
+    # ------------------------
+    # 0 SANITY CHECKS
+    # ------------------------
+    if not isinstance(overlap, (tuple, list)):
+        overlap = (overlap,) * len(patch_size)
+    if not isinstance(crop, (tuple, list)):
+        crop = (crop,) * len(patch_size)
+    assert all(
+        [
+            p - 2 * o - 2 * c > 0
+            for p, o, c in zip(
+                patch_size, overlap, crop
+            )
+        ]
+    ), "Invalid combination of patch size, overlap and crop size."
+    hparams = {
+         'patch_size' : patch_size,
+         'in_channels' : in_channels,
+         'out_channels' : out_channels,
+         'feat_channels': feat_channels,
+         'out_activation': out_activation,
+         'norm_method': norm_method,
+         'background_weight': background_weight,
+         'flow_weight': flow_weight,
+
+    }
+
+
+
 def _cellpose_star_block(cellpose_model,
+                        cellpose_model_3D,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,
@@ -1163,6 +1543,7 @@ def VollCellSeg(image: np.ndarray,
                 roi_model = None,
                 noise_model=None,
                 cellpose_model = None, 
+                cellpose_model_3D = None,
                 custom_cellpose_model: bool = False, 
                 pretrained_cellpose_model_path: str = None,
                 cellpose_model_name = 'cyto2',
@@ -1204,6 +1585,7 @@ def VollCellSeg(image: np.ndarray,
         image_nuclei = image
                             
         cellres, res = _cellpose_star_block(cellpose_model,
+                                            cellpose_model_3D,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,
@@ -1243,6 +1625,7 @@ def VollCellSeg(image: np.ndarray,
             
             
             cellres, res = _cellpose_star_block(cellpose_model,
+                                                cellpose_model_3D,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,
@@ -1285,6 +1668,7 @@ def VollCellSeg(image: np.ndarray,
             image_membrane = image[:,:,channel_membrane,:,:]
             image_nuclei = image[:,:,channel_nuclei,:,:]
             cellres, res = _cellpose_star_time_block(cellpose_model,
+                                                     cellpose_model_3D,
                         custom_cellpose_model,
                         cellpose_model_name,
                         image_membrane,

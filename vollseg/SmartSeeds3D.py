@@ -32,7 +32,6 @@ from csbdeep.data import RawData, create_patches
 from skimage.measure import label, regionprops
 from scipy import ndimage
 from tqdm import tqdm
-from .utils import plot_train_history
 import matplotlib.pyplot as plt
 from pathlib import Path
 from tifffile import imread, imwrite

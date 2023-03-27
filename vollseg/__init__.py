@@ -3,6 +3,7 @@ from .SmartSeeds2D import SmartSeeds2D
 from .seedpool import SeedPool
 from .unetstarmask import UnetStarMask
 from .utils import *
+from .cellposeutils3D import *
 from .nmslabel import NMSLabel
 from .OptimizeThreshold import OptimizeThreshold
 from .inrimage import *
@@ -18,6 +19,21 @@ from .SmartPatches import SmartPatches
 from ._version import __version__
 from csbdeep.utils.tf import keras_import
 from .CellPose import CellPose
+from .UNet3D import UNet3D_module
+from .PredictTiledLoader import PredictTiled
+from .CellPose3D import CellPose3D
+import json 
+
+
+def load_json(fpath):
+    with open(fpath,'r') as f:
+        return json.load(f)
+
+
+def save_json(data,fpath,**kwargs):
+    with open(fpath,'w') as f:
+        f.write(json.dumps(data,**kwargs))
+
 
 get_file = keras_import('utils', 'get_file')
 
@@ -39,6 +55,9 @@ __all__ = (
     "CARE",
     "SmartPatches",
     "CellPose",
+    "UNet3D_cellpose",
+    "UNet3D_module",
+    "PredictTiled",
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
