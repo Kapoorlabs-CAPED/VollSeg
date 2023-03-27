@@ -7,7 +7,6 @@ from torch.utils.data import DataLoader
 from UNet3D import UNet3D_module
 import torch
 import torch.nn.functional as F
-import torchvision
 from torch import optim
 from collections import OrderedDict
 import lightning.pytorch as pl
@@ -68,9 +67,8 @@ class CellPose3D(pl.LightningModule):
 
         self.save_real_mask_h5 = os.path.join(base_dir,self.save_real_mask_h5_name)
         Path(self.save_real_mask_h5).mkdir(exist_ok=True)
+        self.save_hyperparameters()
 
-    def _forward(self, z):
-        return self.model(z)
     
 
     def _create_training_h5(self):
@@ -176,7 +174,8 @@ class CellPose3D(pl.LightningModule):
             norm_method=self.hparams["norm_method"],
         )
         pretrained_file = os.path.join(self.model_dir, self.model_name)
-        self.load_pretrained(pretrained_file)
+        if os.path.isfile(pretrained_file):
+           self.load_pretrained(pretrained_file)
 
         checkpoint_callback = ModelCheckpoint(
         filepath=pretrained_file,
@@ -193,19 +192,17 @@ class CellPose3D(pl.LightningModule):
         )
         
         trainer = Trainer(
+            accelerator="auto", devices="auto", strategy="auto",
             logger=logger,
-            checkpoint_callback=checkpoint_callback,
-            gpus=self.num_gpu,
-            use_amp=False,
-            min_nb_epochs=self.epochs,
-            max_nb_epochs=self.epochs * 2,
-            early_stop_callback=False
+            callbacks=checkpoint_callback,
+            min_epochs=self.epochs,
+            max_epochs=self.epochs * 2,
+            default_root_dir = self.model_dir,
+            enable_checkpointing = True 
         )
 
-        # ------------------------
-        # 3 START TRAINING
-        # ------------------------
-        trainer.fit(self.model,train_dataloaders=train_loader, val_dataloaders=val_loader)
+        
+        trainer.fit(self.model,train_dataloaders=train_loader, val_dataloaders=val_loader, ckpt_path=pretrained_file)
          
 
 
@@ -252,7 +249,10 @@ class CellPose3D(pl.LightningModule):
         loss = torch.sum(loss)
         loss = torch.div(loss, torch.clamp(torch.sum(weight), 1, mask.numel()))
         return loss
-
+    
+    def forward(self, z):
+        return self.model(z)
+    
     def training_step(self, batch, batch_idx):
         # Get image ans mask of current batch
         self.last_imgs, self.last_masks = batch["image"], batch["mask"]
@@ -286,39 +286,32 @@ class CellPose3D(pl.LightningModule):
             self.hparams["background_weight"] * loss_bg
             + self.hparams["flow_weight"] * loss_flow
         )
-        tqdm_dict = {
-            "bg_loss": loss_bg,
-            "flow_loss": loss_flow,
-            "epoch": self.current_epoch,
-        }
-        output = OrderedDict(
-            {"loss": loss, "progress_bar": tqdm_dict, "log": tqdm_dict}
-        )
-        return output
+        
+        return loss
 
     def test_step(self, batch, batch_idx):
         x, y = batch["image"], batch["mask"]
         y_hat = self.forward(x)
-        return {"test_loss": F.mse_loss(y_hat, y)}
+        loss = F.mse_loss(y_hat, y)
+        self.log("test_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
 
-    def test_end(self, outputs):
-        avg_loss = torch.stack([x["test_loss"] for x in outputs]).mean()
-        tensorboard_logs = {"test_loss": avg_loss}
-        return {"avg_test_loss": avg_loss, "log": tensorboard_logs}
+    def test_end(self):
+
+        mean = torch.mean(self.all_gather(self.outputs))
+        self.outputs.clear()  # free memory
+        if self.trainer.is_global_zero:
+            self.log("my_reduced_metric", mean, rank_zero_only=True)
 
     def validation_step(self, batch, batch_idx):
         x, y = batch["image"], batch["mask"]
         y_hat = self.forward(x)
-        return {"val_loss": F.mse_loss(y_hat, y)}
+        loss = F.mse_loss(y_hat, y)
+        self.log("validation_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
 
-    def validation_end(self, outputs):
-        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        tensorboard_logs = {"val_loss": avg_loss}
-        return {"avg_val_loss": avg_loss, "log": tensorboard_logs}
 
     def configure_optimizers(self):
-        opt = optim.Adam(
+        optimizer = optim.Adam(
             self.model.parameters(), lr=self.hparams["learning_rate"]
         )
-        return [opt], []
+        return optimizer
         
