@@ -10,8 +10,12 @@ import torch.nn.functional as F
 import torchvision
 from torch import optim
 from collections import OrderedDict
+import lightning.pytorch as pl
+from pytorch_lightning import Trainer
+from pytorch_lightning.logging import TestTubeLogger
+from pytorch_lightning.callbacks import ModelCheckpoint
 
-class CellPose3D(object):
+class CellPose3D(pl.LightningModule):
 
     def __init__(self, base_dir, model_dir, model_name, patch_size = (8,256,256), epochs = 100, in_channels = 1, out_channels = 4, feat_channels = 16,
                   samples_per_epoch = -1, batch_size = 16, learning_rate = 0.001, background_weight = 1, flow_weight = 1, out_activation = 'tanh',
@@ -23,9 +27,11 @@ class CellPose3D(object):
     bg_label = 0,
     channel=0,
     corrupt_prob = 0,
+    num_gpu = 1,
     zoom_factor=(1, 1, 1)
     ):
-        
+        super().__init__()
+
         self.base_dir = base_dir 
         self.model_dir = model_dir
         self.model_name = model_name 
@@ -53,6 +59,7 @@ class CellPose3D(object):
         self.bg_label = bg_label 
         self.corrupt_prob = corrupt_prob
         self.zoom_factor = zoom_factor
+        self.num_gpu = num_gpu
         self.save_raw_h5_name = 'raw_h5/'
         self.save_real_mask_h5_name = 'real_mask_h5/'
 
@@ -63,7 +70,7 @@ class CellPose3D(object):
         Path(self.save_real_mask_h5).mkdir(exist_ok=True)
 
     def _forward(self, z):
-        return self.network(z)
+        return self.model(z)
     
 
     def _create_training_h5(self):
@@ -158,7 +165,24 @@ class CellPose3D(object):
                 drop_last=True
             )
         
-        self.network = UNet3D_module(
+        test_dataset = TrainTiled(
+                self.hparams["test_list"],
+                self.hparams["data_root"],
+                patch_size=self.hparams["patch_size"],
+                image_groups=self.hparams["image_groups"],
+                mask_groups=self.hparams["mask_groups"],
+                dist_handling=self.hparams["dist_handling"],
+                norm_method=self.hparams["data_norm"],
+                sample_per_epoch=self.hparams["samples_per_epoch"]
+            )
+        test_loader = DataLoader(
+                test_dataset,
+                batch_size=self.hparams["batch_size"],
+                shuffle=True,
+                drop_last=True
+            )
+        
+        self.model = UNet3D_module(
             patch_size=self.hparams["patch_size"],
             in_channels=self.hparams["in_channels"],
             out_channels=self.hparams["out_channels"],
@@ -166,7 +190,38 @@ class CellPose3D(object):
             out_activation=self.hparams["out_activation"],
             norm_method=self.hparams["norm_method"],
         )
+        pretrained_file = os.path.join(self.model_dir, self.model_name)
+        self.load_pretrained(pretrained_file)
 
+        checkpoint_callback = ModelCheckpoint(
+        filepath=pretrained_file
+        save_top_k=1,
+        monitor='epoch',
+        mode='max',
+        verbose=True,
+        period=5
+        )
+        
+        logger = TestTubeLogger(
+            save_dir=self.base_dir,
+            name='lightning_logs_'+pretrained_file.lower()
+        )
+        
+        trainer = Trainer(
+            logger=logger,
+            checkpoint_callback=checkpoint_callback,
+            gpus=self.num_gpu,
+            use_amp=False,
+            min_nb_epochs=self.epochs,
+            max_nb_epochs=self.epochs,
+            early_stop_callback=False
+        )
+
+        # ------------------------
+        # 3 START TRAINING
+        # ------------------------
+        trainer.fit(self.model,train_dataloaders=train_loader)
+         
 
 
     def load_pretrained(self, pretrained_file, strict=True, verbose=True):
@@ -181,7 +236,7 @@ class CellPose3D(object):
             state_dict = dict(state_dict)
 
         # Get parameter dict of current model
-        param_dict = dict(self.network.named_parameters())
+        param_dict = dict(self.model.named_parameters())
 
         layers = []
         for layer in param_dict:
@@ -197,7 +252,7 @@ class CellPose3D(object):
             except (RuntimeError, KeyError) as e:
                 print(f"Error at layer {layer}:\n{e}")
 
-        self.network.load_state_dict(param_dict)
+        self.model.load_state_dict(param_dict)
 
         if verbose:
             print(f"Loaded weights for the following layers:\n{layers}")
@@ -278,7 +333,7 @@ class CellPose3D(object):
 
     def configure_optimizers(self):
         opt = optim.Adam(
-            self.network.parameters(), lr=self.hparams["learning_rate"]
+            self.model.parameters(), lr=self.hparams["learning_rate"]
         )
         return [opt], []
         
