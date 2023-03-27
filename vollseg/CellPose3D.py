@@ -290,23 +290,19 @@ class CellPose3D(pl.LightningModule):
         return loss
 
     def test_step(self, batch, batch_idx):
+        
+        self._shared_eval(batch, batch_idx, 'test')
+
+    def _shared_eval(self, batch, batch_idx, prefix):
+       
         x, y = batch["image"], batch["mask"]
         y_hat = self.forward(x)
         loss = F.mse_loss(y_hat, y)
-        self.log("test_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
-
-    def test_end(self):
-
-        mean = torch.mean(self.all_gather(self.outputs))
-        self.outputs.clear()  # free memory
-        if self.trainer.is_global_zero:
-            self.log("my_reduced_metric", mean, rank_zero_only=True)
+        self.log(f"{prefix}_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
 
     def validation_step(self, batch, batch_idx):
-        x, y = batch["image"], batch["mask"]
-        y_hat = self.forward(x)
-        loss = F.mse_loss(y_hat, y)
-        self.log("validation_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
+        
+        self._shared_eval(batch, batch_idx, 'validation')
 
 
     def configure_optimizers(self):
