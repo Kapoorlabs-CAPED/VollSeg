@@ -309,5 +309,18 @@ class CellPose3D(pl.LightningModule):
         optimizer = optim.Adam(
             self.model.parameters(), lr=self.hparams["learning_rate"]
         )
-        return optimizer
+
+        schedular = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, factor=10)
+        optimizer_scheduler = OrderedDict(
+           {
+        "optimizer": optimizer,
+        "lr_scheduler": {
+            "scheduler": schedular,
+            "monitor": "val_loss",
+            "frequency": 1
+           
+        },
+    }
+        )
+        return optimizer_scheduler
         
