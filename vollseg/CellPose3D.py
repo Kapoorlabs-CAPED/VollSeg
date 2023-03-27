@@ -12,7 +12,7 @@ from torch import optim
 from collections import OrderedDict
 import lightning.pytorch as pl
 from pytorch_lightning import Trainer
-from pytorch_lightning.logging import TestTubeLogger
+from pytorch_lightning.loggers import TestTubeLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 class CellPose3D(pl.LightningModule):
@@ -165,22 +165,7 @@ class CellPose3D(pl.LightningModule):
                 drop_last=True
             )
         
-        test_dataset = TrainTiled(
-                self.hparams["test_list"],
-                self.hparams["data_root"],
-                patch_size=self.hparams["patch_size"],
-                image_groups=self.hparams["image_groups"],
-                mask_groups=self.hparams["mask_groups"],
-                dist_handling=self.hparams["dist_handling"],
-                norm_method=self.hparams["data_norm"],
-                sample_per_epoch=self.hparams["samples_per_epoch"]
-            )
-        test_loader = DataLoader(
-                test_dataset,
-                batch_size=self.hparams["batch_size"],
-                shuffle=True,
-                drop_last=True
-            )
+        
         
         self.model = UNet3D_module(
             patch_size=self.hparams["patch_size"],
@@ -194,7 +179,7 @@ class CellPose3D(pl.LightningModule):
         self.load_pretrained(pretrained_file)
 
         checkpoint_callback = ModelCheckpoint(
-        filepath=pretrained_file
+        filepath=pretrained_file,
         save_top_k=1,
         monitor='epoch',
         mode='max',
@@ -213,14 +198,14 @@ class CellPose3D(pl.LightningModule):
             gpus=self.num_gpu,
             use_amp=False,
             min_nb_epochs=self.epochs,
-            max_nb_epochs=self.epochs,
+            max_nb_epochs=self.epochs * 2,
             early_stop_callback=False
         )
 
         # ------------------------
         # 3 START TRAINING
         # ------------------------
-        trainer.fit(self.model,train_dataloaders=train_loader)
+        trainer.fit(self.model,train_dataloaders=train_loader, val_dataloaders=val_loader)
          
 
 

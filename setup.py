@@ -31,7 +31,9 @@ setup(
         "matplotlib",
         "napari",
         "cellpose-vollseg",
-        "torch"
+        "torch",
+        "test_tube",
+        "lightning",
        
     ],
     
