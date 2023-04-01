@@ -31,6 +31,18 @@ from skimage import filters, io, measure, morphology
 from tqdm import tqdm
 from pathlib import Path
 import csv
+import json 
+
+
+def load_json(fpath):
+    with open(fpath,'r') as f:
+        return json.load(f)
+
+
+def save_json(data,fpath,**kwargs):
+    with open(fpath,'w') as f:
+        f.write(json.dumps(data,**kwargs))
+
 
 def create_csv(data_list, save_path, save_train = '_train.csv', save_test = '_test.csv', save_val = '_val.csv', test_split=0.1, val_split=0.1, shuffle=True):
         
@@ -75,7 +87,7 @@ def create_csv(data_list, save_path, save_train = '_train.csv', save_test = '_te
 
 
 
-def h5_writer(data_list, save_path, group_root="data", group_names=["image"]):
+def _h5_writer(data_list, save_path, group_root="data", group_names=["image"]):
     save_path = os.path.abspath(save_path)
 
     assert len(data_list) == len(
@@ -90,102 +102,7 @@ def h5_writer(data_list, save_path, group_root="data", group_names=["image"]):
             )
 
 
-def h5_reader(file, group_identifier="image"):
-    with h5py.File(file, "r") as file_handle:
-        data = file_handle[group_identifier][:]
-
-    return data
-
-
-def h52tif(file_dir="", group_names=["data/image"]):
-    # Get all files within the given directory
-    filelist = glob.glob(os.path.join(file_dir, "*.h5"))
-
-    # Create saving folders
-    for group in group_names:
-        os.makedirs(
-            os.path.join(file_dir, "".join(s for s in group if s.isalnum())),
-            exist_ok=True,
-        )
-
-    # Save each desired group
-    for num_file, file in enumerate(filelist):
-        print(
-            "Processing file {0}/{1}", (num_file + 1, len(filelist))
-        )
-        with h5py.File(file, "r") as file_handle:
-            for group in group_names:
-                data = file_handle[group][:]
-                io.imsave(
-                    os.path.join(
-                        file_dir,
-                        "".join(s for s in group if s.isalnum()),
-                        os.path.split(file)[-1][:-2] + "tif",
-                    ),
-                    data,
-                )
-
-
-def replace_h5_group(
-    source_list, target_list, source_group="data/image", target_group=None
-):
-    assert len(target_list) == len(
-        source_list
-    ), f"There needs to be one target ({len(target_list)}) for each source ({len(source_list)})!"
-    if target_group is None:
-        target_group = source_group
-
-    for num_pair, pair in enumerate(zip(source_list, target_list)):
-        print(
-            "Processing file {0}/{1}...", [num_pair + 1, len(target_list)]
-        )
-
-        # Load the source mask
-        with h5py.File(pair[0], "r") as source_handle:
-            source_data = source_handle[source_group][...]
-
-        # Save the data to the target file
-        with h5py.File(pair[1], "r+") as target_handle:
-            target_data = target_handle[target_group]
-            target_data[...] = source_data
-
-
-def add_h5_group(
-    source_list, target_list, source_group="data/distance", target_group=None
-):
-    assert len(target_list) == len(
-        source_list
-    ), f"There needs to be one target ({len(target_list)}) for each source ({len(source_list)})!"
-    if target_group is None:
-        target_group = source_group
-
-    for num_pair, pair in enumerate(zip(source_list, target_list)):
-        print(
-            "Processing file {0}/{1}...", [num_pair + 1, len(source_list)]
-        )
-
-        # Get the data from the source file
-        with h5py.File(pair[0], "r") as source_handle:
-            source_data = source_handle[source_group][...]
-
-        # Save the data to the target file
-        with h5py.File(pair[1], "a") as target_handle:
-            target_handle.create_dataset(
-                target_group, data=source_data, chunks=True, compression="gzip"
-            )
-
-
-def remove_h5_group(file_list, remove_group="data/nuclei"):
-    for num_file, file in enumerate(file_list):
-        print(
-            "Processing file {0}/{1}...", [num_file + 1, len(file_list)]
-        )
-
-        with h5py.File(file, "a") as file_handle:
-            del file_handle[remove_group]
-
-
-def flood_fill_hull(image):
+def _flood_fill_hull(image):
     points = np.transpose(np.where(image))
     hull = ConvexHull(points)
     deln = Delaunay(points[hull.vertices])
@@ -197,7 +114,7 @@ def flood_fill_hull(image):
     return out_img
 
 
-def calculate_flows(instance_mask, bg_label=0):
+def _calculate_flows(instance_mask, bg_label=0):
     flow_x = np.zeros(instance_mask.shape, dtype=np.float32)
     flow_y = np.zeros(instance_mask.shape, dtype=np.float32)
     flow_z = np.zeros(instance_mask.shape, dtype=np.float32)
@@ -344,7 +261,7 @@ def prepare_images(
                 fg_img = morphology.binary_opening(
                     fg_img, footprint=morphology.ball(fg_footprint_size)
                 )
-                fg_img = flood_fill_hull(fg_img)
+                fg_img = _flood_fill_hull(fg_img)
                 fg_img = fg_img.astype(np.bool)
 
                 # create distance transform
@@ -400,7 +317,7 @@ def prepare_images(
             save_name = os.path.join(
                 save_path,  save_name + ".h5"
             )
-            h5_writer(
+            _h5_writer(
                 save_imgs,
                 save_name,
                 group_root="data",
@@ -492,7 +409,7 @@ def prepare_masks(
             if get_distance:
                 fg_img = instance_mask
 
-                fg_img = flood_fill_hull(fg_img > 0)
+                fg_img = _flood_fill_hull(fg_img > 0)
                 fg_img = fg_img.astype(np.bool)
                 distance_mask = distance_transform_edt(
                     fg_img
@@ -530,7 +447,7 @@ def prepare_masks(
 
             # calculate the flow field
             if get_flows:
-                flow_x, flow_y, flow_z = calculate_flows(
+                flow_x, flow_y, flow_z = _calculate_flows(
                     instance_mask, bg_label=bg_label
                 )
 
@@ -543,7 +460,7 @@ def prepare_masks(
             save_name = os.path.join(
                 save_path,  save_name + ".h5"
             )
-            h5_writer(
+            _h5_writer(
                 save_masks,
                 save_name,
                 group_root="data",

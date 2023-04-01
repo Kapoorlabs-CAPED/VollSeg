@@ -1,17 +1,16 @@
 import os
 from pathlib import Path 
-from cellposeutils3D import prepare_images, prepare_masks, create_csv
-from . import save_json
-from TrainTiledLoader import TrainTiled
+from .cellposeutils3D import prepare_images, prepare_masks, create_csv, save_json
+from .TrainTiledLoader import TrainTiled
 from torch.utils.data import DataLoader
-from UNet3D import UNet3D_module
+from .UNet3D import UNet3D_module
 import torch
 import torch.nn.functional as F
 from torch import optim
 from collections import OrderedDict
 import lightning.pytorch as pl
 from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import TestTubeLogger
+from pytorch_lightning.loggers import  CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 class CellPose3D(pl.LightningModule):
@@ -186,7 +185,7 @@ class CellPose3D(pl.LightningModule):
         period=5
         )
         
-        logger = TestTubeLogger(
+        logger = CSVLogger(
             save_dir=self.base_dir,
             name='lightning_logs_'+pretrained_file.lower()
         )
