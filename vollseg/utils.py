@@ -12,6 +12,8 @@ import os
 from pathlib import Path
 
 import napari
+import torch
+import torch.nn as nn
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -31,7 +33,7 @@ from skimage.segmentation import find_boundaries, relabel_sequential, watershed
 from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
 from tqdm import tqdm
-
+from .UNet3D import UNet3D_module
 from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
@@ -1207,7 +1209,7 @@ def _cellpose_star_time_block(
 
 
 def _apply_cellpose_network_3D(
-    cellpose_model_3D,
+    cellpose_model_3D_pretrained_file,
     image_membrane,
     savedir=None,
     patch_size=(8, 256, 256),
@@ -1218,7 +1220,6 @@ def _apply_cellpose_network_3D(
     background_weight=1,
     flow_weight=1,
     dist_handling="bool_inv",
-    learning_rate=0.001,
     out_channels=4,
     feat_channels=16,
     crop=(2, 32, 32),
@@ -1260,7 +1261,56 @@ def _apply_cellpose_network_3D(
         "background_weight": background_weight,
         "flow_weight": flow_weight,
     }
-    print(hparams)
+    model = UNet3D_module(
+        patch_size=hparams["patch_size"],
+        in_channels=hparams["in_channels"],
+        out_channels=hparams["out_channels"],
+        feat_channels=hparams["feat_channels"],
+        out_activation=hparams["out_activation"],
+        norm_method=hparams["norm_method"],
+        background_weight=hparams["background_weight"],
+        flow_weight=hparams["flow_weight"],
+    )
+    model = load_pretrained(
+        cellpose_model_3D_pretrained_file=cellpose_model_3D_pretrained_file, model=model
+    )
+    model = model.cuda()
+
+
+def load_pretrained(
+    cellpose_model_3D_pretrained_file: str, model: nn.Module, strict=True, verbose=True
+):
+    if isinstance(cellpose_model_3D_pretrained_file, (list, tuple)):
+        cellpose_model_3D_pretrained_file = cellpose_model_3D_pretrained_file[0]
+
+    # Load the state dict
+    state_dict = torch.load(cellpose_model_3D_pretrained_file)["state_dict"]
+
+    # Make sure to have a weight dict
+    if not isinstance(state_dict, dict):
+        state_dict = dict(state_dict)
+
+    # Get parameter dict of current model
+    param_dict = dict(model.named_parameters())
+
+    layers = []
+    for layer in param_dict:
+        if strict and not "network." + layer in state_dict:
+            if verbose:
+                print(f'Could not find weights for layer "{layer}"')
+            continue
+        try:
+            param_dict[layer].data.copy_(state_dict["network." + layer].data)
+            layers.append(layer)
+        except (RuntimeError, KeyError) as e:
+            print(f"Error at layer {layer}:\n{e}")
+
+    model.load_state_dict(param_dict)
+
+    if verbose:
+        print(f"Loaded weights for the following layers:\n{layers}")
+
+    return model
 
 
 def _cellpose_star_block(
