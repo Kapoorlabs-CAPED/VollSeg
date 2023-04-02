@@ -11,7 +11,7 @@ from csbdeep.utils import normalize
 from stardist.matching import matching_dataset
 from scipy.optimize import minimize_scalar
 from csbdeep.utils import _raise
-from vollseg import VollSeg
+from .utils import VollSeg
 
 
 class OptimizeThreshold:
