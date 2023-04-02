@@ -22,13 +22,23 @@ from cellpose_vollseg import models
 from csbdeep.utils import normalize
 from qtpy.QtWidgets import QComboBox, QPushButton
 from scipy import spatial
-from scipy.ndimage import binary_dilation, binary_erosion, distance_transform_edt, zoom
+from scipy.ndimage import (
+    binary_dilation,
+    binary_erosion,
+    distance_transform_edt,
+    zoom,
+)
 from scipy.ndimage.measurements import find_objects
 from scipy.ndimage.morphology import binary_fill_holes
 from skimage import measure, morphology
 from skimage.filters import threshold_multiotsu
 from skimage.measure import label, regionprops
-from skimage.morphology import dilation, remove_small_objects, skeletonize, square
+from skimage.morphology import (
+    dilation,
+    remove_small_objects,
+    skeletonize,
+    square,
+)
 from skimage.segmentation import find_boundaries, relabel_sequential, watershed
 from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
@@ -79,9 +89,13 @@ class SegCorrect:
                 imageidbox.currentText(),
                 self.segmentationdir
                 + "/"
-                + os.path.basename(os.path.splitext(imageidbox.currentText())[0])
+                + os.path.basename(
+                    os.path.splitext(imageidbox.currentText())[0]
+                )
                 + ".tif",
-                os.path.basename(os.path.splitext(imageidbox.currentText())[0]),
+                os.path.basename(
+                    os.path.splitext(imageidbox.currentText())[0]
+                ),
                 False,
             )
         )
@@ -91,14 +105,20 @@ class SegCorrect:
                 imageidbox.currentText(),
                 self.segmentationdir
                 + "/"
-                + os.path.basename(os.path.splitext(imageidbox.currentText())[0])
+                + os.path.basename(
+                    os.path.splitext(imageidbox.currentText())[0]
+                )
                 + ".tif",
-                os.path.basename(os.path.splitext(imageidbox.currentText())[0]),
+                os.path.basename(
+                    os.path.splitext(imageidbox.currentText())[0]
+                ),
                 True,
             )
         )
 
-        self.viewer.window.add_dock_widget(imageidbox, name="Image", area="bottom")
+        self.viewer.window.add_dock_widget(
+            imageidbox, name="Image", area="bottom"
+        )
         self.viewer.window.add_dock_widget(
             savebutton, name="Save Segmentations", area="bottom"
         )
@@ -126,7 +146,9 @@ class SegCorrect:
                 "Image" + "Integer_Labels" + imagename
             ].data
             ModifiedArraySeg = ModifiedArraySeg.astype("uint16")
-            imwrite((self.segmentationdir + imagename + ".tif"), ModifiedArraySeg)
+            imwrite(
+                (self.segmentationdir + imagename + ".tif"), ModifiedArraySeg
+            )
 
 
 def BinaryLabel(BinaryImageOriginal, max_size=15000):
@@ -212,7 +234,8 @@ def expand_labels(label_image, distance=1):
     # in contrast to [1] this implementation supports label arrays
     # of any dimension
     masked_nearest_label_coords = [
-        dimension_indices[dilate_mask] for dimension_indices in nearest_label_coords
+        dimension_indices[dilate_mask]
+        for dimension_indices in nearest_label_coords
     ]
     nearest_labels = label_image[tuple(masked_nearest_label_coords)]
     labels_out[dilate_mask] = nearest_labels
@@ -252,18 +275,23 @@ def fill_label_holes(lbl_img, **kwargs):
     # TODO: refactor 'fill_label_holes' and 'edt_prob' to share code
     def grow(sl, interior):
         return tuple(
-            slice(s.start - int(w[0]), s.stop + int(w[1])) for s, w in zip(sl, interior)
+            slice(s.start - int(w[0]), s.stop + int(w[1]))
+            for s, w in zip(sl, interior)
         )
 
     def shrink(interior):
-        return tuple(slice(int(w[0]), (-1 if w[1] else None)) for w in interior)
+        return tuple(
+            slice(int(w[0]), (-1 if w[1] else None)) for w in interior
+        )
 
     objects = find_objects(lbl_img)
     lbl_img_filled = np.zeros_like(lbl_img)
     for i, sl in enumerate(objects, 1):
         if sl is None:
             continue
-        interior = [(s.start > 0, s.stop < sz) for s, sz in zip(sl, lbl_img.shape)]
+        interior = [
+            (s.start > 0, s.stop < sz) for s, sz in zip(sl, lbl_img.shape)
+        ]
         shrink_slice = shrink(interior)
         grown_mask = lbl_img[grow(sl, interior)] == i
         mask_filled = binary_fill_holes(grown_mask, **kwargs)[shrink_slice]
@@ -429,7 +457,9 @@ def SmartSkel(smart_seedsLabels, ProbImage, RGB=False):
 
     pixel_condition = image_max < 1.2
     pixel_replace_condition = 0
-    image_max = image_conditionals(image_max, pixel_condition, pixel_replace_condition)
+    image_max = image_conditionals(
+        image_max, pixel_condition, pixel_replace_condition
+    )
 
     skeleton = skeletonize(image_max.astype("uint16") > 0)
 
@@ -466,14 +496,18 @@ def Region_embedding(image, region, sourceimage, RGB=False):
         zend = region[3]
         endrow = region[4]
         endcol = region[5]
-        returnimage[zstart:zend, rowstart:endrow, colstart:endcol] = sourceimage
+        returnimage[
+            zstart:zend, rowstart:endrow, colstart:endcol
+        ] = sourceimage
 
     if len(image.shape) == 3 and len(region) == 4 and RGB is False:
         rowstart = region[0]
         colstart = region[1]
         endrow = region[2]
         endcol = region[3]
-        returnimage[0 : image.shape[0], rowstart:endrow, colstart:endcol] = sourceimage
+        returnimage[
+            0 : image.shape[0], rowstart:endrow, colstart:endcol
+        ] = sourceimage
 
     if len(image.shape) == 3 and len(region) == 4 and RGB:
         returnimage = returnimage[:, :, 0]
@@ -527,10 +561,14 @@ def VollSeg2D(
     if noise_model is not None:
         print("Denoising Image")
 
-        image = noise_model.predict(image.astype("float32"), axes=axes, n_tiles=n_tiles)
+        image = noise_model.predict(
+            image.astype("float32"), axes=axes, n_tiles=n_tiles
+        )
         pixel_condition = image < 0
         pixel_replace_condition = 0
-        image = image_conditionals(image, pixel_condition, pixel_replace_condition)
+        image = image_conditionals(
+            image, pixel_condition, pixel_replace_condition
+        )
 
     Mask = None
     Mask_patch = None
@@ -540,7 +578,9 @@ def VollSeg2D(
         assert model_dim == len(
             image.shape
         ), f"For 2D images the region of interest model has to be 2D, model provided had {model_dim} instead"
-        Segmented = roi_model.predict(image.astype("float32"), "YX", n_tiles=n_tiles)
+        Segmented = roi_model.predict(
+            image.astype("float32"), "YX", n_tiles=n_tiles
+        )
         try:
             thresholds = threshold_multiotsu(Segmented, classes=2)
 
@@ -621,7 +661,9 @@ def VollSeg2D(
         Mask = regions > 0
 
         Mask = label(Mask)
-        Mask = remove_small_objects(Mask.astype("uint16"), min_size=min_size_mask)
+        Mask = remove_small_objects(
+            Mask.astype("uint16"), min_size=min_size_mask
+        )
         Mask = remove_big_objects(Mask.astype("uint16"), max_size=max_size)
 
         if RGB:
@@ -651,8 +693,12 @@ def VollSeg2D(
         nms_thresh=nms_thresh,
         seedpool=seedpool,
     )
-    smart_seeds = remove_small_objects(smart_seeds.astype("uint16"), min_size=min_size)
-    smart_seeds = remove_big_objects(smart_seeds.astype("uint16"), max_size=max_size)
+    smart_seeds = remove_small_objects(
+        smart_seeds.astype("uint16"), min_size=min_size
+    )
+    smart_seeds = remove_big_objects(
+        smart_seeds.astype("uint16"), max_size=max_size
+    )
     skeleton = SmartSkel(smart_seeds, probability_map, RGB)
     skeleton = skeleton > 0
     # For avoiding pixel level error
@@ -664,7 +710,9 @@ def VollSeg2D(
     smart_seeds = Region_embedding(image, roi_bbox, smart_seeds, RGB=RGB)
     markers = Region_embedding(image, roi_bbox, markers, RGB=RGB)
     star_labels = Region_embedding(image, roi_bbox, star_labels, RGB=RGB)
-    probability_map = Region_embedding(image, roi_bbox, probability_map, RGB=RGB)
+    probability_map = Region_embedding(
+        image, roi_bbox, probability_map, RGB=RGB
+    )
     skeleton = Region_embedding(image, roi_bbox, skeleton, RGB=RGB)
     if Mask is None:
         Mask = smart_seeds > 0
@@ -750,7 +798,9 @@ def VollSeg_label_expansion(image, overall_mask, Finalimage, skeleton, RGB):
     Finalimage = image_conditionals(
         Finalimage, pixel_condition, pixel_replace_condition
     )
-    skeleton = image_conditionals(skeleton, pixel_condition, pixel_replace_condition)
+    skeleton = image_conditionals(
+        skeleton, pixel_condition, pixel_replace_condition
+    )
 
     return Finalimage, skeleton
 
@@ -758,7 +808,9 @@ def VollSeg_label_expansion(image, overall_mask, Finalimage, skeleton, RGB):
 def VollSeg_nolabel_expansion(image, Finalimage, skeleton, RGB):
 
     for i in range(image.shape[0]):
-        Finalimage[i, :] = expand_labels(Finalimage[i, :], distance=GLOBAL_ERODE)
+        Finalimage[i, :] = expand_labels(
+            Finalimage[i, :], distance=GLOBAL_ERODE
+        )
         skeleton[i, :] = Skel(Finalimage[i, :], RGB)
         skeleton[i, :] = skeleton[i, :] > 0
 
@@ -795,10 +847,14 @@ def VollSeg_unet(
                 n_tiles = (n_tiles[0], n_tiles[1], 1)
 
         if noise_model is not None:
-            image = noise_model.predict(image.astype("float32"), axes, n_tiles=n_tiles)
+            image = noise_model.predict(
+                image.astype("float32"), axes, n_tiles=n_tiles
+            )
             pixel_condition = image < 0
             pixel_replace_condition = 0
-            image = image_conditionals(image, pixel_condition, pixel_replace_condition)
+            image = image_conditionals(
+                image, pixel_condition, pixel_replace_condition
+            )
 
         if dounet and unet_model is not None:
             Segmented = unet_model.predict(
@@ -836,7 +892,9 @@ def VollSeg_unet(
             Binary = remove_small_objects(
                 Binary.astype("uint16"), min_size=min_size_mask
             )
-            Binary = remove_big_objects(Binary.astype("uint16"), max_size=max_size)
+            Binary = remove_big_objects(
+                Binary.astype("uint16"), max_size=max_size
+            )
             Binary = fill_label_holes(Binary)
             Finalimage = relabel_sequential(Binary)[0]
             skeleton = Skel(Finalimage, RGB)
@@ -868,11 +926,15 @@ def VollSeg_unet(
     elif roi_model is not None:
 
         if noise_model is not None:
-            image = noise_model.predict(image.astype("float32"), axes, n_tiles=n_tiles)
+            image = noise_model.predict(
+                image.astype("float32"), axes, n_tiles=n_tiles
+            )
 
             pixel_condition = image < 0
             pixel_replace_condition = 0
-            image = image_conditionals(image, pixel_condition, pixel_replace_condition)
+            image = image_conditionals(
+                image, pixel_condition, pixel_replace_condition
+            )
 
         model_dim = roi_model.config.n_dim
         if model_dim < len(image.shape):
@@ -899,7 +961,9 @@ def VollSeg_unet(
             s_Binary = remove_small_objects(
                 s_Binary.astype("uint16"), min_size=min_size_mask
             )
-            s_Binary = remove_big_objects(s_Binary.astype("uint16"), max_size=max_size)
+            s_Binary = remove_big_objects(
+                s_Binary.astype("uint16"), max_size=max_size
+            )
             s_Binary = fill_label_holes(s_Binary)
 
             s_Finalimage = relabel_sequential(s_Binary)[0]
@@ -1011,7 +1075,9 @@ def _cellpose_time_block(
     if cellpose_model is not None:
 
         if custom_cellpose_model:
-            cellpose_model = models.Cellpose(gpu=gpu, model_type=cellpose_model_name)
+            cellpose_model = models.Cellpose(
+                gpu=gpu, model_type=cellpose_model_name
+            )
             if anisotropy is not None:
                 cellres = tuple(
                     zip(
@@ -1183,7 +1249,6 @@ def _cellpose_3D_star_time_block(
     UseProbability,
     dounet,
     seedpool,
-    slice_merge,
     iou_threshold,
     lower_perc,
     upper_perc,
@@ -1194,7 +1259,9 @@ def _cellpose_3D_star_time_block(
 
     futures = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=os.cpu_count()
+    ) as executor:
 
         futures.append(
             executor.submit(
@@ -1213,7 +1280,6 @@ def _cellpose_3D_star_time_block(
                 UseProbability,
                 dounet,
                 seedpool,
-                slice_merge,
                 iou_threshold,
                 lower_perc,
                 upper_perc,
@@ -1286,7 +1352,9 @@ def _cellpose_star_time_block(
 
     futures = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=os.cpu_count()
+    ) as executor:
 
         futures.append(
             executor.submit(
@@ -1382,7 +1450,8 @@ def _apply_cellpose_network_3D(
         flow_weight=hparams["flow_weight"],
     )
     model = load_pretrained(
-        cellpose_model_3D_pretrained_file=cellpose_model_3D_pretrained_file, model=model
+        cellpose_model_3D_pretrained_file=cellpose_model_3D_pretrained_file,
+        model=model,
     )
     model.eval()
 
@@ -1390,7 +1459,9 @@ def _apply_cellpose_network_3D(
         image=image_membrane, patch_size=patch_size, overlap=overlap, crop=crop
     )
     fading_map = dataset.get_fading_map()
-    fading_map = np.repeat(fading_map[np.newaxis, ...], hparams["out_channels"], axis=0)
+    fading_map = np.repeat(
+        fading_map[np.newaxis, ...], hparams["out_channels"], axis=0
+    )
 
     dataset.set_data_idx(0)
 
@@ -1402,7 +1473,9 @@ def _apply_cellpose_network_3D(
     )
 
     # Initialize maps (random to overcome memory leaks)
-    predicted_img = np.full((out_channels,) + working_size, 0, dtype=np.float32)
+    predicted_img = np.full(
+        (out_channels,) + working_size, 0, dtype=np.float32
+    )
     norm_map = np.full((out_channels,) + working_size, 0, dtype=np.float32)
 
     trainer = Trainer()
@@ -1420,12 +1493,15 @@ def _apply_cellpose_network_3D(
             map(
                 slice,
                 (0,) + tuple(dataset.patch_start + dataset.global_crop_before),
-                (out_channels,) + tuple(dataset.patch_end + dataset.global_crop_before),
+                (out_channels,)
+                + tuple(dataset.patch_end + dataset.global_crop_before),
             )
         )
 
         # Add predicted patch and fading weights to the corresponding maps
-        predicted_img[slicing] = predicted_img[slicing] + pred_patch * fading_map
+        predicted_img[slicing] = (
+            predicted_img[slicing] + pred_patch * fading_map
+        )
         norm_map[slicing] = norm_map[slicing] + fading_map
 
     # Normalize the predicted image
@@ -1467,10 +1543,15 @@ def _apply_cellpose_network_3D(
 
 
 def load_pretrained(
-    cellpose_model_3D_pretrained_file: str, model: nn.Module, strict=True, verbose=True
+    cellpose_model_3D_pretrained_file: str,
+    model: nn.Module,
+    strict=True,
+    verbose=True,
 ):
     if isinstance(cellpose_model_3D_pretrained_file, (list, tuple)):
-        cellpose_model_3D_pretrained_file = cellpose_model_3D_pretrained_file[0]
+        cellpose_model_3D_pretrained_file = cellpose_model_3D_pretrained_file[
+            0
+        ]
 
     # Load the state dict
     state_dict = torch.load(cellpose_model_3D_pretrained_file)["state_dict"]
@@ -1537,7 +1618,6 @@ def VollCellPose3D(
     seedpool: bool = True,
     save_dir: str = None,
     Name: str = "Result",
-    slice_merge: bool = False,
     iou_threshold: float = 0.3,
     z_thresh: int = 2,
 ):
@@ -1658,7 +1738,6 @@ def VollCellPose3D(
             UseProbability,
             dounet,
             seedpool,
-            slice_merge,
             iou_threshold,
             lower_perc,
             upper_perc,
@@ -1967,7 +2046,8 @@ def VollCellPose3D(
             roi_results = save_dir + "Roi/"
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
-                (roi_results + Name + ".tif"), np.asarray(roi_image).astype("uint16")
+                (roi_results + Name + ".tif"),
+                np.asarray(roi_image).astype("uint16"),
             )
 
         if unet_model is not None:
@@ -2008,14 +2088,16 @@ def VollCellPose3D(
                 np.asarray(probability_map).astype("float32"),
             )
             imwrite(
-                (marker_results + Name + ".tif"), np.asarray(markers).astype("uint16")
+                (marker_results + Name + ".tif"),
+                np.asarray(markers).astype("uint16"),
             )
             imwrite((skel_results + Name + ".tif"), np.asarray(skeleton))
         if noise_model is not None:
             denoised_results = save_dir + "Denoised/"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
-                (denoised_results + Name + ".tif"), np.asarray(image).astype("float32")
+                (denoised_results + Name + ".tif"),
+                np.asarray(image).astype("float32"),
             )
 
     # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
@@ -2332,7 +2414,9 @@ def _cellpose_star_block(
     if cellpose_model is not None:
 
         if custom_cellpose_model:
-            cellpose_model = models.Cellpose(gpu=gpu, model_type=cellpose_model_name)
+            cellpose_model = models.Cellpose(
+                gpu=gpu, model_type=cellpose_model_name
+            )
             if anisotropy is not None:
                 cellres = cellpose_model.eval(
                     image_membrane,
@@ -2591,10 +2675,12 @@ def VollCellSeg(
         for i in range(cellpose_labels.shape[0]):
             for j in range(cellpose_labels.shape[1]):
                 cellpose_labels[i, j, :] = remove_small_objects(
-                    cellpose_labels[i, j, :].astype("uint16"), min_size=min_size_mask
+                    cellpose_labels[i, j, :].astype("uint16"),
+                    min_size=min_size_mask,
                 )
                 cellpose_labels[i, j, :] = remove_big_objects(
-                    cellpose_labels[i, j, :].astype("uint16"), max_size=max_size
+                    cellpose_labels[i, j, :].astype("uint16"),
+                    max_size=max_size,
                 )
     if "T" not in axes:
         for i in range(cellpose_labels.shape[0]):
@@ -2925,7 +3011,8 @@ def VollCellSeg(
             roi_results = save_dir + "Roi/"
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
-                (roi_results + Name + ".tif"), np.asarray(roi_image).astype("uint16")
+                (roi_results + Name + ".tif"),
+                np.asarray(roi_image).astype("uint16"),
             )
 
         if unet_model is not None:
@@ -2966,14 +3053,16 @@ def VollCellSeg(
                 np.asarray(probability_map).astype("float32"),
             )
             imwrite(
-                (marker_results + Name + ".tif"), np.asarray(markers).astype("uint16")
+                (marker_results + Name + ".tif"),
+                np.asarray(markers).astype("uint16"),
             )
             imwrite((skel_results + Name + ".tif"), np.asarray(skeleton))
         if noise_model is not None:
             denoised_results = save_dir + "Denoised/"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
-                (denoised_results + Name + ".tif"), np.asarray(image).astype("float32")
+                (denoised_results + Name + ".tif"),
+                np.asarray(image).astype("float32"),
             )
 
     # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
@@ -3488,7 +3577,11 @@ def VollSeg(
             )
         )
 
-    if noise_model is None and star_model is not None and roi_model is not None:
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is not None
+    ):
         (
             sized_smart_seeds,
             instance_labels,
@@ -3509,7 +3602,11 @@ def VollSeg(
             skeleton,
         ) = res
 
-    elif noise_model is not None and star_model is not None and roi_model is not None:
+    elif (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is not None
+    ):
         (
             sized_smart_seeds,
             instance_labels,
@@ -3521,7 +3618,11 @@ def VollSeg(
             roi_image,
         ) = res
 
-    elif noise_model is not None and star_model is not None and roi_model is None:
+    elif (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is None
+    ):
         (
             sized_smart_seeds,
             instance_labels,
@@ -3606,7 +3707,8 @@ def VollSeg(
             roi_results = save_dir + "Roi/"
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
-                (roi_results + Name + ".tif"), np.asarray(roi_image).astype("uint16")
+                (roi_results + Name + ".tif"),
+                np.asarray(roi_image).astype("uint16"),
             )
 
         if unet_model is not None:
@@ -3647,18 +3749,24 @@ def VollSeg(
                 np.asarray(probability_map).astype("float32"),
             )
             imwrite(
-                (marker_results + Name + ".tif"), np.asarray(markers).astype("uint16")
+                (marker_results + Name + ".tif"),
+                np.asarray(markers).astype("uint16"),
             )
             imwrite((skel_results + Name + ".tif"), np.asarray(skeleton))
         if noise_model is not None:
             denoised_results = save_dir + "Denoised/"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
-                (denoised_results + Name + ".tif"), np.asarray(image).astype("float32")
+                (denoised_results + Name + ".tif"),
+                np.asarray(image).astype("float32"),
             )
 
     # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
-    if noise_model is None and star_model is not None and roi_model is not None:
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is not None
+    ):
 
         return (
             sized_smart_seeds,
@@ -3682,7 +3790,11 @@ def VollSeg(
         )
 
     # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
-    elif noise_model is not None and star_model is not None and roi_model is not None:
+    elif (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is not None
+    ):
 
         return (
             sized_smart_seeds,
@@ -3695,7 +3807,11 @@ def VollSeg(
             roi_image,
         )
 
-    elif noise_model is not None and star_model is not None and roi_model is None:
+    elif (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is None
+    ):
 
         return (
             sized_smart_seeds,
@@ -3708,7 +3824,11 @@ def VollSeg(
         )
 
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
-    elif star_model is None and roi_model is not None and noise_model is not None:
+    elif (
+        star_model is None
+        and roi_model is not None
+        and noise_model is not None
+    ):
 
         return instance_labels, skeleton, image
 
@@ -3716,7 +3836,11 @@ def VollSeg(
 
         return roi_image.astype("uint16"), skeleton, image
 
-    elif star_model is None and roi_model is not None and noise_model is not None:
+    elif (
+        star_model is None
+        and roi_model is not None
+        and noise_model is not None
+    ):
 
         return roi_image.astype("uint16"), skeleton, image
 
@@ -3783,10 +3907,14 @@ def VollSeg3D(
     if noise_model is not None:
         print("Denoising Image")
 
-        image = noise_model.predict(image.astype("float32"), axes=axes, n_tiles=n_tiles)
+        image = noise_model.predict(
+            image.astype("float32"), axes=axes, n_tiles=n_tiles
+        )
         pixel_condition = image < 0
         pixel_replace_condition = 0
-        image = image_conditionals(image, pixel_condition, pixel_replace_condition)
+        image = image_conditionals(
+            image, pixel_condition, pixel_replace_condition
+        )
 
     if roi_model is not None:
 
@@ -3921,7 +4049,9 @@ def VollSeg3D(
             Mask_patch = Mask.copy()
             Mask = Region_embedding(image, roi_bbox, Mask)
             if slice_merge:
-                Mask = match_labels(Mask.astype("uint16"), iou_threshold=iou_threshold)
+                Mask = match_labels(
+                    Mask.astype("uint16"), iou_threshold=iou_threshold
+                )
             else:
                 Mask = label(Mask > 0)
             instance_labels[:, : Mask.shape[1], : Mask.shape[2]] = Mask
@@ -3947,7 +4077,9 @@ def VollSeg3D(
             Mask[i] = remove_small_objects(
                 Mask[i].astype("uint16"), min_size=min_size_mask
             )
-            Mask[i] = remove_big_objects(Mask[i].astype("uint16"), max_size=max_size)
+            Mask[i] = remove_big_objects(
+                Mask[i].astype("uint16"), max_size=max_size
+            )
         if slice_merge:
             Mask = match_labels(Mask, iou_threshold=iou_threshold)
         else:
@@ -3959,7 +4091,9 @@ def VollSeg3D(
         print("Stardist segmentation on Image")
         if donormalize:
 
-            patch_star = normalize(patch, lower_perc, upper_perc, axis=(0, 1, 2))
+            patch_star = normalize(
+                patch, lower_perc, upper_perc, axis=(0, 1, 2)
+            )
         else:
             patch_star = patch
 
@@ -3989,19 +4123,29 @@ def VollSeg3D(
             :, : smart_seeds.shape[1], : smart_seeds.shape[2]
         ] = smart_seeds
         markers = Region_embedding(image, roi_bbox, markers)
-        sized_markers[:, : smart_seeds.shape[1], : smart_seeds.shape[2]] = markers
+        sized_markers[
+            :, : smart_seeds.shape[1], : smart_seeds.shape[2]
+        ] = markers
         probability_map = Region_embedding(image, roi_bbox, probability_map)
         sized_probability_map[
             :, : probability_map.shape[1], : probability_map.shape[2]
         ] = probability_map
         star_labels = Region_embedding(image, roi_bbox, star_labels)
-        sized_stardist[:, : star_labels.shape[1], : star_labels.shape[2]] = star_labels
+        sized_stardist[
+            :, : star_labels.shape[1], : star_labels.shape[2]
+        ] = star_labels
         skeleton = np.zeros_like(sized_smart_seeds)
         for i in range(0, sized_smart_seeds.shape[0]):
-            skeleton[i] = SmartSkel(sized_smart_seeds[i], sized_probability_map[i])
+            skeleton[i] = SmartSkel(
+                sized_smart_seeds[i], sized_probability_map[i]
+            )
         skeleton = skeleton > 0
 
-    if noise_model is None and roi_image is not None and star_model is not None:
+    if (
+        noise_model is None
+        and roi_image is not None
+        and star_model is not None
+    ):
         return (
             sized_smart_seeds.astype("uint16"),
             instance_labels.astype("uint16"),
@@ -4020,7 +4164,11 @@ def VollSeg3D(
             markers.astype("uint16"),
             skeleton.astype("uint16"),
         )
-    if noise_model is not None and roi_image is None and star_model is not None:
+    if (
+        noise_model is not None
+        and roi_image is None
+        and star_model is not None
+    ):
         return (
             sized_smart_seeds.astype("uint16"),
             instance_labels.astype("uint16"),
@@ -4030,7 +4178,11 @@ def VollSeg3D(
             skeleton.astype("uint16"),
             image,
         )
-    if noise_model is not None and roi_image is not None and star_model is not None:
+    if (
+        noise_model is not None
+        and roi_image is not None
+        and star_model is not None
+    ):
         return (
             sized_smart_seeds.astype("uint16"),
             instance_labels.astype("uint16"),
@@ -4042,7 +4194,11 @@ def VollSeg3D(
             roi_image.astype("uint16"),
         )
 
-    if noise_model is not None and roi_image is not None and star_model is None:
+    if (
+        noise_model is not None
+        and roi_image is not None
+        and star_model is None
+    ):
         return instance_labels.astype("uint16"), skeleton, image
 
     if (
@@ -4259,14 +4415,18 @@ def RelabelZ(previousImage, currentImage, threshold):
                         pixel_condition = currentImage == currentlabel
                         pixel_replace_condition = currentlabel
                         relabelimage = image_conditionals(
-                            relabelimage, pixel_condition, pixel_replace_condition
+                            relabelimage,
+                            pixel_condition,
+                            pixel_replace_condition,
                         )
 
                     else:
                         pixel_condition = currentImage == currentlabel
                         pixel_replace_condition = previouslabel
                         relabelimage = image_conditionals(
-                            relabelimage, pixel_condition, pixel_replace_condition
+                            relabelimage,
+                            pixel_condition,
+                            pixel_replace_condition,
                         )
 
     return relabelimage
@@ -4308,7 +4468,9 @@ def UNETPrediction3D(
 
     else:
 
-        Segmented = model.predict(image.astype("float32"), axis, n_tiles=n_tiles)
+        Segmented = model.predict(
+            image.astype("float32"), axis, n_tiles=n_tiles
+        )
 
     try:
         thresholds = threshold_multiotsu(Segmented, classes=2)
@@ -4335,7 +4497,9 @@ def UNETPrediction3D(
     Binary = label(Binary)
 
     if model_dim == 2:
-        Binary = remove_small_objects(Binary.astype("uint16"), min_size=min_size_mask)
+        Binary = remove_small_objects(
+            Binary.astype("uint16"), min_size=min_size_mask
+        )
         Binary = remove_big_objects(Binary.astype("uint16"), max_size=max_size)
         Binary = fill_label_holes(Binary)
         Finalimage = relabel_sequential(Binary)[0]
@@ -4419,11 +4583,15 @@ def SuperSTARPrediction(
 
     if UseProbability:
 
-        MaxProjectDistance = Probability[: star_labels.shape[0], : star_labels.shape[1]]
+        MaxProjectDistance = Probability[
+            : star_labels.shape[0], : star_labels.shape[1]
+        ]
 
     else:
 
-        MaxProjectDistance = Distance[: star_labels.shape[0], : star_labels.shape[1]]
+        MaxProjectDistance = Distance[
+            : star_labels.shape[0], : star_labels.shape[1]
+        ]
 
     if OverAllunet_mask is None:
         OverAllunet_mask = unet_mask
@@ -4476,7 +4644,9 @@ def STARPrediction3D(
             nms_thresh=nms_thresh,
         )
     else:
-        res = model.predict_vollseg(image.astype("float32"), axes=axes, n_tiles=n_tiles)
+        res = model.predict_vollseg(
+            image.astype("float32"), axes=axes, n_tiles=n_tiles
+        )
     star_labels, SmallProbability, SmallDistance = res
     print("Predictions Done")
 
@@ -4501,7 +4671,9 @@ def STARPrediction3D(
 
     # We only allow for the grid parameter to be 1 along the Z axis
     for i in range(0, SmallProbability.shape[0]):
-        Probability[i, :] = zoom(SmallProbability[i, :], zoom=(grid[2], grid[1]))
+        Probability[i, :] = zoom(
+            SmallProbability[i, :], zoom=(grid[2], grid[1])
+        )
         if UseProbability is False:
             Distance[i, :] = zoom(SmallDistance[i, :], zoom=(grid[2], grid[1]))
 
@@ -4509,14 +4681,18 @@ def STARPrediction3D(
 
         print("Using Probability maps")
         MaxProjectDistance = Probability[
-            : star_labels.shape[0], : star_labels.shape[1], : star_labels.shape[2]
+            : star_labels.shape[0],
+            : star_labels.shape[1],
+            : star_labels.shape[2],
         ]
 
     else:
 
         print("Using Distance maps")
         MaxProjectDistance = Distance[
-            : star_labels.shape[0], : star_labels.shape[1], : star_labels.shape[2]
+            : star_labels.shape[0],
+            : star_labels.shape[1],
+            : star_labels.shape[2],
         ]
 
     print("Doing Watershedding")
@@ -4536,7 +4712,9 @@ def STARPrediction3D(
     return Watershed, MaxProjectDistance, star_labels, markers
 
 
-def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh=1):
+def SuperWatershedwithMask(
+    Image, Label, mask, nms_thresh, seedpool, z_thresh=1
+):
 
     properties = measure.regionprops(Label)
     Coordinates = [prop.centroid for prop in properties]
@@ -4551,7 +4729,9 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh=1)
 
             box = Starbbox[i]
             starlabel = Starlabel[i]
-            include = [UnetStarMask(box, unet).masking() for unet in BinaryCoordinates]
+            include = [
+                UnetStarMask(box, unet).masking() for unet in BinaryCoordinates
+            ]
             if False not in include:
                 indices = zip(*np.where(Label == starlabel))
                 for index in indices:
@@ -4566,7 +4746,9 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh=1)
             for i in range(0, len(Binarybbox)):
 
                 box = Binarybbox[i]
-                include = [SeedPool(box, star).pooling() for star in Coordinates]
+                include = [
+                    SeedPool(box, star).pooling() for star in Coordinates
+                ]
 
                 if False not in include:
                     Coordinates.append(BinaryCoordinates[i])
@@ -4615,10 +4797,14 @@ def CellPose3DWater(sized_smart_seeds, flows, nms_thresh, z_thresh=1):
 
     probability_mask = binary_fill_holes(probability_mask)
 
-    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
+    markers = morphology.dilation(
+        markers_raw.astype("uint16"), morphology.ball(2)
+    )
     watershed_image_nuclei = watershed(flows, markers, mask=probability_mask)
     watershed_image_nuclei = fill_label_holes(watershed_image_nuclei)
-    watershed_image_nuclei = dilate_label_holes(watershed_image_nuclei, iterations=1)
+    watershed_image_nuclei = dilate_label_holes(
+        watershed_image_nuclei, iterations=1
+    )
 
     relabeled = NMSLabel(
         watershed_image_nuclei, nms_thresh, z_thresh=z_thresh
@@ -4660,10 +4846,16 @@ def CellPoseWater(
 
     probability_mask = binary_fill_holes(probability_mask)
 
-    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
-    watershed_image_nuclei = watershed(cellpose_base, markers, mask=probability_mask)
+    markers = morphology.dilation(
+        markers_raw.astype("uint16"), morphology.ball(2)
+    )
+    watershed_image_nuclei = watershed(
+        cellpose_base, markers, mask=probability_mask
+    )
     watershed_image_nuclei = fill_label_holes(watershed_image_nuclei)
-    watershed_image_nuclei = dilate_label_holes(watershed_image_nuclei, iterations=1)
+    watershed_image_nuclei = dilate_label_holes(
+        watershed_image_nuclei, iterations=1
+    )
     cellpose_mask_copy = cellpose_mask.copy()
 
     empy_region_indices = zip(*np.where(cellpose_mask_copy == 0))
@@ -4678,7 +4870,9 @@ def CellPoseWater(
     return relabeled
 
 
-def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh=1):
+def WatershedwithMask3D(
+    Image, Label, mask, nms_thresh, seedpool=True, z_thresh=1
+):
     properties = measure.regionprops(Label)
 
     Coordinates = [prop.centroid for prop in properties]
@@ -4693,7 +4887,9 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh=
 
             box = Starbbox[i]
             starlabel = Starlabel[i]
-            include = [UnetStarMask(box, unet).masking() for unet in BinaryCoordinates]
+            include = [
+                UnetStarMask(box, unet).masking() for unet in BinaryCoordinates
+            ]
             if False not in include:
                 indices = zip(*np.where(Label == starlabel))
                 for index in indices:
@@ -4708,7 +4904,9 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh=
             for i in range(0, len(Binarybbox)):
 
                 box = Binarybbox[i]
-                include = [SeedPool(box, star).pooling() for star in Coordinates]
+                include = [
+                    SeedPool(box, star).pooling() for star in Coordinates
+                ]
 
                 if False not in include:
                     Coordinates.append(BinaryCoordinates[i])
@@ -4720,7 +4918,9 @@ def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh=
 
     markers_raw = np.zeros_like(Image)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
-    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
+    markers = morphology.dilation(
+        markers_raw.astype("uint16"), morphology.ball(2)
+    )
     watershedImage = watershed(-Image, markers, mask=mask.copy())
 
     watershedImage = NMSLabel(
@@ -4741,7 +4941,9 @@ def MidProjectDist(Image, axis=-1, slices=1):
 
     assert len(Image.shape) >= 3
     SmallImage = Image.take(
-        indices=range(Image.shape[axis] // 2 - slices, Image.shape[axis] // 2 + slices),
+        indices=range(
+            Image.shape[axis] // 2 - slices, Image.shape[axis] // 2 + slices
+        ),
         axis=axis,
     )
 
@@ -4749,7 +4951,9 @@ def MidProjectDist(Image, axis=-1, slices=1):
     return MaxProject
 
 
-def normalizeFloatZeroOne(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32):
+def normalizeFloatZeroOne(
+    x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32
+):
     """Percentile based Normalization
     Normalize patches of image before feeding into the network
     Parameters
@@ -4820,7 +5024,9 @@ def normalizer(x, mi, ma, eps=1e-20, dtype=np.float32):
 # CARE csbdeep modification of implemented function
 
 
-def normalizeFloat(x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32):
+def normalizeFloat(
+    x, pmin=3, pmax=99.8, axis=None, eps=1e-20, dtype=np.float32
+):
     """Percentile based Normalization
     Normalize patches of image before feeding into the network
     Parameters
@@ -4875,7 +5081,9 @@ def plot_train_history(history, savedir, modelname, *keys, **kwargs):
     for i, group in enumerate(keys):
         plt.subplot(1, w, i + 1)
         for k in [group] if isinstance(group, str) else group:
-            plt.plot(history.epoch, history.history[k], ".-", label=k, **kwargs)
+            plt.plot(
+                history.epoch, history.history[k], ".-", label=k, **kwargs
+            )
             if logy:
                 plt.gca().set_yscale("log", nonposy="clip")
         plt.xlabel("epoch")
