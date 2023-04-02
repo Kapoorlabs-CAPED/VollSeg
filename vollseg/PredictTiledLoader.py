@@ -52,8 +52,9 @@ class PredictTiled(Dataset):
 
         return fading_map
 
-    def set_data(self):
+    def set_data_idx(self, idx):
 
+        self.data_idx = idx
         self.data_shape = self.image.shape
         # Calculate the position of each tile
         locations = []
@@ -82,9 +83,9 @@ class PredictTiled(Dataset):
 
         return len(self.locations)
 
-    def __getitem__(self):
+    def __getitem__(self, idx):
 
-        self.patch_start = np.array(self.locations[0])
+        self.patch_start = np.array(self.locations[idx])
         self.patch_end = self.patch_start + np.array(self.patch_size)
 
         pad_before = np.maximum(-self.patch_start, 0)

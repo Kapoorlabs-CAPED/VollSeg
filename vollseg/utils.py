@@ -34,10 +34,14 @@ from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
 from tqdm import tqdm
 from .UNet3D import UNet3D_module
+from .PredictTiledLoader import PredictTiled
 from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
+from torch.utils.data import DataLoader
+from pytorch_lightning import Trainer
+from torch.autograd import Variable
 
 Boxname = "ImageIDBox"
 GLOBAL_THRESH = 1.0e-2
@@ -1274,7 +1278,74 @@ def _apply_cellpose_network_3D(
     model = load_pretrained(
         cellpose_model_3D_pretrained_file=cellpose_model_3D_pretrained_file, model=model
     )
-    model = model.cuda()
+    model.eval()
+
+    dataset = PredictTiled(
+        image=image_membrane, patch_size=patch_size, overlap=overlap, crop=crop
+    )
+    fading_map = dataset.get_fading_map()
+    fading_map = np.repeat(fading_map[np.newaxis, ...], hparams["out_channels"], axis=0)
+
+    dataset.set_data_idx(0)
+
+    # Determine if the patch size exceeds the image size
+    working_size = tuple(
+        np.max(np.array(dataset.locations), axis=0)
+        - np.min(np.array(dataset.locations), axis=0)
+        + np.array(hparams.patch_size)
+    )
+
+    # Initialize maps (random to overcome memory leaks)
+    predicted_img = np.full((hparams.out_channels,) + working_size, 0, dtype=np.float32)
+    norm_map = np.full((hparams.out_channels,) + working_size, 0, dtype=np.float32)
+
+    data_loader = DataLoader(dataset=dataset)
+    trainer = Trainer()
+    for patch_idx in range(dataset.__len__()):
+
+        # Get the mask
+        sample = dataset.__getitem__(patch_idx)
+        data = Variable(
+            torch.from_numpy(sample[hparams.input_batch][np.newaxis, ...]).cuda()
+        )
+        data = data.float()
+
+        # Predict the image
+        pred_patch = trainer.predict(model, data_loader)
+        pred_patch = pred_patch.cpu().data.numpy()
+        pred_patch = np.squeeze(pred_patch)
+
+        # Get the current slice position
+        slicing = tuple(
+            map(
+                slice,
+                (0,) + tuple(dataset.patch_start + dataset.global_crop_before),
+                (hparams.out_channels,)
+                + tuple(dataset.patch_end + dataset.global_crop_before),
+            )
+        )
+
+        # Add predicted patch and fading weights to the corresponding maps
+        predicted_img[slicing] = predicted_img[slicing] + pred_patch * fading_map
+        norm_map[slicing] = norm_map[slicing] + fading_map
+
+    # Normalize the predicted image
+    norm_map = np.clip(norm_map, 1e-5, np.inf)
+    predicted_img = predicted_img / norm_map
+
+    # Crop the predicted image to its original size
+    slicing = tuple(
+        map(
+            slice,
+            (0,) + tuple(dataset.global_crop_before),
+            (hparams.out_channels,) + tuple(dataset.global_crop_after),
+        )
+    )
+    predicted_img = predicted_img[slicing]
+
+    # Save the predicted image
+    predicted_img = np.transpose(predicted_img, (1, 2, 3, 0))
+    predicted_img = predicted_img.astype(np.float32)
 
 
 def load_pretrained(
