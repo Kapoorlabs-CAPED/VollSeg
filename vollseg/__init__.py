@@ -22,17 +22,8 @@ from .CellPose import CellPose
 from .UNet3D import UNet3D_module
 from .PredictTiledLoader import PredictTiled
 from .CellPose3D import CellPose3D
-import json 
+from .TrainTiledLoader import TrainTiled
 
-
-def load_json(fpath):
-    with open(fpath,'r') as f:
-        return json.load(f)
-
-
-def save_json(data,fpath,**kwargs):
-    with open(fpath,'w') as f:
-        f.write(json.dumps(data,**kwargs))
 
 
 get_file = keras_import('utils', 'get_file')
@@ -58,6 +49,8 @@ __all__ = (
     "UNet3D_cellpose",
     "UNet3D_module",
     "PredictTiled",
+    "CellPose3D",
+    "TrainTiled"
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
