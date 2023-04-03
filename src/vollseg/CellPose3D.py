@@ -1,6 +1,11 @@
 import os
 from pathlib import Path
-from .cellposeutils3D import prepare_images, prepare_masks, create_csv, save_json
+from .cellposeutils3D import (
+    prepare_images,
+    prepare_masks,
+    create_csv,
+    save_json,
+)
 from .TrainTiledLoader import TrainTiled
 from torch.utils.data import DataLoader
 from .UNet3D import UNet3D_module
@@ -82,7 +87,9 @@ class CellPose3D(pl.LightningModule):
         self.save_raw_h5 = os.path.join(base_dir, self.save_raw_h5_name)
         Path(self.save_raw_h5).mkdir(exist_ok=True)
 
-        self.save_real_mask_h5 = os.path.join(base_dir, self.save_real_mask_h5_name)
+        self.save_real_mask_h5 = os.path.join(
+            base_dir, self.save_real_mask_h5_name
+        )
         Path(self.save_real_mask_h5).mkdir(exist_ok=True)
         self.save_hyperparameters()
 
@@ -131,7 +138,7 @@ class CellPose3D(pl.LightningModule):
         self.train_list = os.path.join(self.base_dir, self.save_train)
         self.val_list = os.path.join(self.base_dir, self.save_val)
         self.test_list = os.path.join(self.base_dir, self.save_test)
-        self.hparams = {
+        hparams = {
             "train_list": self.train_list,
             "test_list": self.test_list,
             "val_list": self.val_list,
@@ -153,49 +160,51 @@ class CellPose3D(pl.LightningModule):
             "out_activation": self.out_activation,
         }
 
-        save_json(self.hparams, str(self.base_dir) + "/" + self.model_name + ".json")
+        save_json(
+            hparams, str(self.base_dir) + "/" + self.model_name + ".json"
+        )
 
         train_dataset = TrainTiled(
-            self.hparams["train_list"],
-            self.hparams["data_root"],
-            patch_size=self.hparams["patch_size"],
-            image_groups=self.hparams["image_groups"],
-            mask_groups=self.hparams["mask_groups"],
-            dist_handling=self.hparams["dist_handling"],
-            norm_method=self.hparams["data_norm"],
-            sample_per_epoch=self.hparams["samples_per_epoch"],
+            hparams["train_list"],
+            hparams["data_root"],
+            patch_size=hparams["patch_size"],
+            image_groups=hparams["image_groups"],
+            mask_groups=hparams["mask_groups"],
+            dist_handling=hparams["dist_handling"],
+            norm_method=hparams["data_norm"],
+            sample_per_epoch=hparams["samples_per_epoch"],
         )
         train_loader = DataLoader(
             train_dataset,
-            batch_size=self.hparams["batch_size"],
+            batch_size=hparams["batch_size"],
             shuffle=True,
             drop_last=True,
         )
 
         val_dataset = TrainTiled(
-            self.hparams["val_list"],
-            self.hparams["data_root"],
-            patch_size=self.hparams["patch_size"],
-            image_groups=self.hparams["image_groups"],
-            mask_groups=self.hparams["mask_groups"],
-            dist_handling=self.hparams["dist_handling"],
-            norm_method=self.hparams["data_norm"],
-            sample_per_epoch=self.hparams["samples_per_epoch"],
+            hparams["val_list"],
+            hparams["data_root"],
+            patch_size=hparams["patch_size"],
+            image_groups=hparams["image_groups"],
+            mask_groups=hparams["mask_groups"],
+            dist_handling=hparams["dist_handling"],
+            norm_method=hparams["data_norm"],
+            sample_per_epoch=hparams["samples_per_epoch"],
         )
         val_loader = DataLoader(
             val_dataset,
-            batch_size=self.hparams["batch_size"],
+            batch_size=hparams["batch_size"],
             shuffle=True,
             drop_last=True,
         )
 
         self.model = UNet3D_module(
-            patch_size=self.hparams["patch_size"],
-            in_channels=self.hparams["in_channels"],
-            out_channels=self.hparams["out_channels"],
-            feat_channels=self.hparams["feat_channels"],
-            out_activation=self.hparams["out_activation"],
-            norm_method=self.hparams["norm_method"],
+            patch_size=hparams["patch_size"],
+            in_channels=hparams["in_channels"],
+            out_channels=hparams["out_channels"],
+            feat_channels=hparams["feat_channels"],
+            out_activation=hparams["out_activation"],
+            norm_method=hparams["norm_method"],
         )
         pretrained_file = os.path.join(self.model_dir, self.model_name)
         if os.path.isfile(pretrained_file):
@@ -211,7 +220,8 @@ class CellPose3D(pl.LightningModule):
         )
 
         logger = CSVLogger(
-            save_dir=self.base_dir, name="lightning_logs_" + pretrained_file.lower()
+            save_dir=self.base_dir,
+            name="lightning_logs_" + pretrained_file.lower(),
         )
 
         trainer = Trainer(
@@ -254,7 +264,9 @@ class CellPose3D(pl.LightningModule):
                     print(f'Could not find weights for layer "{layer}"')
                 continue
             try:
-                param_dict[layer].data.copy_(state_dict["network." + layer].data)
+                param_dict[layer].data.copy_(
+                    state_dict["network." + layer].data
+                )
                 layers.append(layer)
             except (RuntimeError, KeyError) as e:
                 print(f"Error at layer {layer}:\n{e}")
@@ -307,10 +319,7 @@ class CellPose3D(pl.LightningModule):
         )
         loss_flow = (loss_flowx + loss_flowy + loss_flowz) / 3
 
-        loss = (
-            self.hparams["background_weight"] * loss_bg
-            + self.hparams["flow_weight"] * loss_flow
-        )
+        loss = self.background_weight * loss_bg + self.flow_weight * loss_flow
 
         return loss
 
@@ -323,18 +332,20 @@ class CellPose3D(pl.LightningModule):
         x, y = batch["image"], batch["mask"]
         y_hat = self.forward(x)
         loss = F.mse_loss(y_hat, y)
-        self.log(f"{prefix}_loss", loss, on_step=True, on_epoch=True, sync_dist=True)
+        self.log(
+            f"{prefix}_loss", loss, on_step=True, on_epoch=True, sync_dist=True
+        )
 
     def validation_step(self, batch, batch_idx):
 
         self._shared_eval(batch, batch_idx, "validation")
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(
-            self.model.parameters(), lr=self.hparams["learning_rate"]
-        )
+        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
-        schedular = optim.lr_scheduler.ReduceLROnPlateau(optimizer=optimizer, factor=10)
+        schedular = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer=optimizer, factor=10
+        )
         optimizer_scheduler = OrderedDict(
             {
                 "optimizer": optimizer,
