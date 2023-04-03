@@ -188,8 +188,7 @@ class CellPose3D(pl.LightningModule):
             image_groups=hparams["image_groups"],
             mask_groups=hparams["mask_groups"],
             dist_handling=hparams["dist_handling"],
-            norm_method=hparams["data_norm"],
-            sample_per_epoch=hparams["samples_per_epoch"],
+            samples_per_epoch=hparams["samples_per_epoch"],
         )
         val_loader = DataLoader(
             val_dataset,

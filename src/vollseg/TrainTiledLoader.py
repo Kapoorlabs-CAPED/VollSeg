@@ -18,8 +18,6 @@ class TrainTiled(Dataset):
         patches_from_fg=0.0,
         dist_handling="bool_inv",
         correspondence=True,
-        no_img=False,
-        no_mask=False,
     ):
 
         # Sanity checks
@@ -32,8 +30,7 @@ class TrainTiled(Dataset):
         self.patches_from_fg = patches_from_fg
         self.dist_handling = dist_handling
         self.correspondence = correspondence
-        self.no_img = no_img
-        self.no_mask = no_mask
+
         self.samples_per_epoch = samples_per_epoch
         self.axis_norm = (0, 1, 2)
         # Read the filelist and construct full paths to each file
@@ -48,21 +45,23 @@ class TrainTiled(Dataset):
         for i in range(num_files):
             test_sample = self.__getitem__(i % self.__len__())
 
-            if not self.no_img:
-                for num_img in range(test_sample["image"].shape[0]):
-                    io.imsave(
-                        os.path.join(test_folder, f"test_img{i}_group{num_img}.tif"),
-                        test_sample["image"][num_img, ...],
-                        check_contrast=False,
-                    )
+            for num_img in range(test_sample["image"].shape[0]):
+                io.imsave(
+                    os.path.join(
+                        test_folder, f"test_img{i}_group{num_img}.tif"
+                    ),
+                    test_sample["image"][num_img, ...],
+                    check_contrast=False,
+                )
 
-            if not self.no_mask:
-                for num_mask in range(test_sample["mask"].shape[0]):
-                    io.imsave(
-                        os.path.join(test_folder, f"test_mask{i}_group{num_mask}.tif"),
-                        test_sample["mask"][num_mask, ...],
-                        check_contrast=False,
-                    )
+            for num_mask in range(test_sample["mask"].shape[0]):
+                io.imsave(
+                    os.path.join(
+                        test_folder, f"test_mask{i}_group{num_mask}.tif"
+                    ),
+                    test_sample["mask"][num_mask, ...],
+                    check_contrast=False,
+                )
 
     def _read_list(self):
 
@@ -107,12 +106,6 @@ class TrainTiled(Dataset):
 
         # Permute patch dimensions
         patch_size = list(self.patch_size)
-        if self.permute_dim:
-            swaps = np.random.choice(range(3), 2, replace=False)
-            patch_size[swaps[0]], patch_size[swaps[1]] = (
-                patch_size[swaps[1]],
-                patch_size[swaps[0]],
-            )
 
         sample = {}
 
@@ -135,7 +128,9 @@ class TrainTiled(Dataset):
                             fg_indices = np.where(mask_tmp)
                             rnd_start = [
                                 np.maximum(
-                                    0, f[np.random.randint(len(fg_indices[0]))] - p
+                                    0,
+                                    f[np.random.randint(len(fg_indices[0]))]
+                                    - p,
                                 )
                                 for f, p in zip(fg_indices, patch_size)
                             ]
@@ -164,21 +159,6 @@ class TrainTiled(Dataset):
                     ]
                     mask_tmp = np.pad(mask_tmp, pad_width, mode="reflect")
 
-                    # Permute dimensions
-                    if self.permute_dim:
-                        mask_tmp = np.swapaxes(mask_tmp, *swaps)
-                        # sanity check
-                        assert mask_tmp.shape == tuple(
-                            self.patch_size
-                        ), f"Mask dimension missmatch after rotation. {mask_tmp.shape} instead of {self.patch_size}."
-
-                    if "flow" in group_name and self.permute_dim:
-                        num_group = (
-                            num_group
-                            if not num_group - 1 in swaps
-                            else int(swaps[swaps != num_group - 1] + 1)
-                        )
-
                     # Store current mask
                     mask[num_group, ...] = mask_tmp
 
@@ -197,13 +177,19 @@ class TrainTiled(Dataset):
 
                     image_tmp = f_handle[group_name]
                     # Check if positioning  have to be reset
-                    reset = (self.no_mask or not self.correspondence) and num_group == 0
+                    reset = (
+                        self.no_mask or not self.correspondence
+                    ) and num_group == 0
 
                     # Determine the patch position
                     if reset:
                         rnd_start = [
-                            np.random.randint(0, np.maximum(1, image_dim - patch_dim))
-                            for patch_dim, image_dim in zip(patch_size, image_tmp.shape)
+                            np.random.randint(
+                                0, np.maximum(1, image_dim - patch_dim)
+                            )
+                            for patch_dim, image_dim in zip(
+                                patch_size, image_tmp.shape
+                            )
                         ]
                         rnd_end = [
                             start + patch_dim
@@ -220,13 +206,6 @@ class TrainTiled(Dataset):
                     image_tmp = np.pad(image_tmp, pad_width, mode="reflect")
 
                     # Permute dimensions
-                    if self.permute_dim:
-                        image_tmp = np.swapaxes(image_tmp, *swaps)
-                        # sanity check
-                        assert image_tmp.shape == tuple(
-                            self.patch_size
-                        ), f"Image dimension missmatch after rotation. {image.shape} instead of {self.patch_size}."
-
                     image[num_group, ...] = image_tmp
 
                 image = image.astype(np.float32)
