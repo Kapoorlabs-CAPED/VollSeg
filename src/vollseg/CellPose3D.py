@@ -14,6 +14,7 @@ import lightning.pytorch as pl
 from pytorch_lightning import Trainer
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
+from argparse import Namespace
 
 
 class CellPose3D(pl.LightningModule):
@@ -22,14 +23,16 @@ class CellPose3D(pl.LightningModule):
         hparams,
     ):
         super().__init__()
+        if type(hparams) is dict:
+            hparams = Namespace(**hparams)
         self.hparams = hparams
         self.network = UNet3D_module(
-            patch_size=hparams["patch_size"],
-            in_channels=hparams["in_channels"],
-            out_channels=hparams["out_channels"],
-            feat_channels=hparams["feat_channels"],
-            out_activation=hparams["out_activation"],
-            norm_method=hparams["norm_method"],
+            patch_size=hparams.patch_size,
+            in_channels=hparams.in_channels,
+            out_channels=hparams.out_channels,
+            feat_channels=hparams.feat_channels,
+            out_activation=hparams.out_activation,
+            norm_method=hparams.norm_method,
         )
         self.save_hyperparameters()
 
