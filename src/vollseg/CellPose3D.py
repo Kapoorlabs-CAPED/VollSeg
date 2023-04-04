@@ -19,6 +19,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 class CellPose3D(pl.LightningModule):
     def __init__(self, network):
         self.network = network
+        self.save_hyperparameters()
 
     def background_loss(self, y_hat, y):
         return F.l1_loss(y_hat, y)
@@ -175,7 +176,6 @@ class CellPose3DTrain:
             base_dir, self.save_real_mask_h5_name
         )
         Path(self.save_real_mask_h5).mkdir(exist_ok=True)
-        self.save_hyperparameters()
 
     def _create_training_h5(self):
 
