@@ -16,7 +16,7 @@ from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 
 
-class CellPose3D(pl.LightningModule):
+class UNet3D_cellpose(pl.LightningModule):
     def __init__(
         self,
         hparams,
@@ -325,7 +325,7 @@ class CellPose3DTrain:
         )
         Path(self.save_real_mask_h5).mkdir(exist_ok=True)
 
-        self.model = CellPose3D(hparams)
+        self.model = UNet3D_cellpose(hparams)
 
         checkpoint_callback = ModelCheckpoint(
             dirpath=Path(self.model_dir),
