@@ -23,7 +23,7 @@ class CellPose3D(pl.LightningModule):
     ):
         super().__init__()
 
-        self.hparams = hparams
+        self.save_hyperparameters()
         self.network = UNet3D_module(
             patch_size=hparams["patch_size"],
             in_channels=hparams["in_channels"],
@@ -32,7 +32,6 @@ class CellPose3D(pl.LightningModule):
             out_activation=hparams["out_activation"],
             norm_method=hparams["norm_method"],
         )
-        self.save_hyperparameters(self.hparams)
 
     def load_pretrained(self, pretrained_file, strict=True, verbose=True):
         if isinstance(pretrained_file, (list, tuple)):
