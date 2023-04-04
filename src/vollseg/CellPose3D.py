@@ -269,7 +269,7 @@ class CellPose3DTrain:
             "data_root": "",
             "patch_size": self.patch_size,
             "epochs": self.epochs,
-            "image_groups": ("data/image"),
+            "image_groups": ("data/image",),
             "mask_groups": (
                 "data/distance",
                 "data/flow_x",
