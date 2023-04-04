@@ -193,13 +193,15 @@ class CellPose3D(pl.LightningModule):
             drop_last=True,
         )
 
-        self.model = UNet3D_module(
-            patch_size=hparams["patch_size"],
-            in_channels=hparams["in_channels"],
-            out_channels=hparams["out_channels"],
-            feat_channels=hparams["feat_channels"],
-            out_activation=hparams["out_activation"],
-            norm_method=hparams["norm_method"],
+        self.model = CellPose3D(
+            UNet3D_module(
+                patch_size=hparams["patch_size"],
+                in_channels=hparams["in_channels"],
+                out_channels=hparams["out_channels"],
+                feat_channels=hparams["feat_channels"],
+                out_activation=hparams["out_activation"],
+                norm_method=hparams["norm_method"],
+            )
         )
         pretrained_file = os.path.join(self.model_dir, self.model_name)
         if os.path.isfile(pretrained_file):
