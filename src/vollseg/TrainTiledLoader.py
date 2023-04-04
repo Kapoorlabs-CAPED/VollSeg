@@ -14,7 +14,12 @@ class TrainTiled(Dataset):
         patch_size=(64, 128, 128),
         samples_per_epoch=-1,
         image_groups=("data/image",),
-        mask_groups=("data/distance", "data/seeds", "data/boundary"),
+        mask_groups=(
+            "data/distance",
+            "data/flow_x",
+            "data/flow_y",
+            "data/flow_z",
+        ),
         patches_from_fg=0.0,
         dist_handling="bool_inv",
         correspondence=True,
