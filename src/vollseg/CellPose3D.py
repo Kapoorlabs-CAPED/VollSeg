@@ -31,6 +31,9 @@ class CellPose3D(LightningModule):
             out_activation=hparams["out_activation"],
             norm_method=hparams["norm_method"],
         )
+        self.background_weight = hparams["background_weight"]
+        self.flow_weight = hparams["flow_weight"]
+        self.learning_rate = hparams["learning_rate"]
 
     def load_pretrained(self, pretrained_file, strict=True, verbose=True):
         if isinstance(pretrained_file, (list, tuple)):
