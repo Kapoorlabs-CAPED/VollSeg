@@ -109,107 +109,100 @@ class TrainTiled(Dataset):
 
         sample = {}
 
-        if not self.no_mask:
+        # Load the mask patch
+        mask = np.zeros(
+            (len(self.mask_groups),) + self.patch_size, dtype=np.float32
+        )
+        with h5py.File(filepath[1], "r") as f_handle:
+            for num_group, group_name in enumerate(self.mask_groups):
 
-            # Load the mask patch
-            mask = np.zeros(
-                (len(self.mask_groups),) + self.patch_size, dtype=np.float32
-            )
-            with h5py.File(filepath[1], "r") as f_handle:
-                for num_group, group_name in enumerate(self.mask_groups):
+                mask_tmp = f_handle[group_name]
 
-                    mask_tmp = f_handle[group_name]
+                # determine the patch position for the first mask
+                if num_group == 0:
 
-                    # determine the patch position for the first mask
-                    if num_group == 0:
-
-                        # obtain patch position from foreground indices or random
-                        if self.patches_from_fg > np.random.random():
-                            fg_indices = np.where(mask_tmp)
-                            rnd_start = [
-                                np.maximum(
-                                    0,
-                                    f[np.random.randint(len(fg_indices[0]))]
-                                    - p,
-                                )
-                                for f, p in zip(fg_indices, patch_size)
-                            ]
-                        else:
-                            rnd_start = [
-                                np.random.randint(
-                                    0, np.maximum(1, mask_dim - patch_dim)
-                                )
-                                for patch_dim, mask_dim in zip(
-                                    patch_size, mask_tmp.shape
-                                )
-                            ]
-                        rnd_end = [
-                            start + patch_dim
-                            for start, patch_dim in zip(rnd_start, patch_size)
+                    # obtain patch position from foreground indices or random
+                    if self.patches_from_fg > np.random.random():
+                        fg_indices = np.where(mask_tmp)
+                        rnd_start = [
+                            np.maximum(
+                                0,
+                                f[np.random.randint(len(fg_indices[0]))] - p,
+                            )
+                            for f, p in zip(fg_indices, patch_size)
                         ]
-                        slicing = tuple(map(slice, rnd_start, rnd_end))
-
-                    # extract the patch
-                    mask_tmp = mask_tmp[slicing]
-
-                    # Pad if neccessary
-                    pad_width = [
-                        (0, np.maximum(0, p - i))
-                        for p, i in zip(patch_size, mask_tmp.shape)
-                    ]
-                    mask_tmp = np.pad(mask_tmp, pad_width, mode="reflect")
-
-                    # Store current mask
-                    mask[num_group, ...] = mask_tmp
-
-                mask = mask.astype(np.float32)
-
-                sample["mask"] = mask
-
-        if not self.no_img:
-
-            # Load the image patch
-            image = np.zeros(
-                (len(self.image_groups),) + self.patch_size, dtype=np.float32
-            )
-            with h5py.File(filepath[0], "r") as f_handle:
-                for num_group, group_name in enumerate(self.image_groups):
-
-                    image_tmp = f_handle[group_name]
-                    # Check if positioning  have to be reset
-                    reset = (
-                        self.no_mask or not self.correspondence
-                    ) and num_group == 0
-
-                    # Determine the patch position
-                    if reset:
+                    else:
                         rnd_start = [
                             np.random.randint(
-                                0, np.maximum(1, image_dim - patch_dim)
+                                0, np.maximum(1, mask_dim - patch_dim)
                             )
-                            for patch_dim, image_dim in zip(
-                                patch_size, image_tmp.shape
+                            for patch_dim, mask_dim in zip(
+                                patch_size, mask_tmp.shape
                             )
                         ]
-                        rnd_end = [
-                            start + patch_dim
-                            for start, patch_dim in zip(rnd_start, patch_size)
-                        ]
-                        slicing = tuple(map(slice, rnd_start, rnd_end))
-                    image_tmp = image_tmp[slicing].astype(np.float32)
-
-                    # Pad if neccessary
-                    pad_width = [
-                        (0, np.maximum(0, p - i))
-                        for p, i in zip(patch_size, image_tmp.shape)
+                    rnd_end = [
+                        start + patch_dim
+                        for start, patch_dim in zip(rnd_start, patch_size)
                     ]
-                    image_tmp = np.pad(image_tmp, pad_width, mode="reflect")
+                    slicing = tuple(map(slice, rnd_start, rnd_end))
 
-                    # Permute dimensions
-                    image[num_group, ...] = image_tmp
+                # extract the patch
+                mask_tmp = mask_tmp[slicing]
 
-                image = image.astype(np.float32)
+                # Pad if neccessary
+                pad_width = [
+                    (0, np.maximum(0, p - i))
+                    for p, i in zip(patch_size, mask_tmp.shape)
+                ]
+                mask_tmp = np.pad(mask_tmp, pad_width, mode="reflect")
 
-                sample["image"] = image
+                # Store current mask
+                mask[num_group, ...] = mask_tmp
+
+            mask = mask.astype(np.float32)
+
+            sample["mask"] = mask
+
+        # Load the image patch
+        image = np.zeros(
+            (len(self.image_groups),) + self.patch_size, dtype=np.float32
+        )
+        with h5py.File(filepath[0], "r") as f_handle:
+            for num_group, group_name in enumerate(self.image_groups):
+
+                image_tmp = f_handle[group_name]
+                # Check if positioning  have to be reset
+                reset = (not self.correspondence) and num_group == 0
+
+                # Determine the patch position
+                if reset:
+                    rnd_start = [
+                        np.random.randint(
+                            0, np.maximum(1, image_dim - patch_dim)
+                        )
+                        for patch_dim, image_dim in zip(
+                            patch_size, image_tmp.shape
+                        )
+                    ]
+                    rnd_end = [
+                        start + patch_dim
+                        for start, patch_dim in zip(rnd_start, patch_size)
+                    ]
+                    slicing = tuple(map(slice, rnd_start, rnd_end))
+                image_tmp = image_tmp[slicing].astype(np.float32)
+
+                # Pad if neccessary
+                pad_width = [
+                    (0, np.maximum(0, p - i))
+                    for p, i in zip(patch_size, image_tmp.shape)
+                ]
+                image_tmp = np.pad(image_tmp, pad_width, mode="reflect")
+
+                # Permute dimensions
+                image[num_group, ...] = image_tmp
+
+            image = image.astype(np.float32)
+
+            sample["image"] = image
 
         return sample
