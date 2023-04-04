@@ -270,7 +270,12 @@ class CellPose3DTrain:
             "patch_size": self.patch_size,
             "epochs": self.epochs,
             "image_groups": ("data/image"),
-            "mask_groups": ("data/distance", "data/seeds", "data/boundary"),
+            "mask_groups": (
+                "data/distance",
+                "data/flow_x",
+                "data/flow_y",
+                "data/flow_z",
+            ),
             "dist_handling": "bool_inv",
             "in_channels": self.in_channels,
             "out_channels": self.out_channels,
