@@ -34,7 +34,7 @@ class CellPose3D(pl.LightningModule):
         return loss
 
     def forward(self, z):
-        return self.model(z)
+        return self.network(z)
 
     def training_step(self, batch, batch_idx):
         # Get image ans mask of current batch
