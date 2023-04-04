@@ -17,10 +17,54 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 class CellPose3D(pl.LightningModule):
-    def __init__(self, network):
+    def __init__(
+        self,
+        hparams,
+    ):
         super().__init__()
-        self.network = network
+        self.hparams = hparams
+        self.network = UNet3D_module(
+            patch_size=hparams["patch_size"],
+            in_channels=hparams["in_channels"],
+            out_channels=hparams["out_channels"],
+            feat_channels=hparams["feat_channels"],
+            out_activation=hparams["out_activation"],
+            norm_method=hparams["norm_method"],
+        )
         self.save_hyperparameters()
+
+    def load_pretrained(self, pretrained_file, strict=True, verbose=True):
+        if isinstance(pretrained_file, (list, tuple)):
+            pretrained_file = pretrained_file[0]
+
+        # Load the state dict
+        state_dict = torch.load(pretrained_file)["state_dict"]
+
+        # Make sure to have a weight dict
+        if not isinstance(state_dict, dict):
+            state_dict = dict(state_dict)
+
+        # Get parameter dict of current model
+        param_dict = dict(self.network.named_parameters())
+
+        layers = []
+        for layer in param_dict:
+            if strict and not "network." + layer in state_dict:
+                if verbose:
+                    print(f'Could not find weights for layer "{layer}"')
+                continue
+            try:
+                param_dict[layer].data.copy_(
+                    state_dict["network." + layer].data
+                )
+                layers.append(layer)
+            except (RuntimeError, KeyError) as e:
+                print(f"Error at layer {layer}:\n{e}")
+
+        self.network.load_state_dict(param_dict)
+
+        if verbose:
+            print(f"Loaded weights for the following layers:\n{layers}")
 
     def background_loss(self, y_hat, y):
         return F.l1_loss(y_hat, y)
@@ -87,7 +131,9 @@ class CellPose3D(pl.LightningModule):
         self._shared_eval(batch, batch_idx, "validation")
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        optimizer = optim.Adam(
+            self.network.parameters(), lr=self.learning_rate
+        )
 
         schedular = optim.lr_scheduler.ReduceLROnPlateau(
             optimizer=optimizer, factor=10
@@ -105,7 +151,7 @@ class CellPose3D(pl.LightningModule):
         return optimizer_scheduler
 
 
-class CellPose3DTrain:
+class CellPoseTrain:
     def __init__(
         self,
         base_dir,
@@ -168,14 +214,6 @@ class CellPose3DTrain:
         self.num_gpu = num_gpu
         self.save_raw_h5_name = "raw_h5/"
         self.save_real_mask_h5_name = "real_mask_h5/"
-
-        self.save_raw_h5 = os.path.join(base_dir, self.save_raw_h5_name)
-        Path(self.save_raw_h5).mkdir(exist_ok=True)
-
-        self.save_real_mask_h5 = os.path.join(
-            base_dir, self.save_real_mask_h5_name
-        )
-        Path(self.save_real_mask_h5).mkdir(exist_ok=True)
 
     def _create_training_h5(self):
 
@@ -279,21 +317,15 @@ class CellPose3DTrain:
             shuffle=True,
             drop_last=True,
         )
+        self.save_raw_h5 = os.path.join(self.base_dir, self.save_raw_h5_name)
+        Path(self.save_raw_h5).mkdir(exist_ok=True)
 
-        self.model = CellPose3D(
-            UNet3D_module(
-                patch_size=hparams["patch_size"],
-                in_channels=hparams["in_channels"],
-                out_channels=hparams["out_channels"],
-                feat_channels=hparams["feat_channels"],
-                out_activation=hparams["out_activation"],
-                norm_method=hparams["norm_method"],
-            )
+        self.save_real_mask_h5 = os.path.join(
+            self.base_dir, self.save_real_mask_h5_name
         )
+        Path(self.save_real_mask_h5).mkdir(exist_ok=True)
 
-        pretrained_file = os.path.join(self.model_dir, self.model_name)
-        if os.path.isfile(pretrained_file):
-            self.load_pretrained(pretrained_file)
+        self.model = CellPose3D(hparams)
 
         checkpoint_callback = ModelCheckpoint(
             dirpath=Path(self.model_dir),
@@ -306,7 +338,7 @@ class CellPose3DTrain:
 
         logger = CSVLogger(
             save_dir=self.base_dir,
-            name="lightning_logs_" + pretrained_file.lower(),
+            name="lightning_logs_" + self.model_name,
         )
 
         trainer = Trainer(
@@ -325,38 +357,5 @@ class CellPose3DTrain:
             self.model,
             train_dataloaders=train_loader,
             val_dataloaders=val_loader,
-            ckpt_path=pretrained_file,
+            ckpt_path=os.path.join(self.model_dir, self.model_name),
         )
-
-    def load_pretrained(self, pretrained_file, strict=True, verbose=True):
-        if isinstance(pretrained_file, (list, tuple)):
-            pretrained_file = pretrained_file[0]
-
-        # Load the state dict
-        state_dict = torch.load(pretrained_file)["state_dict"]
-
-        # Make sure to have a weight dict
-        if not isinstance(state_dict, dict):
-            state_dict = dict(state_dict)
-
-        # Get parameter dict of current model
-        param_dict = dict(self.model.named_parameters())
-
-        layers = []
-        for layer in param_dict:
-            if strict and not "network." + layer in state_dict:
-                if verbose:
-                    print(f'Could not find weights for layer "{layer}"')
-                continue
-            try:
-                param_dict[layer].data.copy_(
-                    state_dict["network." + layer].data
-                )
-                layers.append(layer)
-            except (RuntimeError, KeyError) as e:
-                print(f"Error at layer {layer}:\n{e}")
-
-        self.model.load_state_dict(param_dict)
-
-        if verbose:
-            print(f"Loaded weights for the following layers:\n{layers}")
