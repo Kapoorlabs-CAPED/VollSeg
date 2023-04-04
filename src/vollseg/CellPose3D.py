@@ -2,6 +2,9 @@ import os
 from pathlib import Path
 from .cellposeutils3D import (
     save_json,
+    prepare_images,
+    prepare_masks,
+    create_csv,
 )
 from .TrainTiledLoader import TrainTiled
 from torch.utils.data import DataLoader
@@ -219,7 +222,7 @@ class CellPose3DTrain:
 
     def _create_training_h5(self):
 
-        """prepare_images(
+        prepare_images(
             data_path=self.raw_dir,
             save_path=self.save_raw_h5,
             identifier=self.identifier,
@@ -258,7 +261,7 @@ class CellPose3DTrain:
             save_train=self.save_train,
             save_test=self.save_test,
             save_val=self.save_val,
-        )"""
+        )
         self.train_list = os.path.join(self.base_dir, self.save_train)
         self.val_list = os.path.join(self.base_dir, self.save_val)
         self.test_list = os.path.join(self.base_dir, self.save_test)
