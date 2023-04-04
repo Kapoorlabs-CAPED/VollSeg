@@ -151,7 +151,7 @@ class CellPose3D(pl.LightningModule):
         return optimizer_scheduler
 
 
-class CellPoseTrain:
+class CellPose3DTrain:
     def __init__(
         self,
         base_dir,
