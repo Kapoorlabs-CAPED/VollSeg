@@ -145,7 +145,7 @@ class CellPose3D(LightningModule):
                 "optimizer": optimizer,
                 "lr_scheduler": {
                     "scheduler": schedular,
-                    "monitor": "val_loss",
+                    "monitor": "validation_loss",
                     "frequency": 1,
                 },
             }
