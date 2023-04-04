@@ -138,7 +138,7 @@ class CellPose3D(LightningModule):
         )
 
         schedular = optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer=optimizer, factor=10
+            optimizer=optimizer, factor=0.5
         )
         optimizer_scheduler = OrderedDict(
             {
