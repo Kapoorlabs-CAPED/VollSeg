@@ -10,13 +10,12 @@ import torch
 import torch.nn.functional as F
 from torch import optim
 from collections import OrderedDict
-import lightning.pytorch as pl
-from pytorch_lightning import Trainer
-from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.callbacks import ModelCheckpoint
+from lightning import Trainer, LightningModule
+from lightning.pytorch.loggers import CSVLogger
+from lightning.pytorch.callbacks import ModelCheckpoint
 
 
-class UNet3D_cellpose(pl.LightningModule):
+class CellPose3D(LightningModule):
     def __init__(
         self,
         hparams,
@@ -325,7 +324,7 @@ class CellPose3DTrain:
         )
         Path(self.save_real_mask_h5).mkdir(exist_ok=True)
 
-        self.model = UNet3D_cellpose(hparams)
+        self.model = CellPose3D(hparams)
 
         checkpoint_callback = ModelCheckpoint(
             dirpath=Path(self.model_dir),

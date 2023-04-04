@@ -18,9 +18,8 @@ from .CARE import CARE
 from .SmartPatches import SmartPatches
 from csbdeep.utils.tf import keras_import
 from .CellPose import CellPose
-from .UNet3D import UNet3D_module
 from .PredictTiledLoader import PredictTiled
-from .CellPose3D import UNet3D_cellpose, CellPose3DTrain
+from .CellPose3D import CellPose3D, CellPose3DTrain
 from .TrainTiledLoader import TrainTiled
 
 try:
@@ -47,8 +46,8 @@ __all__ = (
     "SmartPatches",
     "CellPose",
     "UNet3D_cellpose",
-    "UNet3D_module",
     "PredictTiled",
+    "CellPose3D",
     "TrainTiled",
     "CellPose3DTrain",
 )
