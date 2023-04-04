@@ -18,6 +18,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 class CellPose3D(pl.LightningModule):
     def __init__(self, network):
+        super().__init__()
         self.network = network
         self.save_hyperparameters()
 
@@ -136,7 +137,6 @@ class CellPose3DTrain:
         num_gpu=1,
         zoom_factor=(1, 1, 1),
     ):
-        super().__init__()
 
         self.base_dir = base_dir
         self.model_dir = model_dir
