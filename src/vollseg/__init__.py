@@ -4,7 +4,11 @@ from .seedpool import SeedPool
 from .unetstarmask import UnetStarMask
 from .nmslabel import NMSLabel
 from .OptimizeThreshold import OptimizeThreshold
-from .pretrained import register_model, register_aliases, clear_models_and_aliases
+from .pretrained import (
+    register_model,
+    register_aliases,
+    clear_models_and_aliases,
+)
 from .UNET import UNET
 from .MASKUNET import MASKUNET
 from .StarDist2D import StarDist2D
@@ -16,7 +20,7 @@ from csbdeep.utils.tf import keras_import
 from .CellPose import CellPose
 from .UNet3D import UNet3D_module
 from .PredictTiledLoader import PredictTiled
-from .CellPose3D import CellPose3D
+from .CellPose3D import CellPose3D, CellPose3DTrain
 from .TrainTiledLoader import TrainTiled
 
 try:
@@ -47,6 +51,7 @@ __all__ = (
     "PredictTiled",
     "CellPose3D",
     "TrainTiled",
+    "CellPose3DTrain",
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
@@ -135,15 +140,21 @@ register_aliases(UNET, "Embryo Cell Model (3D)", "Embryo Cell Model (3D)")
 register_aliases(StarDist2D, "White_Blood_Cells", "White_Blood_Cells")
 register_aliases(StarDist3D, "Carcinoma_cells", "Carcinoma_cells")
 register_aliases(UNET, "Unet_White_Blood_Cells", "Unet_White_Blood_Cells")
-register_aliases(UNET, "Unet_Cyto_White_Blood_Cells", "Unet_Cyto_White_Blood_Cells")
 register_aliases(
-    UNET, "Microtubule Kymograph Segmentation", "Microtubule Kymograph Segmentation"
+    UNET, "Unet_Cyto_White_Blood_Cells", "Unet_Cyto_White_Blood_Cells"
+)
+register_aliases(
+    UNET,
+    "Microtubule Kymograph Segmentation",
+    "Microtubule Kymograph Segmentation",
 )
 register_aliases(UNET, "Xenopus Tissue (2D)", "Xenopus Tissue (2D)")
 register_aliases(UNET, "Unet_Lung_Segmentation", "Unet_Lung_Segmentation")
 register_aliases(UNET, "Unet_Arabidopsis", "Unet_Arabidopsis")
 register_aliases(
-    MASKUNET, "Xenopus_Cell_Tissue_Segmentation", "Xenopus_Cell_Tissue_Segmentation"
+    MASKUNET,
+    "Xenopus_Cell_Tissue_Segmentation",
+    "Xenopus_Cell_Tissue_Segmentation",
 )
 register_aliases(MASKUNET, "Unet_Arabidopsis_Mask", "Unet_Arabidopsis_Mask")
 register_aliases(CARE, "Denoise_3D_cells", "Denoise_3D_cells")
@@ -165,7 +176,9 @@ def test_image_ascadian_3d():
     url = "https://zenodo.org/record/5965906/files/Astec-Pm2_fuse_t001.tif"
     hash = "fdf1b78bc4ce4817000d1846db226118"
 
-    img = imread(abspath(get_file(fname="Ascadian", origin=url, file_hash=hash)))
+    img = imread(
+        abspath(get_file(fname="Ascadian", origin=url, file_hash=hash))
+    )
     return img
 
 
@@ -175,7 +188,9 @@ def test_image_arabidopsis_3d():
     url = "https://zenodo.org/record/6670569/files/04.tif"
     hash = "68204a6c871d6eeca9870728bfd1b8b7"
 
-    img = imread(abspath(get_file(fname="Arabidopsis", origin=url, file_hash=hash)))
+    img = imread(
+        abspath(get_file(fname="Arabidopsis", origin=url, file_hash=hash))
+    )
     return img
 
 
@@ -184,5 +199,7 @@ def test_image_carcinoma_3dt():
 
     url = "https://zenodo.org/record/6403439/files/carcinoma_xyzt.tif"
     hash = "713911848cf5263393e479d5cb3e5d59"
-    img = imread(abspath(get_file(fname="Carcinoma", origin=url, file_hash=hash)))
+    img = imread(
+        abspath(get_file(fname="Carcinoma", origin=url, file_hash=hash))
+    )
     return img

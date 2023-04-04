@@ -17,6 +17,93 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 
 class CellPose3D(pl.LightningModule):
+    def __init__(self, network):
+        self.network = network
+
+    def background_loss(self, y_hat, y):
+        return F.l1_loss(y_hat, y)
+
+    def flow_loss(self, y_hat, y, mask):
+        loss = F.mse_loss(y_hat, y, reduction="none")
+        weight = torch.clamp(mask, min=0.01, max=1.0)
+        loss = torch.mul(loss, weight)
+        loss = torch.sum(loss)
+        loss = torch.div(loss, torch.clamp(torch.sum(weight), 1, mask.numel()))
+        return loss
+
+    def forward(self, z):
+        return self.model(z)
+
+    def training_step(self, batch, batch_idx):
+        # Get image ans mask of current batch
+        self.last_imgs, self.last_masks = batch["image"], batch["mask"]
+
+        # generate images
+        self.predictions = self.forward(self.last_imgs)
+
+        # get the losses
+        loss_bg = self.background_loss(
+            self.predictions[:, 0, ...], self.last_masks[:, 0, ...]
+        )
+
+        loss_flowx = self.flow_loss(
+            self.predictions[:, 1, ...],
+            self.last_masks[:, 1, ...],
+            self.last_masks[:, 0, ...],
+        )
+        loss_flowy = self.flow_loss(
+            self.predictions[:, 2, ...],
+            self.last_masks[:, 2, ...],
+            self.last_masks[:, 0, ...],
+        )
+        loss_flowz = self.flow_loss(
+            self.predictions[:, 3, ...],
+            self.last_masks[:, 3, ...],
+            self.last_masks[:, 0, ...],
+        )
+        loss_flow = (loss_flowx + loss_flowy + loss_flowz) / 3
+
+        loss = self.background_weight * loss_bg + self.flow_weight * loss_flow
+
+        return loss
+
+    def test_step(self, batch, batch_idx):
+
+        self._shared_eval(batch, batch_idx, "test")
+
+    def _shared_eval(self, batch, batch_idx, prefix):
+
+        x, y = batch["image"], batch["mask"]
+        y_hat = self.forward(x)
+        loss = F.mse_loss(y_hat, y)
+        self.log(
+            f"{prefix}_loss", loss, on_step=True, on_epoch=True, sync_dist=True
+        )
+
+    def validation_step(self, batch, batch_idx):
+
+        self._shared_eval(batch, batch_idx, "validation")
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+
+        schedular = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer=optimizer, factor=10
+        )
+        optimizer_scheduler = OrderedDict(
+            {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": schedular,
+                    "monitor": "val_loss",
+                    "frequency": 1,
+                },
+            }
+        )
+        return optimizer_scheduler
+
+
+class CellPose3DTrain:
     def __init__(
         self,
         base_dir,
@@ -203,6 +290,7 @@ class CellPose3D(pl.LightningModule):
                 norm_method=hparams["norm_method"],
             )
         )
+
         pretrained_file = os.path.join(self.model_dir, self.model_name)
         if os.path.isfile(pretrained_file):
             self.load_pretrained(pretrained_file)
@@ -272,85 +360,3 @@ class CellPose3D(pl.LightningModule):
 
         if verbose:
             print(f"Loaded weights for the following layers:\n{layers}")
-
-    def background_loss(self, y_hat, y):
-        return F.l1_loss(y_hat, y)
-
-    def flow_loss(self, y_hat, y, mask):
-        loss = F.mse_loss(y_hat, y, reduction="none")
-        weight = torch.clamp(mask, min=0.01, max=1.0)
-        loss = torch.mul(loss, weight)
-        loss = torch.sum(loss)
-        loss = torch.div(loss, torch.clamp(torch.sum(weight), 1, mask.numel()))
-        return loss
-
-    def forward(self, z):
-        return self.model(z)
-
-    def training_step(self, batch, batch_idx):
-        # Get image ans mask of current batch
-        self.last_imgs, self.last_masks = batch["image"], batch["mask"]
-
-        # generate images
-        self.predictions = self.forward(self.last_imgs)
-
-        # get the losses
-        loss_bg = self.background_loss(
-            self.predictions[:, 0, ...], self.last_masks[:, 0, ...]
-        )
-
-        loss_flowx = self.flow_loss(
-            self.predictions[:, 1, ...],
-            self.last_masks[:, 1, ...],
-            self.last_masks[:, 0, ...],
-        )
-        loss_flowy = self.flow_loss(
-            self.predictions[:, 2, ...],
-            self.last_masks[:, 2, ...],
-            self.last_masks[:, 0, ...],
-        )
-        loss_flowz = self.flow_loss(
-            self.predictions[:, 3, ...],
-            self.last_masks[:, 3, ...],
-            self.last_masks[:, 0, ...],
-        )
-        loss_flow = (loss_flowx + loss_flowy + loss_flowz) / 3
-
-        loss = self.background_weight * loss_bg + self.flow_weight * loss_flow
-
-        return loss
-
-    def test_step(self, batch, batch_idx):
-
-        self._shared_eval(batch, batch_idx, "test")
-
-    def _shared_eval(self, batch, batch_idx, prefix):
-
-        x, y = batch["image"], batch["mask"]
-        y_hat = self.forward(x)
-        loss = F.mse_loss(y_hat, y)
-        self.log(
-            f"{prefix}_loss", loss, on_step=True, on_epoch=True, sync_dist=True
-        )
-
-    def validation_step(self, batch, batch_idx):
-
-        self._shared_eval(batch, batch_idx, "validation")
-
-    def configure_optimizers(self):
-        optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
-
-        schedular = optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer=optimizer, factor=10
-        )
-        optimizer_scheduler = OrderedDict(
-            {
-                "optimizer": optimizer,
-                "lr_scheduler": {
-                    "scheduler": schedular,
-                    "monitor": "val_loss",
-                    "frequency": 1,
-                },
-            }
-        )
-        return optimizer_scheduler
