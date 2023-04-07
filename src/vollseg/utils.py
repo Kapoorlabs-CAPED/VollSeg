@@ -1436,6 +1436,7 @@ def _apply_cellpose_network_3D(
         "norm_method": norm_method,
         "background_weight": background_weight,
         "flow_weight": flow_weight,
+        "learning_rate": 0.01,
     }
 
     model = CellPose3D(hparams)
