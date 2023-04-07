@@ -19,7 +19,7 @@ from .SmartPatches import SmartPatches
 from csbdeep.utils.tf import keras_import
 from .CellPose import CellPose
 from .PredictTiledLoader import PredictTiled
-from .CellPose3D import CellPose3D, CellPose3DTrain
+from .CellPose3D import CellPose3DModel, CellPose3DTrain
 from .TrainTiledLoader import TrainTiled
 
 try:
@@ -47,7 +47,7 @@ __all__ = (
     "CellPose",
     "UNet3D_cellpose",
     "PredictTiled",
-    "CellPose3D",
+    "CellPose3DModel",
     "TrainTiled",
     "CellPose3DTrain",
 )

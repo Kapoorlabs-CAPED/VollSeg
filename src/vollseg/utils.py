@@ -41,13 +41,13 @@ from skimage.segmentation import find_boundaries, relabel_sequential, watershed
 from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
 from tqdm import tqdm
-from .CellPose3D import CellPose3D
+from .CellPose3D import CellPose3DModel
 from .PredictTiledLoader import PredictTiled
 from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
-from pytorch_lightning import Trainer
+from lightning import Trainer
 
 Boxname = "ImageIDBox"
 GLOBAL_THRESH = 1.0e-2
@@ -1439,7 +1439,7 @@ def _apply_cellpose_network_3D(
         "learning_rate": 0.01,
     }
 
-    model = CellPose3D(hparams)
+    model = CellPose3DModel(hparams)
     model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
     model.eval()
 
