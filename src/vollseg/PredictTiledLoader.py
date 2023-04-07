@@ -27,7 +27,7 @@ class PredictTiled(Dataset):
         self.overlap = overlap
         self.crop = crop
 
-        self.set_data()
+        self.set_data_idx()
 
     def get_fading_map(self):
 
@@ -64,7 +64,8 @@ class PredictTiled(Dataset):
             # get starting coords
             coords = (
                 np.arange(
-                    np.ceil((i + o + c) / np.maximum(p - o - 2 * c, 1)), dtype=np.int16
+                    np.ceil((i + o + c) / np.maximum(p - o - 2 * c, 1)),
+                    dtype=np.int16,
                 )
                 * np.maximum(p - o - 2 * c, 1)
                 - o
@@ -72,7 +73,9 @@ class PredictTiled(Dataset):
             )
             locations.append(coords)
         self.locations = list(itertools.product(*locations))
-        self.global_crop_before = np.abs(np.min(np.array(self.locations), axis=0))
+        self.global_crop_before = np.abs(
+            np.min(np.array(self.locations), axis=0)
+        )
         self.global_crop_after = (
             np.array(self.data_shape)
             - np.max(np.array(self.locations), axis=0)
@@ -92,7 +95,9 @@ class PredictTiled(Dataset):
         pad_after = np.maximum(self.patch_end - np.array(self.data_shape), 0)
         pad_width = list(zip(pad_before, pad_after))
 
-        slicing = tuple(map(slice, np.maximum(self.patch_start, 0), self.patch_end))
+        slicing = tuple(
+            map(slice, np.maximum(self.patch_start, 0), self.patch_end)
+        )
 
         sample = {}
 
