@@ -1446,8 +1446,6 @@ def _apply_cellpose_network_3D(
         feat_channels=hparams["feat_channels"],
         out_activation=hparams["out_activation"],
         norm_method=hparams["norm_method"],
-        background_weight=hparams["background_weight"],
-        flow_weight=hparams["flow_weight"],
     )
     model = load_pretrained(
         cellpose_model_3D_pretrained_file=cellpose_model_3D_pretrained_file,
