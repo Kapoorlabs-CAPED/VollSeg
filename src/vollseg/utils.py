@@ -1467,7 +1467,7 @@ def _apply_cellpose_network_3D(
     working_size = tuple(
         np.max(np.array(dataset.locations), axis=0)
         - np.min(np.array(dataset.locations), axis=0)
-        + np.array(hparams.patch_size)
+        + np.array(patch_size)
     )
 
     # Initialize maps (random to overcome memory leaks)
