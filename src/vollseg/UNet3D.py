@@ -31,10 +31,11 @@ class UNet3D_module(nn.Module):
         in_channels,
         out_channels,
         feat_channels=16,
+        activation="leakyrelu",
         out_activation="sigmoid",
         norm_method="none",
+        **kwargs,
     ):
-
         super().__init__()
 
         self.patch_size = patch_size
@@ -258,23 +259,18 @@ class UNet3D_module(nn.Module):
 
     def forward(self, img):
 
-        print(img.shape)
         c1 = self.c1(img)
-        print(c1.shape)
         d1 = self.d1(c1)
-        print(d1.shape)
+
         c2 = self.c2(d1)
         d2 = self.d2(c2)
-        print(c2.shape)
-        print(d2.shape)
+
         c3 = self.c3(d2)
         d3 = self.d3(c3)
-        print(c3.shape)
-        print(d3.shape)
+
         c4 = self.c4(d3)
-        print(c4.shape)
+
         u1 = self.u1(c4)
-        print(u1.shape)
         c5 = self.c5(torch.cat((u1, c3), 1))
 
         u2 = self.u2(c5)
