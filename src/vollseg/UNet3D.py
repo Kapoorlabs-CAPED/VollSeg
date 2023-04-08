@@ -41,7 +41,9 @@ class UNet3D_module(nn.Module):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.feat_channels = feat_channels
-        self.out_activation = out_activation  # relu | sigmoid | tanh | hardtanh | none
+        self.out_activation = (
+            out_activation  # relu | sigmoid | tanh | hardtanh | none
+        )
         self.norm_method = norm_method  # instance | batch | none
 
         if self.norm_method == "instance":
@@ -68,13 +70,23 @@ class UNet3D_module(nn.Module):
 
         # Define layer instances
         self.c1 = nn.Sequential(
-            nn.Conv3d(in_channels, feat_channels // 2, kernel_size=3, padding=1),
+            nn.Conv3d(
+                in_channels, feat_channels // 2, kernel_size=3, padding=1
+            ),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv3d(feat_channels // 2, feat_channels, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels // 2, feat_channels, kernel_size=3, padding=1
+            ),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
         self.d1 = nn.Sequential(
-            nn.Conv3d(feat_channels, feat_channels, kernel_size=4, stride=2, padding=1),
+            nn.Conv3d(
+                feat_channels,
+                feat_channels,
+                kernel_size=4,
+                stride=2,
+                padding=1,
+            ),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
@@ -82,39 +94,57 @@ class UNet3D_module(nn.Module):
             nn.Conv3d(feat_channels, feat_channels, kernel_size=3, padding=1),
             self.norm(feat_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv3d(feat_channels, feat_channels * 2, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels, feat_channels * 2, kernel_size=3, padding=1
+            ),
             self.norm(feat_channels * 2),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
         self.d2 = nn.Sequential(
             nn.Conv3d(
-                feat_channels * 2, feat_channels * 2, kernel_size=4, stride=2, padding=1
+                feat_channels * 2,
+                feat_channels * 2,
+                kernel_size=4,
+                stride=2,
+                padding=1,
             ),
             self.norm(feat_channels * 2),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
         self.c3 = nn.Sequential(
-            nn.Conv3d(feat_channels * 2, feat_channels * 2, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels * 2, feat_channels * 2, kernel_size=3, padding=1
+            ),
             self.norm(feat_channels * 2),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv3d(feat_channels * 2, feat_channels * 4, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels * 2, feat_channels * 4, kernel_size=3, padding=1
+            ),
             self.norm(feat_channels * 4),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
         self.d3 = nn.Sequential(
             nn.Conv3d(
-                feat_channels * 4, feat_channels * 4, kernel_size=4, stride=2, padding=1
+                feat_channels * 4,
+                feat_channels * 4,
+                kernel_size=4,
+                stride=2,
+                padding=1,
             ),
             self.norm(feat_channels * 4),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
 
         self.c4 = nn.Sequential(
-            nn.Conv3d(feat_channels * 4, feat_channels * 4, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels * 4, feat_channels * 4, kernel_size=3, padding=1
+            ),
             self.norm(feat_channels * 4),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv3d(feat_channels * 4, feat_channels * 8, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels * 4, feat_channels * 8, kernel_size=3, padding=1
+            ),
             self.norm(feat_channels * 8),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
@@ -135,10 +165,14 @@ class UNet3D_module(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
         self.c5 = nn.Sequential(
-            nn.Conv3d(feat_channels * 12, feat_channels * 4, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels * 12, feat_channels * 4, kernel_size=3, padding=1
+            ),
             self.norm(feat_channels * 4),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv3d(feat_channels * 4, feat_channels * 4, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels * 4, feat_channels * 4, kernel_size=3, padding=1
+            ),
             self.norm(feat_channels * 4),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
@@ -159,10 +193,14 @@ class UNet3D_module(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
         self.c6 = nn.Sequential(
-            nn.Conv3d(feat_channels * 6, feat_channels * 2, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels * 6, feat_channels * 2, kernel_size=3, padding=1
+            ),
             self.norm(feat_channels * 2),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv3d(feat_channels * 2, feat_channels * 2, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels * 2, feat_channels * 2, kernel_size=3, padding=1
+            ),
             self.norm(feat_channels * 2),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
@@ -183,7 +221,9 @@ class UNet3D_module(nn.Module):
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
         )
         self.c7 = nn.Sequential(
-            nn.Conv3d(feat_channels * 3, feat_channels, kernel_size=3, padding=1),
+            nn.Conv3d(
+                feat_channels * 3, feat_channels, kernel_size=3, padding=1
+            ),
             self.norm(feat_channels),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Conv3d(feat_channels, feat_channels, kernel_size=3, padding=1),
@@ -218,18 +258,23 @@ class UNet3D_module(nn.Module):
 
     def forward(self, img):
 
+        print(img.shape)
         c1 = self.c1(img)
+        print(c1.shape)
         d1 = self.d1(c1)
-
+        print(d1.shape)
         c2 = self.c2(d1)
         d2 = self.d2(c2)
-
+        print(c2.shape)
+        print(d2.shape)
         c3 = self.c3(d2)
         d3 = self.d3(c3)
-
+        print(c3.shape)
+        print(d3.shape)
         c4 = self.c4(d3)
-
+        print(c4.shape)
         u1 = self.u1(c4)
+        print(u1.shape)
         c5 = self.c5(torch.cat((u1, c3), 1))
 
         u2 = self.u2(c5)
