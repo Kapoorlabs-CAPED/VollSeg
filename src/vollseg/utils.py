@@ -1422,6 +1422,7 @@ def _apply_cellpose_network_3D(
     overlap=(1, 16, 16),
 ):
 
+    print(image_membrane.shape)
     if not isinstance(overlap, (tuple, list)):
         overlap = (overlap,) * len(patch_size)
     if not isinstance(crop, (tuple, list)):
