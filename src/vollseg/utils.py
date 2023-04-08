@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 
 import napari
+from torch.autograd import Variable
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -47,7 +48,8 @@ from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
-from lightning import Trainer
+import torch
+
 
 Boxname = "ImageIDBox"
 GLOBAL_THRESH = 1.0e-2
@@ -1443,20 +1445,20 @@ def _apply_cellpose_network_3D(
     model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
     model.eval()
 
-    dataset = PredictTiled(
+    tiler = PredictTiled(
         image=image_membrane, patch_size=patch_size, overlap=overlap, crop=crop
     )
-    fading_map = dataset.get_fading_map()
+    fading_map = tiler.get_fading_map()
     fading_map = np.repeat(
         fading_map[np.newaxis, ...], hparams["out_channels"], axis=0
     )
 
-    dataset.set_data_idx(0)
+    tiler.set_data_idx(0)
 
     # Determine if the patch size exceeds the image size
     working_size = tuple(
-        np.max(np.array(dataset.locations), axis=0)
-        - np.min(np.array(dataset.locations), axis=0)
+        np.max(np.array(tiler.locations), axis=0)
+        - np.min(np.array(tiler.locations), axis=0)
         + np.array(patch_size)
     )
 
@@ -1466,13 +1468,17 @@ def _apply_cellpose_network_3D(
     )
     norm_map = np.full((out_channels,) + working_size, 0, dtype=np.float32)
 
-    trainer = Trainer()
-    for patch_idx in range(dataset.__len__()):
-
-        data = dataset.__getitem__(patch_idx)
+    for patch_idx in range(tiler.__len__()):
 
         # Predict the image
-        pred_patch = trainer.predict(model, data)
+        sample = tiler.__getitem__(patch_idx)
+        data = Variable(
+            torch.from_numpy(sample["image"][np.newaxis, ...]).cuda()
+        )
+        data = data.float()
+
+        # Predict the image
+        pred_patch = model(data)
         pred_patch = pred_patch.cpu().data.numpy()
         pred_patch = np.squeeze(pred_patch)
 
@@ -1480,9 +1486,9 @@ def _apply_cellpose_network_3D(
         slicing = tuple(
             map(
                 slice,
-                (0,) + tuple(dataset.patch_start + dataset.global_crop_before),
+                (0,) + tuple(tiler.patch_start + tiler.global_crop_before),
                 (out_channels,)
-                + tuple(dataset.patch_end + dataset.global_crop_before),
+                + tuple(tiler.patch_end + tiler.global_crop_before),
             )
         )
 
@@ -1500,8 +1506,8 @@ def _apply_cellpose_network_3D(
     slicing = tuple(
         map(
             slice,
-            (0,) + tuple(dataset.global_crop_before),
-            (out_channels,) + tuple(dataset.global_crop_after),
+            (0,) + tuple(tiler.global_crop_before),
+            (out_channels,) + tuple(tiler.global_crop_after),
         )
     )
     predicted_img = predicted_img[slicing]
