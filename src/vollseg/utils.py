@@ -1422,7 +1422,19 @@ def _apply_cellpose_network_3D(
     overlap=(1, 16, 16),
 ):
 
-    print(image_membrane.shape)
+    print(
+        image_membrane.shape,
+        patch_size,
+        in_channels,
+        out_activation,
+        norm_method,
+        background_weight,
+        flow_weight,
+        out_channels,
+        feat_channels,
+        crop,
+        overlap,
+    )
     if not isinstance(overlap, (tuple, list)):
         overlap = (overlap,) * len(patch_size)
     if not isinstance(crop, (tuple, list)):
