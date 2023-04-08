@@ -1443,7 +1443,7 @@ def _apply_cellpose_network_3D(
 
     model = CellPose3DModel(hparams)
     model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
-    model.eval()
+    model = model.cuda()
 
     tiler = PredictTiled(
         image=image_membrane, patch_size=patch_size, overlap=overlap, crop=crop
