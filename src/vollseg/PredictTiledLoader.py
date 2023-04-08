@@ -26,7 +26,7 @@ class PredictTiled(Dataset):
         self.patch_size = patch_size
         self.overlap = overlap
         self.crop = crop
-
+        print(patch_size, overlap, crop)
         self.set_data_idx(0)
 
     def get_fading_map(self):
