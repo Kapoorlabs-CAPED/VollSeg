@@ -40,10 +40,8 @@ class CellPose3DPredict(LightningModule):
 
         # Determine if the patch size exceeds the image size
         working_size = tuple(
-            np.max(np.array(batch["locations"].detach().cpu().numpy()), axis=0)
-            - np.min(
-                np.array(batch["locations"].detach().cpu().numpy()), axis=0
-            )
+            np.max(batch["locations"].detach().cpu().numpy(), axis=0)
+            - np.min(batch["locations"].detach().cpu().numpy(), axis=0)
             + np.array(self.patch_size)
         )
 

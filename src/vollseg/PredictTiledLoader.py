@@ -107,7 +107,7 @@ class PredictTiled(Dataset):
         sample = {
             "image": self.image,
             "fading_map": self.fading_map,
-            "locations": self.locations,
+            "locations": np.asarray(self.locations),
             "global_crop_before": self.global_crop_before,
             "global_crop_after": self.global_crop_after,
             "patch_start": self.patch_start,
