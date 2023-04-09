@@ -1467,6 +1467,7 @@ def _apply_cellpose_network_3D(
     for data in data_loader:
         tiles_batch, coords_batch = data
         tiles_batch = tiles_batch[np.newaxis, ...]
+        tiles_batch = tiles_batch.float()
         try:
             pred_tile = model(tiles_batch.cuda())
         except ValueError:
