@@ -23,6 +23,7 @@ from .CellPose3D import CellPose3DModel, CellPose3DTrain, CellPose3DPredict
 from .TrainTiledLoader import TrainTiled
 from .unet3d import AbstractUNet, UNet3D
 from .se import ChannelSELayer3D, ChannelSpatialSELayer3D, SpatialSELayer3D
+from .Tiles_3D import VolumeMerger, VolumeSlicer
 
 try:
     from ._version import version as __version__
@@ -58,6 +59,8 @@ __all__ = (
     "ChannelSpatialSELayer3D",
     "SpatialSELayer3D",
     "CellPose3DPredict",
+    "VolumeMerger",
+    "VolumeSlicer",
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)

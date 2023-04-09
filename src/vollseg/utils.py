@@ -49,6 +49,7 @@ from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
+from .Tiles_3D import VolumeMerger
 
 
 Boxname = "ImageIDBox"
@@ -1027,8 +1028,7 @@ def _cellpose_3D_time_block(
     flow_weight,
     out_channels,
     feat_channels,
-    crop,
-    overlap,
+    patch_step,
 ):
     if cellpose_model_3D_pretrained_file is not None:
 
@@ -1046,8 +1046,7 @@ def _cellpose_3D_time_block(
                         flow_weight=flow_weight,
                         out_channels=out_channels,
                         feat_channels=feat_channels,
-                        crop=crop,
-                        overlap=overlap,
+                        patch_step=patch_step,
                     )
                     for _x in tqdm(image_membrane)
                 )
@@ -1234,8 +1233,7 @@ def _cellpose_3D_star_time_block(
     flow_weight,
     out_channels,
     feat_channels,
-    crop,
-    overlap,
+    patch_step,
     unet_model,
     star_model,
     roi_model,
@@ -1302,8 +1300,7 @@ def _cellpose_3D_star_time_block(
                     flow_weight,
                     out_channels,
                     feat_channels,
-                    crop,
-                    overlap,
+                    patch_step,
                 )
             )
         )
@@ -1418,18 +1415,10 @@ def _apply_cellpose_network_3D(
     flow_weight=1,
     out_channels=4,
     feat_channels=16,
-    crop=(2, 32, 32),
-    overlap=(1, 16, 16),
+    patch_step=(2, 64, 64),
     batch_size=1,
 ):
 
-    if not isinstance(overlap, (tuple, list)):
-        overlap = (overlap,) * len(patch_size)
-    if not isinstance(crop, (tuple, list)):
-        crop = (crop,) * len(patch_size)
-    assert all(
-        [p - 2 * o - 2 * c > 0 for p, o, c in zip(patch_size, overlap, crop)]
-    ), "Invalid combination of patch size, overlap and crop size."
     hparams = {
         "patch_size": patch_size,
         "in_channels": in_channels,
@@ -1449,14 +1438,20 @@ def _apply_cellpose_network_3D(
     predict_model = CellPose3DPredict(model, hparams)
 
     dataset = PredictTiled(
-        image=image_membrane, patch_size=patch_size, overlap=overlap, crop=crop
+        image=image_membrane, patch_size=patch_size, patch_step=patch_step
     )
 
-    data_loader = DataLoader(dataset, batch_size=1)
+    data_loader = DataLoader(dataset, batch_size=batch_size)
 
     trainer = Trainer()
 
-    predicted_img = trainer.predict(predict_model, data_loader)
+    pred_tile, pred_coord = trainer.predict(predict_model, data_loader)
+
+    merger = VolumeMerger(image_membrane.shape, out_channels)
+
+    merger.integrate_batch(pred_tile, pred_coord)
+
+    predicted_img = merger.merge()
 
     for channel in range(out_channels):
 
@@ -1492,8 +1487,7 @@ def VollCellPose3D(
     flow_weight=1,
     out_channels=4,
     feat_channels=16,
-    crop=(2, 32, 32),
-    overlap=(1, 16, 16),
+    patch_step=(2, 64, 64),
     star_model=None,
     unet_model=None,
     roi_model=None,
@@ -1542,8 +1536,7 @@ def VollCellPose3D(
             flow_weight,
             out_channels,
             feat_channels,
-            crop,
-            overlap,
+            patch_step,
             ExpandLabels,
             axes,
             noise_model,
@@ -1581,8 +1574,7 @@ def VollCellPose3D(
             flow_weight,
             out_channels,
             feat_channels,
-            crop,
-            overlap,
+            patch_step,
             ExpandLabels,
             axes,
             noise_model,
@@ -1619,8 +1611,7 @@ def VollCellPose3D(
             flow_weight,
             out_channels,
             feat_channels,
-            crop,
-            overlap,
+            patch_step,
             unet_model,
             star_model,
             roi_model,
@@ -2202,8 +2193,7 @@ def _cellpose_3D_star_block(
     flow_weight,
     out_channels,
     feat_channels,
-    crop,
-    overlap,
+    patch_step,
     ExpandLabels,
     axes,
     noise_model,
@@ -2236,8 +2226,7 @@ def _cellpose_3D_star_block(
             flow_weight=flow_weight,
             out_channels=out_channels,
             feat_channels=feat_channels,
-            crop=crop,
-            overlap=overlap,
+            patch_step=patch_step,
         )
 
     if star_model is not None:

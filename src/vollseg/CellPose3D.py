@@ -13,7 +13,6 @@ from collections import OrderedDict
 from lightning import Trainer, LightningModule
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.callbacks import ModelCheckpoint
-import numpy as np
 from .cellposeutils3D import prepare_images, prepare_masks, create_csv
 
 torch.set_float32_matmul_precision("medium")
@@ -22,87 +21,16 @@ torch.set_float32_matmul_precision("medium")
 class CellPose3DPredict(LightningModule):
     def __init__(self, model, hparams):
         super().__init__()
-
+        self.save_hyperparameters(hparams)
         self.model = model
-        self.in_channels = hparams["in_channels"]
-        self.out_channels = hparams["out_channels"]
-        self.patch_size = hparams["patch_size"]
-        self.background_weight = hparams["background_weight"]
-        self.flow_weight = hparams["flow_weight"]
-        self.learning_rate = hparams["learning_rate"]
 
     def predict_step(self, batch, batch_idx):
 
-        self.image, self.fading_map = batch["image"], batch["fading_map"]
-        self.fading_map = self.fading_map.detach().cpu().numpy()
-        self.fading_map = np.repeat(
-            self.fading_map[np.newaxis, ...], self.out_channels, axis=0
-        )
+        self.tile, self.coord = batch
 
-        # Determine if the patch size exceeds the image size
-        working_size = np.array(
-            np.max(batch["locations"].detach().cpu().numpy(), axis=0)
-            - np.min(batch["locations"].detach().cpu().numpy(), axis=0)
-            + np.array(self.patch_size)
-        )
-        # Initialize maps (random to overcome memory leaks)
-        predicted_img = np.zeros((self.out_channels,) + working_size.shape)
-        norm_map = np.zeros((self.out_channels,) + working_size.shape)
+        self.pred = self.model(self.tile.float())
 
-        # Predict the image
-
-        pred_patch = self.model(self.image.float())
-        pred_patch = pred_patch.cpu().data.numpy()
-        pred_patch = np.squeeze(pred_patch)
-
-        # Get the current slice position
-        slicing = tuple(
-            map(
-                slice,
-                (0,)
-                + tuple(
-                    batch["patch_start"].detach().cpu().numpy()
-                    + batch["global_crop_before"].detach().cpu().numpy()
-                ),
-                (self.out_channels,)
-                + tuple(
-                    batch["patch_end"].detach().cpu().numpy()
-                    + batch["global_crop_before"].detach().cpu().numpy()
-                ),
-            )
-        )
-
-        print(predicted_img.shape)
-        print(slicing)
-        print(pred_patch.shape)
-        print(self.fading_map.shape)
-        # Add predicted patch_ and fading weights to the corresponding maps
-        predicted_img[slicing] = (
-            predicted_img[slicing] + pred_patch * self.fading_map
-        )
-        norm_map[slicing] = norm_map[slicing] + self.fading_map
-
-        # Normalize the predicted image
-        norm_map = np.clip(norm_map, 1e-5, np.inf)
-        predicted_img = predicted_img / norm_map
-
-        # Crop the predicted image to its original size
-        slicing = tuple(
-            map(
-                slice,
-                (0,)
-                + tuple(batch["global_crop_before"].detach().cpu().numpy()),
-                (self.out_channels,)
-                + tuple(batch["global_crop_after"].detach().cpu().numpy()),
-            )
-        )
-        predicted_img = predicted_img[slicing]
-
-        # Save the predicted image
-        predicted_img = np.transpose(predicted_img, (1, 2, 3, 0))
-        predicted_img = predicted_img.astype(np.float32)
-
-        return predicted_img
+        return self.pred, self.coord
 
 
 class CellPose3DModel(LightningModule):

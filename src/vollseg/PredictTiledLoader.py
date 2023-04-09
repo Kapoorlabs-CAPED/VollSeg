@@ -1,7 +1,6 @@
 import numpy as np
 from torch.utils.data import Dataset
-import itertools
-from scipy.ndimage import distance_transform_edt
+from .Tiles_3D import VolumeSlicer
 
 
 class PredictTiled(Dataset):
@@ -13,9 +12,8 @@ class PredictTiled(Dataset):
     def __init__(
         self,
         image: np.ndarray,
-        patch_size=(64, 128, 128),
-        overlap=(1, 16, 16),
-        crop=(2, 32, 32),
+        patch_size=(8, 256, 256),
+        patch_step=(2, 64, 64),
     ):
 
         # Sanity checks
@@ -24,94 +22,24 @@ class PredictTiled(Dataset):
         # Save parameters
         self.image = image
         self.patch_size = patch_size
-        self.overlap = overlap
-        self.crop = crop
-        self.set_data_idx()
-        self._get_fading_map()
+        self.patch_step = patch_step
 
-    def _get_fading_map(self):
-
-        self.fading_map = np.ones(self.patch_size)
-
-        if all([c == 0 for c in self.crop]):
-            self.crop = [1, 1, 1]
-
-        # Exclude crop region
-        crop_masking = np.zeros_like(self.fading_map)
-        crop_masking[
-            self.crop[0] : self.patch_size[0] - self.crop[0],
-            self.crop[1] : self.patch_size[1] - self.crop[1],
-            self.crop[2] : self.patch_size[2] - self.crop[2],
-        ] = 1
-        self.fading_map = self.fading_map * crop_masking
-
-        self.fading_map = distance_transform_edt(self.fading_map).astype(
-            np.float32
+        self.tiler = VolumeSlicer(
+            self.image.shape,
+            voxel_size=self.patch_size,
+            volume_step=self.patch_step,
         )
 
-        # Normalize
-        self.fading_map = self.fading_map / self.fading_map.max()
-
-    def set_data_idx(self):
-
-        self.data_shape = self.image.shape
-        # Calculate the position of each tile
-        locations = []
-        for i, p, o, c in zip(
-            self.data_shape, self.patch_size, self.overlap, self.crop
-        ):
-            # get starting coords
-            coords = (
-                np.arange(
-                    np.ceil((i + o + c) / np.maximum(p - o - 2 * c, 1)),
-                    dtype=np.int16,
-                )
-                * np.maximum(p - o - 2 * c, 1)
-                - o
-                - c
-            )
-            locations.append(coords)
-        self.locations = list(itertools.product(*locations))
-        self.global_crop_before = np.abs(
-            np.min(np.array(self.locations), axis=0)
-        )
-        self.global_crop_after = (
-            np.array(self.data_shape)
-            - np.max(np.array(self.locations), axis=0)
-            - np.array(self.patch_size)
-        )
+        self.tiles = self.tiler.split(self.image)
 
     def __len__(self):
 
-        return len(self.locations)
+        return len(self.tiles)
 
     def __getitem__(self, idx):
 
-        self.patch_start = np.array(self.locations[idx])
-        self.patch_end = self.patch_start + np.array(self.patch_size)
+        tiles_batch = self.tiles[idx]
 
-        pad_before = np.maximum(-self.patch_start, 0)
-        pad_after = np.maximum(self.patch_end - np.array(self.data_shape), 0)
-        pad_width = list(zip(pad_before, pad_after))
+        coords_batch = self.tiler.crops[idx]
 
-        slicing = tuple(
-            map(slice, np.maximum(self.patch_start, 0), self.patch_end)
-        )
-
-        image_tmp = self.image
-        image_tmp = image_tmp[slicing]
-        image_tmp = np.pad(image_tmp, pad_width, mode="reflect")
-
-        self.image = image_tmp
-
-        sample = {
-            "image": self.image[np.newaxis, ...],
-            "fading_map": self.fading_map,
-            "locations": np.array(self.locations),
-            "global_crop_before": self.global_crop_before,
-            "global_crop_after": self.global_crop_after,
-            "patch_start": self.patch_start,
-            "patch_end": self.patch_end,
-        }
-
-        return sample
+        return tiles_batch, coords_batch
