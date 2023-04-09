@@ -10,7 +10,7 @@ import glob
 import math
 import os
 from pathlib import Path
-
+import torch
 import napari
 from torch.utils.data import DataLoader
 
@@ -1404,9 +1404,10 @@ def _cellpose_star_time_block(
 
 def collate_fn(data):
 
-    input_tensor, input_slice = data
     slices = []
-    slices.append(input_slice)
+    input_tensor = torch.stack([b[0] for b in data])
+    slices.append([b[1] for b in data])
+
     return input_tensor, slices
 
 
