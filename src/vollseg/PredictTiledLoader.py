@@ -26,34 +26,34 @@ class PredictTiled(Dataset):
         self.patch_size = patch_size
         self.overlap = overlap
         self.crop = crop
-        self.set_data_idx(0)
+        self.set_data_idx()
+        self._get_fading_map()
 
-    def get_fading_map(self):
+    def _get_fading_map(self):
 
-        fading_map = np.ones(self.patch_size)
+        self.fading_map = np.ones(self.patch_size)
 
         if all([c == 0 for c in self.crop]):
             self.crop = [1, 1, 1]
 
         # Exclude crop region
-        crop_masking = np.zeros_like(fading_map)
+        crop_masking = np.zeros_like(self.fading_map)
         crop_masking[
             self.crop[0] : self.patch_size[0] - self.crop[0],
             self.crop[1] : self.patch_size[1] - self.crop[1],
             self.crop[2] : self.patch_size[2] - self.crop[2],
         ] = 1
-        fading_map = fading_map * crop_masking
+        self.fading_map = self.fading_map * crop_masking
 
-        fading_map = distance_transform_edt(fading_map).astype(np.float32)
+        self.fading_map = distance_transform_edt(self.fading_map).astype(
+            np.float32
+        )
 
         # Normalize
-        fading_map = fading_map / fading_map.max()
+        self.fading_map = self.fading_map / self.fading_map.max()
 
-        return fading_map
+    def set_data_idx(self):
 
-    def set_data_idx(self, idx):
-
-        self.data_idx = idx
         self.data_shape = self.image.shape
         # Calculate the position of each tile
         locations = []
@@ -98,14 +98,12 @@ class PredictTiled(Dataset):
             map(slice, np.maximum(self.patch_start, 0), self.patch_end)
         )
 
-        sample = {}
-
         image_tmp = self.image
         image_tmp = image_tmp[slicing]
-        # Pad if neccessary
         image_tmp = np.pad(image_tmp, pad_width, mode="reflect")
+
         self.image = image_tmp
 
-        sample["image"] = self.image
+        sample = {"image": self.image, "fading_map": self.fading_map}
 
         return sample

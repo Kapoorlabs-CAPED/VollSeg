@@ -5,7 +5,7 @@ from .cellposeutils3D import (
 )
 from .TrainTiledLoader import TrainTiled
 from torch.utils.data import DataLoader
-from .UNet3D import UNet3D_module
+from .unet3d import UNet3D
 import torch
 import torch.nn.functional as F
 from torch import optim
@@ -13,6 +13,92 @@ from collections import OrderedDict
 from lightning import Trainer, LightningModule
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.callbacks import ModelCheckpoint
+import numpy as np
+from torch.autograd import Variable
+
+
+class CellPose3DPredict(LightningModule):
+    def __init__(self, model, hparams):
+        super().__init__()
+
+        self.model = model
+        self.in_channels = hparams["in_channels"]
+        self.out_channels = hparams["out_channels"]
+        self.patch_size = hparams["patch_size"]
+        self.background_weight = hparams["background_weight"]
+        self.flow_weight = hparams["flow_weight"]
+        self.learning_rate = hparams["learning_rate"]
+
+    def predict_step(self, batch, batch_idx):
+
+        self.image, self.fading_map = batch["image"], batch["fading_map"]
+        self.fading_map = np.repeat(
+            self.fading_map[np.newaxis, ...], self.out_channels, axis=0
+        )
+
+        # Determine if the patch size exceeds the image size
+        working_size = tuple(
+            np.max(np.array(batch.locations), axis=0)
+            - np.min(np.array(batch.locations), axis=0)
+            + np.array(self.patch_size)
+        )
+
+        # Initialize maps (random to overcome memory leaks)
+        predicted_img = np.full(
+            (self.out_channels,) + working_size, 0, dtype=np.float32
+        )
+        norm_map = np.full(
+            (self.out_channels,) + working_size, 0, dtype=np.float32
+        )
+
+        for patch_idx in range(batch.__len__()):
+
+            # Predict the image
+            sample = batch.__getitem__(patch_idx)
+            data = Variable(torch.from_numpy(sample).cuda())
+            data = data.float()
+
+            print(data.shape, "for prediction")
+            # Predict the image
+            pred_patch = self.model(data)
+            pred_patch = pred_patch.cpu().data.numpy()
+            pred_patch = np.squeeze(pred_patch)
+
+            # Get the current slice position
+            slicing = tuple(
+                map(
+                    slice,
+                    (0,) + tuple(batch.patch_start + batch.global_crop_before),
+                    (self.out_channels,)
+                    + tuple(batch.patch_end + batch.global_crop_before),
+                )
+            )
+
+            # Add predicted patch and fading weights to the corresponding maps
+            predicted_img[slicing] = (
+                predicted_img[slicing] + pred_patch * self.fading_map
+            )
+            norm_map[slicing] = norm_map[slicing] + self.fading_map
+
+        # Normalize the predicted image
+        norm_map = np.clip(norm_map, 1e-5, np.inf)
+        predicted_img = predicted_img / norm_map
+
+        # Crop the predicted image to its original size
+        slicing = tuple(
+            map(
+                slice,
+                (0,) + tuple(batch.global_crop_before),
+                (self.out_channels,) + tuple(batch.global_crop_after),
+            )
+        )
+        predicted_img = predicted_img[slicing]
+
+        # Save the predicted image
+        predicted_img = np.transpose(predicted_img, (1, 2, 3, 0))
+        predicted_img = predicted_img.astype(np.float32)
+
+        return predicted_img
 
 
 class CellPose3DModel(LightningModule):
@@ -23,14 +109,14 @@ class CellPose3DModel(LightningModule):
         super().__init__()
 
         self.save_hyperparameters(hparams)
-        self.network = UNet3D_module(
-            patch_size=hparams["patch_size"],
+        self.network = UNet3D(
             in_channels=hparams["in_channels"],
             out_channels=hparams["out_channels"],
-            feat_channels=hparams["feat_channels"],
-            out_activation=hparams["out_activation"],
-            norm_method=hparams["norm_method"],
+            f_maps=hparams["feat_channels"],
         )
+        self.in_channels = hparams["in_channels"]
+        self.out_channels = hparams["out_channels"]
+        self.patch_size = hparams["patch_size"]
         self.background_weight = hparams["background_weight"]
         self.flow_weight = hparams["flow_weight"]
         self.learning_rate = hparams["learning_rate"]
