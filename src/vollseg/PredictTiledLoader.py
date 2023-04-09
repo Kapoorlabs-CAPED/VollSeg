@@ -104,6 +104,14 @@ class PredictTiled(Dataset):
 
         self.image = image_tmp
 
-        sample = {"image": self.image, "fading_map": self.fading_map}
+        sample = {
+            "image": self.image,
+            "fading_map": self.fading_map,
+            "locations": self.locations,
+            "global_crop_before": self.global_crop_before,
+            "global_crop_after": self.global_crop_after,
+            "patch_start": self.patch_start,
+            "patch_end": self.patch_end,
+        }
 
         return sample

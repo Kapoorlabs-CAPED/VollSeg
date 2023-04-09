@@ -40,8 +40,8 @@ class CellPose3DPredict(LightningModule):
 
         # Determine if the patch size exceeds the image size
         working_size = tuple(
-            np.max(np.array(batch.locations), axis=0)
-            - np.min(np.array(batch.locations), axis=0)
+            np.max(np.array(batch["locations"]), axis=0)
+            - np.min(np.array(batch["locations"]), axis=0)
             + np.array(self.patch_size)
         )
 
@@ -70,9 +70,12 @@ class CellPose3DPredict(LightningModule):
             slicing = tuple(
                 map(
                     slice,
-                    (0,) + tuple(batch.patch_start + batch.global_crop_before),
+                    (0,)
+                    + tuple(
+                        batch["patch_start"] + batch["global_crop_before"]
+                    ),
                     (self.out_channels,)
-                    + tuple(batch.patch_end + batch.global_crop_before),
+                    + tuple(batch["patch_end"] + batch["global_crop_before"]),
                 )
             )
 
@@ -90,8 +93,8 @@ class CellPose3DPredict(LightningModule):
         slicing = tuple(
             map(
                 slice,
-                (0,) + tuple(batch.global_crop_before),
-                (self.out_channels,) + tuple(batch.global_crop_after),
+                (0,) + tuple(batch["global_crop_before"]),
+                (self.out_channels,) + tuple(batch["global_crop_after"]),
             )
         )
         predicted_img = predicted_img[slicing]
