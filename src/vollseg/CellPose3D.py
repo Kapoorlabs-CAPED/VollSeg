@@ -270,6 +270,7 @@ class CellPose3DTrain:
         corrupt_prob=0,
         num_gpu=1,
         zoom_factor=(1, 1, 1),
+        ckpt_path=None,
     ):
 
         self.base_dir = base_dir
@@ -302,6 +303,7 @@ class CellPose3DTrain:
         self.num_gpu = num_gpu
         self.save_raw_h5_name = "raw_h5/"
         self.save_real_mask_h5_name = "real_mask_h5/"
+        self.ckpt_path = ckpt_path
 
     def _create_training_h5(self):
 
@@ -452,5 +454,5 @@ class CellPose3DTrain:
             self.model,
             train_dataloaders=train_loader,
             val_dataloaders=val_loader,
-            ckpt_path=os.path.join(self.model_dir, self.model_name),
+            ckpt_path=self.ckpt_path,
         )
