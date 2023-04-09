@@ -1447,6 +1447,11 @@ def _apply_cellpose_network_3D(
 
     model = CellPose3DModel(hparams=hparams)
     model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
+    try:
+        model = model.cuda()
+    except ValueError:
+        model = model.cpu()
+
     model.eval()
 
     # predict_model = CellPose3DPredict(model, hparams)
