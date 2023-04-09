@@ -1442,10 +1442,8 @@ def _apply_cellpose_network_3D(
         "learning_rate": 0.01,
     }
     print(hparams)
-
-    model = CellPose3DModel.load_from_checkpoint(
-        cellpose_model_3D_pretrained_file
-    )
+    model = CellPose3DModel(hparams=hparams)
+    model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
     model.eval()
 
     predict_model = CellPose3DPredict(model, hparams)
