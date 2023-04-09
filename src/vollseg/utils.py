@@ -1405,8 +1405,15 @@ def _cellpose_star_time_block(
 def collate_fn(data):
 
     slices = []
-    input_tensor = torch.stack([b[0] for b in data])
-    slices.append([b[1] for b in data])
+    input_tensor = []
+    for x, y in data:
+
+        if len(input_tensor) == 0:
+            input_tensor = torch.stack(x)
+        else:
+            input_tensor = torch.stack(input_tensor, x)
+
+        slices.append(y)
 
     return input_tensor, slices
 

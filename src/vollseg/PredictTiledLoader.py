@@ -40,4 +40,6 @@ class PredictTiled(Dataset):
 
         tiles_batch = torch.tensor(self.tiles[idx])
 
-        return tiles_batch
+        coords_batch = self.tiler.crops[idx]
+
+        return tiles_batch, coords_batch
