@@ -19,7 +19,7 @@ from .SmartPatches import SmartPatches
 from csbdeep.utils.tf import keras_import
 from .CellPose import CellPose
 from .PredictTiledLoader import PredictTiled
-from .CellPose3D import CellPose3DModel, CellPose3DTrain
+from .CellPose3D import CellPose3DModel, CellPose3DTrain, CellPose3DPredict
 from .TrainTiledLoader import TrainTiled
 from .unet3d import AbstractUNet, UNet3D
 from .se import ChannelSELayer3D, ChannelSpatialSELayer3D, SpatialSELayer3D
@@ -57,6 +57,7 @@ __all__ = (
     "ChannelSELayer3D",
     "ChannelSpatialSELayer3D",
     "SpatialSELayer3D",
+    "CellPose3DPredict",
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)

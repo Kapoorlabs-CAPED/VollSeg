@@ -13,6 +13,7 @@ from pathlib import Path
 
 import napari
 from torch.utils.data import DataLoader
+from lightning import Trainer
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -42,7 +43,7 @@ from skimage.segmentation import find_boundaries, relabel_sequential, watershed
 from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
 from tqdm import tqdm
-from .CellPose3D import CellPose3DModel
+from .CellPose3D import CellPose3DModel, CellPose3DPredict
 from .PredictTiledLoader import PredictTiled
 from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
@@ -1447,72 +1448,18 @@ def _apply_cellpose_network_3D(
     )
     model.eval()
 
+    predict_model = CellPose3DPredict(model, hparams)
+
     dataset = PredictTiled(
         image=image_membrane, patch_size=patch_size, overlap=overlap, crop=crop
     )
 
     data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-    print(data_loader)
 
-    """  # Determine if the patch size exceeds the image size
-    working_size = tuple(
-        np.max(np.array(tiler.locations), axis=0)
-        - np.min(np.array(tiler.locations), axis=0)
-        + np.array(patch_size)
-    )
+    trainer = Trainer()
 
-    # Initialize maps (random to overcome memory leaks)
-    predicted_img = np.full(
-        (out_channels,) + working_size, 0, dtype=np.float32
-    )
-    norm_map = np.full((out_channels,) + working_size, 0, dtype=np.float32)
+    predicted_img = trainer.predict(predict_model, data_loader)
 
-    for patch_idx in range(tiler.__len__()):
-
-        # Predict the image
-        sample = tiler.__getitem__(patch_idx)
-        data = Variable(torch.from_numpy(sample).cuda())
-        data = data.float()
-
-        print(data.shape, "for prediction")
-        # Predict the image
-        pred_patch = model(data)
-        pred_patch = pred_patch.cpu().data.numpy()
-        pred_patch = np.squeeze(pred_patch)
-
-        # Get the current slice position
-        slicing = tuple(
-            map(
-                slice,
-                (0,) + tuple(tiler.patch_start + tiler.global_crop_before),
-                (out_channels,)
-                + tuple(tiler.patch_end + tiler.global_crop_before),
-            )
-        )
-
-        # Add predicted patch and fading weights to the corresponding maps
-        predicted_img[slicing] = (
-            predicted_img[slicing] + pred_patch * fading_map
-        )
-        norm_map[slicing] = norm_map[slicing] + fading_map
-
-    # Normalize the predicted image
-    norm_map = np.clip(norm_map, 1e-5, np.inf)
-    predicted_img = predicted_img / norm_map
-
-    # Crop the predicted image to its original size
-    slicing = tuple(
-        map(
-            slice,
-            (0,) + tuple(tiler.global_crop_before),
-            (out_channels,) + tuple(tiler.global_crop_after),
-        )
-    ) """
-    predicted_img = None  # predicted_img[slicing]
-
-    # Save the predicted image
-    predicted_img = np.transpose(predicted_img, (1, 2, 3, 0))
-    predicted_img = predicted_img.astype(np.float32)
     for channel in range(out_channels):
 
         predicted_img[..., channel] = predicted_img[..., channel] / np.max(
