@@ -304,6 +304,7 @@ class CellPose3DTrain:
         self.save_raw_h5_name = "raw_h5/"
         self.save_real_mask_h5_name = "real_mask_h5/"
         self.ckpt_path = ckpt_path
+        torch.cuda.empty_cache()
 
     def _create_training_h5(self):
 
