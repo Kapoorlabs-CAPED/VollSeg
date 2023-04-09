@@ -13,7 +13,6 @@ from pathlib import Path
 
 import napari
 from torch.utils.data import DataLoader
-from lightning import Trainer
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -43,14 +42,13 @@ from skimage.segmentation import find_boundaries, relabel_sequential, watershed
 from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
 from tqdm import tqdm
-from .CellPose3D import CellPose3DModel, CellPose3DPredict
+from .CellPose3D import CellPose3DModel
 from .PredictTiledLoader import PredictTiled
 from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
 from .Tiles_3D import VolumeMerger
-
 
 Boxname = "ImageIDBox"
 GLOBAL_THRESH = 1.0e-2
@@ -1435,25 +1433,24 @@ def _apply_cellpose_network_3D(
     model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
     model.eval()
 
-    predict_model = CellPose3DPredict(model, hparams)
+    # predict_model = CellPose3DPredict(model, hparams)
 
     dataset = PredictTiled(
         image=image_membrane, patch_size=patch_size, patch_step=patch_step
     )
 
     data_loader = DataLoader(dataset, batch_size=batch_size)
-
-    trainer = Trainer()
-
-    predictions = trainer.predict(predict_model, data_loader)
-
     merger = VolumeMerger(image_membrane.shape, out_channels)
-
-    for pred_tile, pred_coord in predictions:
+    for data in data_loader:
+        tiles_batch, coords_batch = data
+        try:
+            pred_tile = model(tiles_batch.cuda())
+        except ValueError:
+            pred_tile = model(tiles_batch.cpu())
 
         merger.integrate_batch(
             pred_tile.detach().cpu().numpy(),
-            tuple(list(pred_coord.detach().cpu().numpy())),
+            coords_batch.detach().cpu().numpy(),
         )
 
     predicted_img = merger.merge()
