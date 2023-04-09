@@ -23,7 +23,7 @@ class AbstractUNet(nn.Module):
     Args:
         in_channels (int): number of input channels
         out_channels (int): number of output segmentation masks;
-            Note that the of out_channels might correspond to either
+            Note that of out_channels might correspond to either
             different semantic classes or to different binary segmentation mask.
             It's up to the user of the class to interpret the out_channels and
             use the proper loss criterion during training (i.e. CrossEntropyLoss (multi-class)
