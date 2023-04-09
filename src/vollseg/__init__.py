@@ -21,6 +21,7 @@ from .CellPose import CellPose
 from .PredictTiledLoader import PredictTiled
 from .CellPose3D import CellPose3DModel, CellPose3DTrain
 from .TrainTiledLoader import TrainTiled
+from .unet3d import AbstractUNet, UNet3D
 
 try:
     from ._version import version as __version__
@@ -50,6 +51,8 @@ __all__ = (
     "CellPose3DModel",
     "TrainTiled",
     "CellPose3DTrain",
+    "AbstractUNet",
+    "UNet3D",
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
