@@ -311,6 +311,10 @@ class CellPose3DTrain:
 
     def _create_training_h5(self):
 
+        self.save_raw_h5 = os.path.join(self.base_dir, self.save_raw_h5_name)
+        self.save_real_mask_h5 = os.path.join(
+            self.base_dir, self.save_real_mask_h5_name
+        )
         prepare_images(
             data_path=self.raw_dir,
             save_path=self.save_raw_h5,
@@ -376,7 +380,7 @@ class CellPose3DTrain:
             "dist_handling": "bool_inv",
             "in_channels": self.in_channels,
             "out_channels": self.out_channels,
-            "feat_channels": self.feat_channels,
+            "feat_channels": tuple(self.feat_channels),
             "norm_method": "instance",
             "samples_per_epoch": self.samples_per_epoch,
             "batch_size": self.batch_size,
