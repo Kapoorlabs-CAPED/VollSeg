@@ -1429,7 +1429,8 @@ def _apply_cellpose_network_3D(
 
     padding = torch.nn.ReplicationPad2d((0, pad2, pad1, 0))
 
-    image_membrane = padding(image_membrane)
+    image_membrane_tensor = padding(torch.from_numpy(image_membrane))
+    image_membrane = image_membrane_tensor.numpy()
     print(
         image_membrane.shape,
         patch_size,
