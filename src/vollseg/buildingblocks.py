@@ -4,7 +4,7 @@ import torch
 from torch import nn as nn
 from torch.nn import functional as F
 
-from pytorch3dunet.unet3d.se import (
+from .se import (
     ChannelSELayer3D,
     ChannelSpatialSELayer3D,
     SpatialSELayer3D,
