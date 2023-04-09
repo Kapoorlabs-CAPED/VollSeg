@@ -27,7 +27,7 @@ class PredictTiled(Dataset):
         self.tiler = VolumeSlicer(
             self.image.shape,
             voxel_size=self.patch_size,
-            volume_step=self.patch_step,
+            voxel_step=self.patch_step,
         )
 
         self.tiles = self.tiler.split(self.image)
