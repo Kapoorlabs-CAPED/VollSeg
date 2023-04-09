@@ -1453,7 +1453,7 @@ def _apply_cellpose_network_3D(
 
         merger.integrate_batch(
             pred_tile.detach().cpu().numpy(),
-            tuple(pred_coord.detach().cpu().numpy()),
+            tuple(list(pred_coord.detach().cpu().numpy())),
         )
 
     predicted_img = merger.merge()

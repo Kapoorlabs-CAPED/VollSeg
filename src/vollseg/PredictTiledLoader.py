@@ -39,6 +39,6 @@ class PredictTiled(Dataset):
 
         tiles_batch = self.tiles[idx]
 
-        coords_batch = list(self.tiler.crops[idx])
+        coords_batch = np.array(list(self.tiler.crops[idx]))
 
         return tiles_batch, coords_batch
