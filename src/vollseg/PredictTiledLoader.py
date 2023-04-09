@@ -1,6 +1,7 @@
 import numpy as np
 from torch.utils.data import Dataset
 from .Tiles_3D import VolumeSlicer
+import torch
 
 
 class PredictTiled(Dataset):
@@ -37,8 +38,8 @@ class PredictTiled(Dataset):
 
     def __getitem__(self, idx):
 
-        tiles_batch = self.tiles[idx]
+        tiles_batch = torch.tensor(self.tiles[idx])
 
-        coords_batch = self.tiler.crops[idx]
+        coords_batch = torch.tensor(self.tiler.crops[idx])
 
         return tiles_batch, coords_batch
