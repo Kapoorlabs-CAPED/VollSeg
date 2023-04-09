@@ -51,8 +51,6 @@ class CellPose3DPredict(LightningModule):
         print(
             "Going in for prediction",
             self.image.shape,
-            "model parameters",
-            len(self.model.parameters()),
         )
         pred_patch = self.model(self.image.float())
         pred_patch = pred_patch.cpu().data.numpy()
