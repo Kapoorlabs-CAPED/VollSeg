@@ -450,9 +450,16 @@ class CellPose3DTrain:
             enable_checkpointing=True,
         )
 
-        trainer.fit(
-            self.model,
-            train_dataloaders=train_loader,
-            val_dataloaders=val_loader,
-            ckpt_path=self.ckpt_path,
-        )
+        if self.ckpt_path is not None:
+            trainer.fit(
+                self.model,
+                train_dataloaders=train_loader,
+                val_dataloaders=val_loader,
+                ckpt_path=self.ckpt_path,
+            )
+        else:
+            trainer.fit(
+                self.model,
+                train_dataloaders=train_loader,
+                val_dataloaders=val_loader,
+            )
