@@ -1441,7 +1441,7 @@ def _apply_cellpose_network_3D(
         "flow_weight": flow_weight,
         "learning_rate": 0.01,
     }
-    print(hparams)
+
     model = CellPose3DModel(hparams=hparams)
     model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
     model.eval()
@@ -1452,10 +1452,10 @@ def _apply_cellpose_network_3D(
         image=image_membrane, patch_size=patch_size, overlap=overlap, crop=crop
     )
 
-    data_loader = DataLoader(dataset, batch_size=batch_size)
+    data_loader = DataLoader(dataset, batch_size=1)
 
     trainer = Trainer()
-
+    print(predict_model)
     predicted_img = trainer.predict(predict_model, data_loader)
 
     for channel in range(out_channels):
