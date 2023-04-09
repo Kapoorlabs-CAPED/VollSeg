@@ -1404,7 +1404,7 @@ def _cellpose_star_time_block(
 
 def collate_fn(data):
 
-    input_tensor, input_slice = zip(*data)
+    input_tensor, input_slice = data
     slices = []
     slices.append(input_slice)
     return input_tensor, slices
