@@ -447,6 +447,7 @@ class CellPose3DTrain:
             min_epochs=self.epochs,
             max_epochs=self.epochs * 2,
             default_root_dir=self.model_dir,
+            num_sanity_val_steps=0,
             enable_checkpointing=True,
         )
 
