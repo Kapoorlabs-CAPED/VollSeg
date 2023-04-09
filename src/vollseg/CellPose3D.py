@@ -14,7 +14,6 @@ from lightning import Trainer, LightningModule
 from lightning.pytorch.loggers import CSVLogger
 from lightning.pytorch.callbacks import ModelCheckpoint
 import numpy as np
-from torch.autograd import Variable
 from .cellposeutils3D import prepare_images, prepare_masks, create_csv
 
 
@@ -44,46 +43,37 @@ class CellPose3DPredict(LightningModule):
             - np.min(batch["locations"].detach().cpu().numpy(), axis=0)
             + np.array(self.patch_size)
         )
-        print(working_size, batch["locations"].shape)
         # Initialize maps (random to overcome memory leaks)
         predicted_img = np.zeros((self.out_channels,) + working_size.shape)
         norm_map = np.zeros((self.out_channels,) + working_size.shape)
 
-        for patch_idx in range(batch.__len__()):
+        # Predict the image
+        pred_patch = self.model(self.image)
+        pred_patch = pred_patch.cpu().data.numpy()
+        pred_patch = np.squeeze(pred_patch)
 
-            # Predict the image
-            sample = batch.__getitem__(patch_idx)
-            data = Variable(torch.from_numpy(sample).cuda())
-            data = data.float()
-
-            print(data.shape, "for prediction step")
-            # Predict the image
-            pred_patch = self.model(data)
-            pred_patch = pred_patch.cpu().data.numpy()
-            pred_patch = np.squeeze(pred_patch)
-
-            # Get the current slice position
-            slicing = tuple(
-                map(
-                    slice,
-                    (0,)
-                    + tuple(
-                        batch["patch_start"].detach().cpu().numpy()
-                        + batch["global_crop_before"].detach().cpu().numpy()
-                    ),
-                    (self.out_channels,)
-                    + tuple(
-                        batch["patch_end"].detach().cpu().numpy()
-                        + batch["global_crop_before"].detach().cpu().numpy()
-                    ),
-                )
+        # Get the current slice position
+        slicing = tuple(
+            map(
+                slice,
+                (0,)
+                + tuple(
+                    batch["patch_start"].detach().cpu().numpy()
+                    + batch["global_crop_before"].detach().cpu().numpy()
+                ),
+                (self.out_channels,)
+                + tuple(
+                    batch["patch_end"].detach().cpu().numpy()
+                    + batch["global_crop_before"].detach().cpu().numpy()
+                ),
             )
+        )
 
-            # Add predicted patch and fading weights to the corresponding maps
-            predicted_img[slicing] = (
-                predicted_img[slicing] + pred_patch * self.fading_map
-            )
-            norm_map[slicing] = norm_map[slicing] + self.fading_map
+        # Add predicted patch and fading weights to the corresponding maps
+        predicted_img[slicing] = (
+            predicted_img[slicing] + pred_patch * self.fading_map
+        )
+        norm_map[slicing] = norm_map[slicing] + self.fading_map
 
         # Normalize the predicted image
         norm_map = np.clip(norm_map, 1e-5, np.inf)
