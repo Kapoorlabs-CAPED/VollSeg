@@ -1454,7 +1454,7 @@ def _apply_cellpose_network_3D(
         image=image_membrane, patch_size=patch_size, overlap=overlap, crop=crop
     )
 
-    data_loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    data_loader = DataLoader(dataset, batch_size=batch_size)
 
     trainer = Trainer()
 
