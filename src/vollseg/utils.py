@@ -1461,6 +1461,7 @@ def _apply_cellpose_network_3D(
     merger = VolumeMerger(image_membrane.shape, out_channels)
     for data in data_loader:
         tiles_batch, coords_batch = data
+        tiles_batch = tiles_batch[np.newaxis, ...]
         try:
             pred_tile = model(tiles_batch.cuda())
         except ValueError:
