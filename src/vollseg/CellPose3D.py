@@ -44,7 +44,7 @@ class CellPose3DPredict(LightningModule):
             - np.min(batch["locations"].detach().cpu().numpy(), axis=0)
             + np.array(self.patch_size)
         )
-
+        print(working_size, batch["locations"].shape)
         # Initialize maps (random to overcome memory leaks)
         predicted_img = np.full(
             (self.out_channels,) + working_size, 0, dtype=np.float32
