@@ -60,7 +60,7 @@ class CellPose3DPredict(LightningModule):
             data = Variable(torch.from_numpy(sample).cuda())
             data = data.float()
 
-            print(data.shape, "for prediction")
+            print(data.shape, "for prediction step")
             # Predict the image
             pred_patch = self.model(data)
             pred_patch = pred_patch.cpu().data.numpy()
