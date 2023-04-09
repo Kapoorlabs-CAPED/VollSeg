@@ -50,10 +50,7 @@ class CellPose3DPredict(LightningModule):
         norm_map = np.zeros((self.out_channels,) + working_size.shape)
 
         # Predict the image
-        print(
-            "Going in for prediction",
-            self.image.shape,
-        )
+
         pred_patch = self.model(self.image.float())
         pred_patch = pred_patch.cpu().data.numpy()
         pred_patch = np.squeeze(pred_patch)
@@ -75,6 +72,10 @@ class CellPose3DPredict(LightningModule):
             )
         )
 
+        print(predicted_img.shape)
+        print(slicing)
+        print(pred_patch)
+        print(self.fading_map.shape)
         # Add predicted patch_ and fading weights to the corresponding maps
         predicted_img[slicing] = (
             predicted_img[slicing] + pred_patch * self.fading_map
