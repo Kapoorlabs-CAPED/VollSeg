@@ -33,6 +33,7 @@ class CellPose3DPredict(LightningModule):
     def predict_step(self, batch, batch_idx):
 
         self.image, self.fading_map = batch["image"], batch["fading_map"]
+        self.fading_map = self.fading_map.detach().cpu().numpy()
         self.fading_map = np.repeat(
             self.fading_map[np.newaxis, ...], self.out_channels, axis=0
         )
