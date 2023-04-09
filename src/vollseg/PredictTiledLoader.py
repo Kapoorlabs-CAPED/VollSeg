@@ -38,8 +38,10 @@ class PredictTiled(Dataset):
 
     def __getitem__(self, idx):
 
-        tiles_batch = self.tiles[idx]
+        tiles_batch = np.array(self.tiles[idx])
 
-        coords_batch = self.tiler.crops[idx]
+        coords_batch = np.array(self.tiler.crops[idx])
+
+        print(tiles_batch.size, coords_batch.size)
 
         return tiles_batch, coords_batch
