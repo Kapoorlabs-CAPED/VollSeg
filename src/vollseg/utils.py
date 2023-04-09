@@ -1422,15 +1422,6 @@ def _apply_cellpose_network_3D(
     overlap=(1, 16, 16),
 ):
 
-    padding1_mult = math.floor(image_membrane.shape[1] / 32) + 1
-    padding2_mult = math.floor(image_membrane.shape[2] / 32) + 1
-    pad1 = (32 * padding1_mult) - image_membrane.shape[1]
-    pad2 = (32 * padding2_mult) - image_membrane.shape[2]
-
-    padding = torch.nn.ReplicationPad2d((0, pad2, pad1, 0))
-
-    image_membrane_tensor = padding(torch.from_numpy(image_membrane))
-    image_membrane = image_membrane_tensor.numpy()
     print(
         image_membrane.shape,
         patch_size,
@@ -1499,6 +1490,7 @@ def _apply_cellpose_network_3D(
         )
         data = data.float()
 
+        print(data.shape, "for prediction")
         # Predict the image
         pred_patch = model(data)
         pred_patch = pred_patch.cpu().data.numpy()
