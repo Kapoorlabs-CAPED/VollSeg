@@ -39,19 +39,15 @@ class CellPose3DPredict(LightningModule):
         )
 
         # Determine if the patch size exceeds the image size
-        working_size = tuple(
+        working_size = np.array(
             np.max(batch["locations"].detach().cpu().numpy(), axis=0)
             - np.min(batch["locations"].detach().cpu().numpy(), axis=0)
             + np.array(self.patch_size)
         )
         print(working_size, batch["locations"].shape)
         # Initialize maps (random to overcome memory leaks)
-        predicted_img = np.full(
-            (self.out_channels,) + working_size, 0, dtype=np.float32
-        )
-        norm_map = np.full(
-            (self.out_channels,) + working_size, 0, dtype=np.float32
-        )
+        predicted_img = np.zeros((self.out_channels,) + working_size.shape)
+        norm_map = np.zeros((self.out_channels,) + working_size.shape)
 
         for patch_idx in range(batch.__len__()):
 
