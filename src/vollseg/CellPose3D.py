@@ -262,6 +262,8 @@ class CellPose3DTrain:
         self.train_list = os.path.join(self.base_dir, self.save_train)
         self.val_list = os.path.join(self.base_dir, self.save_val)
         self.test_list = os.path.join(self.base_dir, self.save_test)
+
+        print(len(self.train_list), len(self.val_list), len(self.test_list))
         hparams = {
             "train_list": self.train_list,
             "test_list": self.test_list,
