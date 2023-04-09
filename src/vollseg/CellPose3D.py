@@ -307,7 +307,7 @@ class CellPose3DTrain:
         train_loader = DataLoader(
             train_dataset,
             batch_size=hparams["batch_size"],
-            shuffle=True,
+            shuffle=False,
             drop_last=True,
         )
 
@@ -323,7 +323,7 @@ class CellPose3DTrain:
         val_loader = DataLoader(
             val_dataset,
             batch_size=hparams["batch_size"],
-            shuffle=True,
+            shuffle=False,
             drop_last=True,
         )
         self.save_raw_h5 = os.path.join(self.base_dir, self.save_raw_h5_name)
