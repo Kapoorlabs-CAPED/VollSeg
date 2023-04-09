@@ -1409,7 +1409,7 @@ def collate_fn(data):
     for x, y in data:
 
         if len(input_tensor) == 0:
-            input_tensor = torch.stack(x)
+            input_tensor = x
         else:
             input_tensor = torch.stack(input_tensor, x)
 
