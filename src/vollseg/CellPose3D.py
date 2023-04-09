@@ -69,7 +69,7 @@ class CellPose3DPredict(LightningModule):
             )
         )
 
-        # Add predicted patch and fading weights to the corresponding maps
+        # Add predicted patch_ and fading weights to the corresponding maps
         predicted_img[slicing] = (
             predicted_img[slicing] + pred_patch * self.fading_map
         )
