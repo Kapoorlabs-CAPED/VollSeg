@@ -41,6 +41,6 @@ class PredictTiled(Dataset):
 
         tiles_batch = self.transform(self.tiles[idx])
 
-        coords_batch = self.transform(self.tiler.crops[idx])
+        coords_batch = self.transform(list(self.tiler.crops[idx]))
 
         return tiles_batch, coords_batch
