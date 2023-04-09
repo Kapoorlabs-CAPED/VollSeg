@@ -1,6 +1,7 @@
 import numpy as np
 from torch.utils.data import Dataset
 from .Tiles_3D import VolumeSlicer
+from torchvision import transforms
 
 
 class PredictTiled(Dataset):
@@ -18,7 +19,7 @@ class PredictTiled(Dataset):
 
         # Sanity checks
         assert len(patch_size) == 3, "Patch size must be 3-dimensional."
-
+        self.transform = transforms.Compose([transforms.ToTensor()])
         # Save parameters
         self.image = image
         self.patch_size = patch_size
@@ -38,10 +39,8 @@ class PredictTiled(Dataset):
 
     def __getitem__(self, idx):
 
-        tiles_batch = np.array(self.tiles[idx])
+        tiles_batch = self.transform(self.tiles[idx])
 
-        coords_batch = np.array(self.tiler.crops[idx])
-
-        print(tiles_batch.size, coords_batch.size)
+        coords_batch = self.transform(self.tiler.crops[idx])
 
         return tiles_batch, coords_batch
