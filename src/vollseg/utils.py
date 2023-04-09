@@ -1455,7 +1455,7 @@ def _apply_cellpose_network_3D(
     data_loader = DataLoader(dataset, batch_size=1)
 
     trainer = Trainer()
-    print(predict_model)
+
     predicted_img = trainer.predict(predict_model, data_loader)
 
     for channel in range(out_channels):

@@ -48,6 +48,12 @@ class CellPose3DPredict(LightningModule):
         norm_map = np.zeros((self.out_channels,) + working_size.shape)
 
         # Predict the image
+        print(
+            "Going in for prediction",
+            self.image.shape,
+            "model parameters",
+            len(self.model.parameters),
+        )
         pred_patch = self.model(self.image.float())
         pred_patch = pred_patch.cpu().data.numpy()
         pred_patch = np.squeeze(pred_patch)
