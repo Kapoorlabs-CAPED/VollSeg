@@ -1402,6 +1402,16 @@ def _cellpose_star_time_block(
     return cellres, res
 
 
+def collate_fn(list_items):
+    x = []
+    y = []
+    for x_, y_ in list_items:
+        print(f"x_={x_}, y_={y_}")
+        x.append(x_)
+        y.append(y_)
+    return x, y
+
+
 def _apply_cellpose_network_3D(
     cellpose_model_3D_pretrained_file,
     image_membrane,
@@ -1439,7 +1449,9 @@ def _apply_cellpose_network_3D(
         image=image_membrane, patch_size=patch_size, patch_step=patch_step
     )
 
-    data_loader = DataLoader(dataset, batch_size=batch_size)
+    data_loader = DataLoader(
+        dataset, batch_size=batch_size, collate_fn=collate_fn
+    )
     merger = VolumeMerger(image_membrane.shape, out_channels)
     for data in data_loader:
         tiles_batch, coords_batch = data
