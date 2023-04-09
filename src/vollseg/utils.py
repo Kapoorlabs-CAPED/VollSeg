@@ -43,11 +43,12 @@ from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
 from tqdm import tqdm
 from .CellPose3D import CellPose3DModel
+from .PredictTiledLoader import PredictTiled
 from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
-from .Tiles_3D import VolumeMerger, VolumeSlicer
+from .Tiles_3D import VolumeMerger
 
 Boxname = "ImageIDBox"
 GLOBAL_THRESH = 1.0e-2
@@ -1401,14 +1402,12 @@ def _cellpose_star_time_block(
     return cellres, res
 
 
-def collate_fn(list_items):
-    x = []
-    y = []
-    for x_, y_ in list_items:
+def collate_fn(data):
 
-        x.append(x_)
-        y.append(y_)
-    return x, y
+    input_tensor, input_slice = zip(*data)
+    slices = []
+    slices.append(input_slice)
+    return input_tensor, slices
 
 
 def _apply_cellpose_network_3D(
@@ -1442,19 +1441,18 @@ def _apply_cellpose_network_3D(
     model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
     model.eval()
 
-    merger = VolumeMerger(image_membrane.shape, out_channels)
+    # predict_model = CellPose3DPredict(model, hparams)
 
-    tiler = VolumeSlicer(
-        image_membrane.shape,
-        voxel_size=patch_size,
-        voxel_step=patch_step,
+    dataset = PredictTiled(
+        image=image_membrane, patch_size=patch_size, patch_step=patch_step
     )
 
-    tiles = tiler.split(image_membrane)
-
-    for tiles_batch, coords_batch in DataLoader(
-        list(zip(tiles, tiler.crops)), batch_size=batch_size, pin_memory=True
-    ):
+    data_loader = DataLoader(
+        dataset, batch_size=batch_size, collate_fn=collate_fn
+    )
+    merger = VolumeMerger(image_membrane.shape, out_channels)
+    for data in data_loader:
+        tiles_batch, coords_batch = data
         try:
             pred_tile = model(tiles_batch.cuda())
         except ValueError:
