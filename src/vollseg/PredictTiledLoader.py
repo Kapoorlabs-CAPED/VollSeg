@@ -105,7 +105,7 @@ class PredictTiled(Dataset):
         self.image = image_tmp
 
         sample = {
-            "image": self.image[np.newaxis, ...],
+            "image": self.image[np.newaxis, ...].float(),
             "fading_map": self.fading_map,
             "locations": np.array(self.locations),
             "global_crop_before": self.global_crop_before,
