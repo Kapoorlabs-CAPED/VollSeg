@@ -16,6 +16,8 @@ from lightning.pytorch.callbacks import ModelCheckpoint
 import numpy as np
 from .cellposeutils3D import prepare_images, prepare_masks, create_csv
 
+torch.set_float32_matmul_precision("medium")
+
 
 class CellPose3DPredict(LightningModule):
     def __init__(self, model, hparams):
@@ -250,7 +252,7 @@ class CellPose3DTrain:
         epochs=100,
         in_channels=1,
         out_channels=4,
-        feat_channels=16,
+        feat_channels=[32, 64, 128, 256],
         samples_per_epoch=-1,
         batch_size=16,
         learning_rate=0.001,
