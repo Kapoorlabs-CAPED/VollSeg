@@ -1465,18 +1465,19 @@ def _apply_cellpose_network_3D(
     )
     merger = VolumeMerger(image_membrane.shape, out_channels)
     for data in data_loader:
-        tiles_batch, coords_batch = data
-        tiles_batch = tiles_batch[np.newaxis, ...]
-        tiles_batch = tiles_batch.float()
-        try:
-            pred_tile = model(tiles_batch.cuda())
-        except ValueError:
-            pred_tile = model(tiles_batch.cpu())
+        with torch.no_grad():
+            tiles_batch, coords_batch = data
+            tiles_batch = tiles_batch[np.newaxis, ...]
+            tiles_batch = tiles_batch.float()
+            try:
+                pred_tile = model(tiles_batch.cuda())
+            except ValueError:
+                pred_tile = model(tiles_batch.cpu())
 
-        merger.integrate_batch(
-            pred_tile.detach().cpu().numpy(),
-            coords_batch.detach().cpu().numpy(),
-        )
+            merger.integrate_batch(
+                pred_tile.detach().cpu().numpy(),
+                coords_batch.detach().cpu().numpy(),
+            )
 
     predicted_img = merger.merge()
 
