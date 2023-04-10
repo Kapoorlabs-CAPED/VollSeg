@@ -14,6 +14,7 @@ import torch
 import napari
 from torch.utils.data import DataLoader
 import gc
+import time as cputime
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -1446,6 +1447,7 @@ def _apply_cellpose_network_3D(
         "learning_rate": 0.01,
     }
 
+    start = cputime.time()
     torch.cuda.empty_cache()
     gc.collect()
     model = CellPose3DModel(hparams=hparams)
@@ -1485,12 +1487,9 @@ def _apply_cellpose_network_3D(
 
     predicted_img = merger.merge()
     predicted_img = predicted_img.detach().cpu().numpy()
-    print("cellpose in 3D done", predicted_img.shape)
-    for channel in range(out_channels):
-
-        predicted_img[channel, ...] = predicted_img[channel, ...] / np.max(
-            predicted_img[channel, ...]
-        )
+    print(
+        f"cellpose in 3D done, predicted_img.shape, took {cputime.time() - start} seconds"
+    )
 
     projection_axis = 0
 
