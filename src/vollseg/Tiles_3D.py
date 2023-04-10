@@ -212,7 +212,6 @@ class VolumeMerger:
                 "Number of images in batch does not correspond to number of coordinates"
             )
 
-        batch = batch.to(device=self.volume.device)
         for tile, roi in zip(batch, rois):
             self.volume[:, roi[0], roi[1], roi[2]] += tile.type_as(self.volume)
 
