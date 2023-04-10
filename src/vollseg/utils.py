@@ -13,6 +13,7 @@ from pathlib import Path
 import torch
 import napari
 from torch.utils.data import DataLoader
+import gc
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -1445,6 +1446,8 @@ def _apply_cellpose_network_3D(
         "learning_rate": 0.01,
     }
 
+    torch.cuda.empty_cache()
+    gc.collect()
     model = CellPose3DModel(hparams=hparams)
     model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
     try:
@@ -1500,6 +1503,8 @@ def _apply_cellpose_network_3D(
     )
 
     max_predicted_img = np.amax(predicted_img, axis=projection_axis)
+
+    print("returning cellpose map", max_predicted_img.shape)
 
     return max_predicted_img
 
