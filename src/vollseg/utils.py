@@ -1469,20 +1469,17 @@ def _apply_cellpose_network_3D(
             tiles_batch, coords_batch = data
             tiles_batch = tiles_batch[np.newaxis, ...]
             tiles_batch = tiles_batch.float()
-            if (
-                tiles_batch.shape[2] == patch_size[0]
-                and tiles_batch.shape[3] == patch_size[1]
-                and tiles_batch.shape[3] == patch_size[2]
-            ):
-                try:
-                    pred_tile = model(tiles_batch.cuda())
-                except ValueError:
-                    pred_tile = model(tiles_batch.cpu())
 
-                merger.integrate_batch(
-                    pred_tile,
-                    coords_batch,
-                )
+            try:
+                pred_tile = model(tiles_batch.cuda())
+            except ValueError:
+                pred_tile = model(tiles_batch.cpu())
+
+            print(tiles_batch.shape, pred_tile.shape)
+            merger.integrate_batch(
+                pred_tile,
+                coords_batch,
+            )
 
     predicted_img = merger.merge()
 
