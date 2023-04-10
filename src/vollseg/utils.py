@@ -1475,21 +1475,21 @@ def _apply_cellpose_network_3D(
             except ValueError:
                 pred_tile = model(tiles_batch.cpu())
 
-            print(tiles_batch.shape, pred_tile.shape)
             merger.integrate_batch(
                 pred_tile,
                 coords_batch,
             )
 
     predicted_img = merger.merge()
-
+    predicted_img = predicted_img.detach().cpu().numpy()
+    print("cellpose in 3D done", predicted_img.shape)
     for channel in range(out_channels):
 
-        predicted_img[..., channel] = predicted_img[..., channel] / np.max(
-            predicted_img[..., channel]
+        predicted_img[channel, ...] = predicted_img[channel, ...] / np.max(
+            predicted_img[channel, ...]
         )
 
-    projection_axis = -1
+    projection_axis = 0
 
     predicted_img.take(
         indices=range(
