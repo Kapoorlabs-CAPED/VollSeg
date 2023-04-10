@@ -45,6 +45,7 @@ class CellPose3DModel(LightningModule):
             in_channels=hparams["in_channels"],
             out_channels=hparams["out_channels"],
             f_maps=hparams["feat_channels"],
+            num_levels=hparams["num_levels"],
         )
         self.in_channels = hparams["in_channels"]
         self.out_channels = hparams["out_channels"]
@@ -182,6 +183,7 @@ class CellPose3DTrain:
         in_channels=1,
         out_channels=4,
         feat_channels=[32, 64, 128, 256],
+        num_levels=4,
         samples_per_epoch=-1,
         batch_size=16,
         learning_rate=0.001,
@@ -213,6 +215,7 @@ class CellPose3DTrain:
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.feat_channels = feat_channels
+        self.num_levels = num_levels
         self.samples_per_epoch = samples_per_epoch
         self.batch_size = batch_size
         self.learning_rate = learning_rate
@@ -310,6 +313,7 @@ class CellPose3DTrain:
             "in_channels": self.in_channels,
             "out_channels": self.out_channels,
             "feat_channels": tuple(self.feat_channels),
+            "num_levels": self.num_levels,
             "norm_method": "instance",
             "samples_per_epoch": self.samples_per_epoch,
             "batch_size": self.batch_size,

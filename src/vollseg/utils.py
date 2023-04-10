@@ -1028,6 +1028,7 @@ def _cellpose_3D_time_block(
     flow_weight,
     out_channels,
     feat_channels,
+    num_levels,
     patch_step,
 ):
     if cellpose_model_3D_pretrained_file is not None:
@@ -1037,7 +1038,7 @@ def _cellpose_3D_time_block(
                 *tuple(
                     _apply_cellpose_network_3D(
                         cellpose_model_3D_pretrained_file,
-                        image_membrane,
+                        _x,
                         patch_size=patch_size,
                         in_channels=in_channels,
                         out_activation=out_activation,
@@ -1046,6 +1047,7 @@ def _cellpose_3D_time_block(
                         flow_weight=flow_weight,
                         out_channels=out_channels,
                         feat_channels=feat_channels,
+                        num_levels=num_levels,
                         patch_step=patch_step,
                     )
                     for _x in tqdm(image_membrane)
@@ -1233,6 +1235,7 @@ def _cellpose_3D_star_time_block(
     flow_weight,
     out_channels,
     feat_channels,
+    num_levels,
     patch_step,
     unet_model,
     star_model,
@@ -1300,6 +1303,7 @@ def _cellpose_3D_star_time_block(
                     flow_weight,
                     out_channels,
                     feat_channels,
+                    num_levels,
                     patch_step,
                 )
             )
@@ -1431,6 +1435,7 @@ def _apply_cellpose_network_3D(
     flow_weight=1,
     out_channels=4,
     feat_channels=16,
+    num_levels=3,
     patch_step=(2, 64, 64),
     batch_size=1,
 ):
@@ -1440,6 +1445,7 @@ def _apply_cellpose_network_3D(
         "in_channels": in_channels,
         "out_channels": out_channels,
         "feat_channels": feat_channels,
+        "num_levels": num_levels,
         "out_activation": out_activation,
         "norm_method": norm_method,
         "background_weight": background_weight,
@@ -1514,6 +1520,7 @@ def VollCellPose3D(
     flow_weight=1,
     out_channels=4,
     feat_channels=16,
+    num_levels=4,
     patch_step=(2, 64, 64),
     star_model=None,
     unet_model=None,
@@ -1563,6 +1570,7 @@ def VollCellPose3D(
             flow_weight,
             out_channels,
             feat_channels,
+            num_levels,
             patch_step,
             ExpandLabels,
             axes,
@@ -1601,6 +1609,7 @@ def VollCellPose3D(
             flow_weight,
             out_channels,
             feat_channels,
+            num_levels,
             patch_step,
             ExpandLabels,
             axes,
@@ -1638,6 +1647,7 @@ def VollCellPose3D(
             flow_weight,
             out_channels,
             feat_channels,
+            num_levels,
             patch_step,
             unet_model,
             star_model,
@@ -2220,6 +2230,7 @@ def _cellpose_3D_star_block(
     flow_weight,
     out_channels,
     feat_channels,
+    num_levels,
     patch_step,
     ExpandLabels,
     axes,
@@ -2241,20 +2252,6 @@ def _cellpose_3D_star_block(
 
     cellres = None
     res = None
-    if cellpose_model_3D_pretrained_file is not None:
-        cellres = _apply_cellpose_network_3D(
-            cellpose_model_3D_pretrained_file,
-            image_membrane,
-            patch_size=patch_size,
-            in_channels=in_channels,
-            out_activation=out_activation,
-            norm_method=norm_method,
-            background_weight=background_weight,
-            flow_weight=flow_weight,
-            out_channels=out_channels,
-            feat_channels=feat_channels,
-            patch_step=patch_step,
-        )
 
     if star_model is not None:
 
@@ -2280,6 +2277,22 @@ def _cellpose_3D_star_block(
             seedpool=seedpool,
             slice_merge=False,
             iou_threshold=iou_threshold,
+        )
+
+    if cellpose_model_3D_pretrained_file is not None:
+        cellres = _apply_cellpose_network_3D(
+            cellpose_model_3D_pretrained_file,
+            image_membrane,
+            patch_size=patch_size,
+            in_channels=in_channels,
+            out_activation=out_activation,
+            norm_method=norm_method,
+            background_weight=background_weight,
+            flow_weight=flow_weight,
+            out_channels=out_channels,
+            feat_channels=feat_channels,
+            num_levels=num_levels,
+            patch_step=patch_step,
         )
 
     return cellres, res
@@ -2323,6 +2336,33 @@ def _cellpose_star_block(
 
     cellres = None
     res = None
+
+    if star_model is not None:
+
+        res = VollSeg3D(
+            image_nuclei,
+            unet_model,
+            star_model,
+            roi_model=roi_model,
+            ExpandLabels=ExpandLabels,
+            axes=axes,
+            noise_model=noise_model,
+            prob_thresh=prob_thresh,
+            nms_thresh=nms_thresh,
+            donormalize=donormalize,
+            lower_perc=lower_perc,
+            upper_perc=upper_perc,
+            min_size_mask=min_size_mask,
+            min_size=min_size,
+            max_size=max_size,
+            n_tiles=n_tiles,
+            UseProbability=UseProbability,
+            dounet=dounet,
+            seedpool=seedpool,
+            slice_merge=slice_merge,
+            iou_threshold=iou_threshold,
+        )
+
     if cellpose_model is not None:
 
         if custom_cellpose_model:
@@ -2376,32 +2416,6 @@ def _cellpose_star_block(
                     tile=True,
                     do_3D=do_3D,
                 )
-
-    if star_model is not None:
-
-        res = VollSeg3D(
-            image_nuclei,
-            unet_model,
-            star_model,
-            roi_model=roi_model,
-            ExpandLabels=ExpandLabels,
-            axes=axes,
-            noise_model=noise_model,
-            prob_thresh=prob_thresh,
-            nms_thresh=nms_thresh,
-            donormalize=donormalize,
-            lower_perc=lower_perc,
-            upper_perc=upper_perc,
-            min_size_mask=min_size_mask,
-            min_size=min_size,
-            max_size=max_size,
-            n_tiles=n_tiles,
-            UseProbability=UseProbability,
-            dounet=dounet,
-            seedpool=seedpool,
-            slice_merge=slice_merge,
-            iou_threshold=iou_threshold,
-        )
 
     return cellres, res
 
