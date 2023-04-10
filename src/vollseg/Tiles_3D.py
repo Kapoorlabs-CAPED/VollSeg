@@ -214,7 +214,17 @@ class VolumeMerger:
 
         batch = batch.to(device=self.volume.device)
         for tile, roi in zip(batch, rois):
-            self.volume[:, roi[0], roi[1], roi[2]] += tile.type_as(self.volume)
+            if (
+                self.volume[:, roi[0], roi[1], roi[2]].shape[1]
+                == tile.shape[1]
+                and self.volume[:, roi[0], roi[1], roi[2]].shape[2]
+                == tile.shape[2]
+                and self.volume[:, roi[0], roi[1], roi[2]].shape[3]
+                == tile.shape[3]
+            ):
+                self.volume[:, roi[0], roi[1], roi[2]] += tile.type_as(
+                    self.volume
+                )
 
     def merge(self) -> torch.Tensor:
         return self.volume
