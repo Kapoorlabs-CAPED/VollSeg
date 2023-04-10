@@ -192,7 +192,7 @@ class VolumeMerger:
             (channels, *volume_shape), device=device, dtype=dtype
         )
 
-    def accumulate_single(self, tile: torch.Tensor, roi):
+    def accumulate_single(self, tile: np.ndarray, roi):
         """
         Accumulates single element
         :param sample: Predicted image of shape [C,D,H,W]
@@ -201,7 +201,7 @@ class VolumeMerger:
         tile = tile.to(device=self.volume.device)
         self.volume[:, roi] += tile
 
-    def integrate_batch(self, batch: torch.Tensor, rois):
+    def integrate_batch(self, batch: np.ndarray, rois):
         """
         Accumulates batch of tile predictions
         :param batch: Predicted tiles  of shape [B,C,D,H,W]
@@ -213,7 +213,7 @@ class VolumeMerger:
             )
 
         for tile, roi in zip(batch, rois):
-            self.volume[:, roi[0], roi[1], roi[2]] += tile.type_as(self.volume)
+            self.volume[:, roi[0], roi[1], roi[2]] += tile
 
-    def merge(self) -> torch.Tensor:
+    def merge(self) -> np.ndarray:
         return self.volume
