@@ -1495,6 +1495,8 @@ def _apply_cellpose_network_3D(
     max_predicted_img = np.amax(predicted_img, axis=projection_axis)
 
     print("returning cellpose map", max_predicted_img.shape)
+    torch.cuda.empty_cache()
+    gc.collect()
 
     return max_predicted_img
 
