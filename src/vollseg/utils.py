@@ -1488,19 +1488,10 @@ def _apply_cellpose_network_3D(
     predicted_img = merger.merge()
     predicted_img = predicted_img.detach().cpu().numpy()
     print(
-        f"cellpose in 3D done, predicted_img.shape, took {cputime.time() - start} seconds"
+        f"cellpose in 3D done, {predicted_img.shape}, took {cputime.time() - start} seconds"
     )
-
+    predicted_img = predicted_img[1:, ...]
     projection_axis = 0
-
-    predicted_img.take(
-        indices=range(
-            predicted_img.shape[projection_axis] - 3,
-            predicted_img.shape[projection_axis],
-        ),
-        axis=projection_axis,
-    )
-
     max_predicted_img = np.amax(predicted_img, axis=projection_axis)
 
     print("returning cellpose map", max_predicted_img.shape)
