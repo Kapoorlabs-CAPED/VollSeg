@@ -15,6 +15,7 @@ import napari
 from torch.utils.data import DataLoader
 import gc
 import time as cputime
+from skimage.transform import resize
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -27,7 +28,6 @@ from scipy.ndimage import (
     binary_dilation,
     binary_erosion,
     distance_transform_edt,
-    zoom,
 )
 from scipy.ndimage.measurements import find_objects
 from scipy.ndimage.morphology import binary_fill_holes
@@ -4509,9 +4509,21 @@ def SuperSTARPrediction(
         )
 
     grid = model.config.grid
-    Probability = zoom(SmallProbability, zoom=(grid[1], grid[0]))
+    Probability = resize(
+        SmallProbability,
+        output_shape=(
+            SmallProbability.shape[0] * grid[0],
+            SmallProbability.shape[1] * grid[1],
+        ),
+    )
     Distance = MaxProjectDist(SmallDistance, axis=-1)
-    Distance = zoom(Distance, zoom=(grid[1], grid[0]))
+    Distance = resize(
+        Distance,
+        output_shape=(
+            Distance.shape[0] * grid[0],
+            Distance.shape[1] * grid[1],
+        ),
+    )
 
     pixel_condition = Probability < GLOBAL_THRESH
     pixel_replace_condition = 0
@@ -4609,11 +4621,16 @@ def STARPrediction3D(
 
     # We only allow for the grid parameter to be 1 along the Z axis
     for i in range(0, SmallProbability.shape[0]):
-        Probability[i, :] = zoom(
-            SmallProbability[i, :], zoom=(grid[2], grid[1])
+        Probability[i, :] = resize(
+            SmallProbability[i, :],
+            output_shape=(Probability.shape[1], Probability.shape[2]),
         )
+
         if UseProbability is False:
-            Distance[i, :] = zoom(SmallDistance[i, :], zoom=(grid[2], grid[1]))
+            Distance[i, :] = resize(
+                SmallDistance[i, :],
+                output_shape=(Distance.shape[1], Distance.shape[2]),
+            )
 
     if UseProbability:
 
@@ -4639,7 +4656,7 @@ def STARPrediction3D(
         unet_mask = star_labels > 0
 
     Watershed, markers = WatershedwithMask3D(
-        MaxProjectDistance.astype("uint16"),
+        MaxProjectDistance,
         star_labels.astype("uint16"),
         unet_mask.astype("uint16"),
         nms_thresh=nms_thresh,
