@@ -4064,12 +4064,10 @@ def VollSeg3D(
         sized_markers[
             :, : smart_seeds.shape[1], : smart_seeds.shape[2]
         ] = markers
-        probability_map_real = Region_embedding(
-            image, roi_bbox, probability_map
-        )
+        probability_map = Region_embedding(image, roi_bbox, probability_map)
         sized_probability_map[
             :, : probability_map.shape[1], : probability_map.shape[2]
-        ] = probability_map_real
+        ] = probability_map
         star_labels = Region_embedding(image, roi_bbox, star_labels)
         sized_stardist[
             :, : star_labels.shape[1], : star_labels.shape[2]
