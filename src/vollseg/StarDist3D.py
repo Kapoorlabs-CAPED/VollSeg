@@ -4,7 +4,11 @@ Created on Mon Jan  3 19:34:47 2022
 @author: varunkapoor
 """
 from stardist.models import StarDist3D
-from .pretrained import get_registered_models, get_model_details, get_model_instance
+from .pretrained import (
+    get_registered_models,
+    get_model_details,
+    get_model_instance,
+)
 import sys
 
 
@@ -20,7 +24,8 @@ class StarDist3D(StarDist3D):
         except ValueError:
             if name_or_alias is not None:
                 print(
-                    "Could not find model with name or alias '%s'" % (name_or_alias),
+                    "Could not find model with name or alias '%s'"
+                    % (name_or_alias),
                     file=sys.stderr,
                 )
                 sys.stderr.flush()
@@ -40,7 +45,6 @@ class StarDist3D(StarDist3D):
         predict_kwargs=None,
         nms_kwargs=None,
         overlap_label=None,
-        return_predict=False,
     ):
         """Predict instance segmentation from input image.
         Parameters
@@ -80,9 +84,7 @@ class StarDist3D(StarDist3D):
             Keyword arguments for non-maximum suppression.
         overlap_label: scalar or None
             if not None, label the regions where polygons overlap with that value
-        return_predict: bool
-            Also return the outputs of :func:`predict` (in a separate tuple)
-            If True, implies sparse = False
+
         Returns
         -------
         (:class:`numpy.ndarray`, dict), (optional: return tuple of :func:`predict`)

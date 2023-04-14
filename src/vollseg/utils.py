@@ -483,7 +483,7 @@ def Skel(smart_seedsLabels, RGB=False):
 
 def Region_embedding(image, region, sourceimage, RGB=False):
 
-    returnimage = np.zeros_like(image)
+    returnimage = np.zeros(image.shape)
     if len(region) == 4 and len(image.shape) == 2:
         rowstart = region[0]
         colstart = region[1]
@@ -4064,10 +4064,12 @@ def VollSeg3D(
         sized_markers[
             :, : smart_seeds.shape[1], : smart_seeds.shape[2]
         ] = markers
-        probability_map = Region_embedding(image, roi_bbox, probability_map)
+        probability_map_real = Region_embedding(
+            image, roi_bbox, probability_map
+        )
         sized_probability_map[
             :, : probability_map.shape[1], : probability_map.shape[2]
-        ] = probability_map
+        ] = probability_map_real
         star_labels = Region_embedding(image, roi_bbox, star_labels)
         sized_stardist[
             :, : star_labels.shape[1], : star_labels.shape[2]
@@ -4495,6 +4497,7 @@ def SuperSTARPrediction(
     if prob_thresh is None and nms_thresh is None:
         prob_thresh = model.thresholds.prob
         nms_thresh = model.thresholds.nms
+
     if prob_thresh is not None and nms_thresh is not None:
 
         star_labels, SmallProbability, SmallDistance = model.predict_vollseg(
@@ -4586,18 +4589,29 @@ def STARPrediction3D(
         print(
             f"Using user choice of prob_thresh = {prob_thresh} and nms_thresh = {nms_thresh}"
         )
-        res = model.predict_vollseg(
-            image.astype("float32"),
-            axes=axes,
-            n_tiles=n_tiles,
-            prob_thresh=prob_thresh,
-            nms_thresh=nms_thresh,
-        )
-    else:
-        res = model.predict_vollseg(
-            image.astype("float32"), axes=axes, n_tiles=n_tiles
-        )
-    star_labels, SmallProbability, SmallDistance = res
+
+        if prob_thresh is not None and nms_thresh is not None:
+
+            (
+                star_labels,
+                SmallProbability,
+                SmallDistance,
+            ) = model.predict_vollseg(
+                image.astype("float32"),
+                axes=axes,
+                n_tiles=n_tiles,
+                prob_thresh=prob_thresh,
+                nms_thresh=nms_thresh,
+            )
+        else:
+            (
+                star_labels,
+                SmallProbability,
+                SmallDistance,
+            ) = model.predict_vollseg(
+                image.astype("float32"), axes=axes, n_tiles=n_tiles
+            )
+
     print("Predictions Done")
 
     if UseProbability is False:
@@ -4671,9 +4685,10 @@ def SuperWatershedwithMask(
     Image, Label, mask, nms_thresh, seedpool, z_thresh=1
 ):
 
+    CopyImage = Image.copy()
     properties = measure.regionprops(Label)
     Coordinates = [prop.centroid for prop in properties]
-    binaryproperties = measure.regionprops(label(mask), Image)
+    binaryproperties = measure.regionprops(label(mask), CopyImage)
     BinaryCoordinates = [prop.centroid for prop in binaryproperties]
     Binarybbox = [prop.bbox for prop in binaryproperties]
 
@@ -4711,11 +4726,11 @@ def SuperWatershedwithMask(
     Coordinates = np.asarray(Coordinates)
 
     coordinates_int = np.round(Coordinates).astype(int)
-    markers_raw = np.zeros_like(Image)
+    markers_raw = np.zeros_like(CopyImage)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
 
     markers = morphology.dilation(markers_raw, morphology.disk(2))
-    watershedImage = watershed(-Image, markers, mask=mask.copy())
+    watershedImage = watershed(-CopyImage, markers, mask=mask.copy())
 
     watershedImage = NMSLabel(
         watershedImage, nms_thresh, z_thresh=z_thresh
@@ -4736,6 +4751,7 @@ def CleanCellPose(cellpose_mask, nms_thresh, z_thresh=1):
 
 def CellPose3DWater(sized_smart_seeds, flows, nms_thresh, z_thresh=1):
 
+    Copyflows = flows.copy()
     CopyMasks = sized_smart_seeds.copy()
     starproperties = measure.regionprops(CopyMasks)
     KeepCoordinates = [prop.centroid for prop in starproperties]
@@ -4745,8 +4761,8 @@ def CellPose3DWater(sized_smart_seeds, flows, nms_thresh, z_thresh=1):
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
 
-    thresholds = threshold_multiotsu(flows, classes=2)
-    regions = np.digitize(flows, bins=thresholds)
+    thresholds = threshold_multiotsu(Copyflows, classes=2)
+    regions = np.digitize(Copyflows, bins=thresholds)
     probability_mask = regions > 0
     probability_mask = binary_erosion(probability_mask, iterations=1)
 
@@ -4755,7 +4771,9 @@ def CellPose3DWater(sized_smart_seeds, flows, nms_thresh, z_thresh=1):
     markers = morphology.dilation(
         markers_raw.astype("uint16"), morphology.ball(2)
     )
-    watershed_image_nuclei = watershed(flows, markers, mask=probability_mask)
+    watershed_image_nuclei = watershed(
+        Copyflows, markers, mask=probability_mask
+    )
     watershed_image_nuclei = fill_label_holes(watershed_image_nuclei)
     watershed_image_nuclei = dilate_label_holes(
         watershed_image_nuclei, iterations=1
@@ -4772,6 +4790,7 @@ def CellPoseWater(
     cellpose_mask, sized_smart_seeds, cellpose_base, nms_thresh, z_thresh=1
 ):
 
+    Copycellpose_base = cellpose_base.copy()
     CopyMasks = sized_smart_seeds.copy()
     starproperties = measure.regionprops(CopyMasks)
     Coordinates = [prop.centroid for prop in starproperties]
@@ -4791,11 +4810,11 @@ def CellPoseWater(
     KeepCoordinates = np.asarray(KeepCoordinates)
 
     coordinates_int = np.round(KeepCoordinates).astype(int)
-    markers_raw = np.zeros_like(cellpose_base)
+    markers_raw = np.zeros_like(Copycellpose_base)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
 
-    thresholds = threshold_multiotsu(cellpose_base, classes=2)
-    regions = np.digitize(cellpose_base, bins=thresholds)
+    thresholds = threshold_multiotsu(Copycellpose_base, classes=2)
+    regions = np.digitize(Copycellpose_base, bins=thresholds)
     probability_mask = regions > 0
     probability_mask = binary_erosion(probability_mask, iterations=1)
 
@@ -4805,7 +4824,7 @@ def CellPoseWater(
         markers_raw.astype("uint16"), morphology.ball(2)
     )
     watershed_image_nuclei = watershed(
-        cellpose_base, markers, mask=probability_mask
+        Copycellpose_base, markers, mask=probability_mask
     )
     watershed_image_nuclei = fill_label_holes(watershed_image_nuclei)
     watershed_image_nuclei = dilate_label_holes(
@@ -4828,6 +4847,8 @@ def CellPoseWater(
 def WatershedwithMask3D(
     Image, Label, mask, nms_thresh, seedpool=True, z_thresh=1
 ):
+
+    CopyImage = Image.copy()
     properties = measure.regionprops(Label)
 
     Coordinates = [prop.centroid for prop in properties]
@@ -4871,12 +4892,12 @@ def WatershedwithMask3D(
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
-    markers_raw = np.zeros_like(Image)
+    markers_raw = np.zeros_like(CopyImage)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(
         markers_raw.astype("uint16"), morphology.ball(2)
     )
-    watershedImage = watershed(-Image, markers, mask=mask.copy())
+    watershedImage = watershed(-CopyImage, markers, mask=mask.copy())
 
     watershedImage = NMSLabel(
         watershedImage, nms_thresh, z_thresh=z_thresh
