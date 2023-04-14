@@ -24,6 +24,31 @@ from .TrainTiledLoader import TrainTiled
 from .unet3d import AbstractUNet, UNet3D
 from .se import ChannelSELayer3D, ChannelSpatialSELayer3D, SpatialSELayer3D
 from .Tiles_3D import VolumeMerger, VolumeSlicer
+from .utils import (
+    VollCellPose3D,
+    VollCellSeg,
+    VollSeg,
+    VollSeg2D,
+    VollSeg3D,
+    VollSeg_unet,
+    VollSeg_nolabel_precondition,
+    VollSeg_label_expansion,
+    VollSeg_label_precondition,
+    VollSeg_nolabel_expansion,
+    merge_labels_across_volume,
+    SimplePrediction,
+    Skel,
+    SmartSkel,
+    STARPrediction3D,
+    SuperSTARPrediction,
+    SuperUNETPrediction,
+    SuperWatershedwithMask,
+    CellPose3DWater,
+    CCLabels,
+    CellPoseWater,
+    CleanCellPose,
+    CleanMask,
+)
 
 try:
     from ._version import version as __version__
@@ -61,6 +86,29 @@ __all__ = (
     "CellPose3DPredict",
     "VolumeMerger",
     "VolumeSlicer",
+    "VollCellPose3D",
+    "VollCellSeg",
+    "VollSeg",
+    "VollSeg2D",
+    "VollSeg3D",
+    "VollSeg_unet",
+    "VollSeg_nolabel_precondition",
+    "VollSeg_label_expansion",
+    "VollSeg_label_precondition",
+    "VollSeg_nolabel_expansion",
+    "merge_labels_across_volume",
+    "SimplePrediction",
+    "Skel",
+    "SmartSkel",
+    "STARPrediction3D",
+    "SuperSTARPrediction",
+    "SuperUNETPrediction",
+    "SuperWatershedwithMask",
+    "CellPose3DWater",
+    "CCLabels",
+    "CellPoseWater",
+    "CleanCellPose",
+    "CleanMask",
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
