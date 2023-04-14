@@ -1465,8 +1465,6 @@ def _apply_cellpose_network_3D(
 
     model.eval()
 
-    # predict_model = CellPose3DPredict(model, hparams)
-
     dataset = PredictTiled(
         image=image_membrane, patch_size=patch_size, patch_step=patch_step
     )
@@ -1959,15 +1957,25 @@ def VollCellPose3D(
 
         if cellpose_model_3D_pretrained_file is not None:
 
-            vollcellpose_results = save_dir + "VollCellPose3D/"
+            vollcellpose_results = os.path.join(save_dir, "VollCellPose3D/")
+            vollcellpose_flows = os.path.join(save_dir, "CellPoseFlows/")
+            flows = np.asarray(flows)
             Path(vollcellpose_results).mkdir(exist_ok=True)
+
             imwrite(
                 (vollcellpose_results + Name + ".tif"),
                 np.asarray(voll_cell_seg).astype("uint16"),
             )
 
+            Path(vollcellpose_flows).mkdir(exist_ok=True)
+
+            imwrite(
+                (vollcellpose_flows + Name + ".tif"),
+                np.asarray(flows).astype("float32"),
+            )
+
         if roi_model is not None:
-            roi_results = save_dir + "Roi/"
+            roi_results = os.path.join(save_dir, "Roi/")
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
                 (roi_results + Name + ".tif"),
@@ -1975,8 +1983,8 @@ def VollCellPose3D(
             )
 
         if unet_model is not None:
-            unet_results = save_dir + "BinaryMask/"
-            skel_unet_results = save_dir + "skeleton/"
+            unet_results = os.path.join(save_dir, "BinaryMask/")
+            skel_unet_results = os.path.join(save_dir, "skeleton/")
             Path(unet_results).mkdir(exist_ok=True)
             Path(skel_unet_results).mkdir(exist_ok=True)
 
@@ -1989,11 +1997,11 @@ def VollCellPose3D(
                 np.asarray(skeleton).astype("uint16"),
             )
         if star_model is not None:
-            vollseg_results = save_dir + "VollSeg/"
-            stardist_results = save_dir + "StarDist/"
-            probability_results = save_dir + "Probability/"
-            marker_results = save_dir + "markers/"
-            skel_results = save_dir + "skeleton/"
+            vollseg_results = os.path.join(save_dir, "VollSeg/")
+            stardist_results = os.path.join(save_dir, "StarDist/")
+            probability_results = os.path.join(save_dir, "Probability/")
+            marker_results = os.path.join(save_dir, "markers/")
+            skel_results = os.path.join(save_dir, "skeleton/")
             Path(skel_results).mkdir(exist_ok=True)
             Path(vollseg_results).mkdir(exist_ok=True)
             Path(stardist_results).mkdir(exist_ok=True)
@@ -2017,7 +2025,7 @@ def VollCellPose3D(
             )
             imwrite((skel_results + Name + ".tif"), np.asarray(skeleton))
         if noise_model is not None:
-            denoised_results = save_dir + "Denoised/"
+            denoised_results = os.path.join(save_dir, "Denoised/")
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
                 (denoised_results + Name + ".tif"),
@@ -2058,6 +2066,7 @@ def VollCellPose3D(
             skeleton,
             roi_image,
             voll_cell_seg,
+            flows,
         )
 
     elif (
@@ -2091,6 +2100,7 @@ def VollCellPose3D(
             markers,
             skeleton,
             voll_cell_seg,
+            flows,
         )
 
     # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
@@ -2129,6 +2139,7 @@ def VollCellPose3D(
             image,
             roi_image,
             voll_cell_seg,
+            flows,
         )
 
     elif (
@@ -2164,6 +2175,7 @@ def VollCellPose3D(
             skeleton,
             image,
             voll_cell_seg,
+            flows,
         )
 
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
@@ -4076,7 +4088,7 @@ def VollSeg3D(
             sized_smart_seeds.astype("uint16"),
             instance_labels.astype("uint16"),
             star_labels.astype("uint16"),
-            probability_map,
+            sized_probability_map,
             markers.astype("uint16"),
             skeleton.astype("uint16"),
             roi_image.astype("uint16"),
@@ -4086,7 +4098,7 @@ def VollSeg3D(
             sized_smart_seeds.astype("uint16"),
             instance_labels.astype("uint16"),
             star_labels.astype("uint16"),
-            probability_map,
+            sized_probability_map,
             markers.astype("uint16"),
             skeleton.astype("uint16"),
         )
@@ -4099,7 +4111,7 @@ def VollSeg3D(
             sized_smart_seeds.astype("uint16"),
             instance_labels.astype("uint16"),
             star_labels.astype("uint16"),
-            probability_map,
+            sized_probability_map,
             markers.astype("uint16"),
             skeleton.astype("uint16"),
             image,
@@ -4113,7 +4125,7 @@ def VollSeg3D(
             sized_smart_seeds.astype("uint16"),
             instance_labels.astype("uint16"),
             star_labels.astype("uint16"),
-            probability_map,
+            sized_probability_map,
             markers.astype("uint16"),
             skeleton.astype("uint16"),
             image,
