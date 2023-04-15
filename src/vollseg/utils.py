@@ -1528,18 +1528,41 @@ def _apply_cellpose_network_3D(
         norm_map[slicing] = norm_map[slicing] + fading_map
 
     predicted_img = predicted_img.detach().cpu().numpy()
+    slicing = tuple(
+        map(
+            slice,
+            (0,) + tuple(dataset.tiler.global_crop_before),
+            (hparams.out_channels,) + tuple(dataset.tiler.global_crop_after),
+        )
+    )
+    predicted_img = predicted_img[slicing]
+
+    # Save the predicted image
+    predicted_img = np.transpose(predicted_img, (1, 2, 3, 0))
+    predicted_img = predicted_img.astype(np.float32)
     print(
         f"cellpose in 3D done, {predicted_img.shape}, took {cputime.time() - start} seconds"
     )
+
+    foreground_map = predicted_img[0, ...]
+    try:
+        thresholds = threshold_multiotsu(foreground_map, classes=2)
+
+        # Using the threshold values, we generate the three regions.
+        regions = np.digitize(foreground_map, bins=thresholds)
+        foreground_map = regions > 0
+    except ValueError:
+
+        foreground_map = foreground_map > 0
     predicted_img = predicted_img[1:, ...]
     projection_axis = 0
-    max_predicted_img = np.amax(predicted_img, axis=projection_axis)
+    flow_img = np.amax(predicted_img, axis=projection_axis)
 
-    print("returning cellpose map", max_predicted_img.shape)
+    print("returning cellpose map", flow_img.shape)
     torch.cuda.empty_cache()
     gc.collect()
 
-    return max_predicted_img
+    return foreground_map, flow_img
 
 
 def VollCellPose3D(
@@ -1709,7 +1732,7 @@ def VollCellPose3D(
             max_size,
         )
 
-    flows = cellres
+    foreground, flows = cellres
 
     if (
         noise_model is None
@@ -1752,6 +1775,7 @@ def VollCellPose3D(
         voll_cell_seg = _cellpose_3D_block(
             axes,
             sized_smart_seeds,
+            foreground,
             flows,
             nms_thresh,
             z_thresh=z_thresh,
@@ -1795,6 +1819,7 @@ def VollCellPose3D(
         voll_cell_seg = _cellpose_3D_block(
             axes,
             sized_smart_seeds,
+            foreground,
             flows,
             nms_thresh,
             z_thresh=z_thresh,
@@ -1844,6 +1869,7 @@ def VollCellPose3D(
         voll_cell_seg = _cellpose_3D_block(
             axes,
             sized_smart_seeds,
+            foreground,
             flows,
             nms_thresh,
             z_thresh=z_thresh,
@@ -1883,6 +1909,7 @@ def VollCellPose3D(
         voll_cell_seg = _cellpose_3D_block(
             axes,
             sized_smart_seeds,
+            foreground,
             flows,
             nms_thresh,
             z_thresh=z_thresh,
@@ -1914,6 +1941,7 @@ def VollCellPose3D(
         voll_cell_seg = _cellpose_3D_block(
             axes,
             sized_smart_seeds,
+            foreground,
             flows,
             nms_thresh,
             z_thresh=z_thresh,
@@ -2000,6 +2028,9 @@ def VollCellPose3D(
 
             vollcellpose_results = os.path.join(save_dir, "VollCellPose3D/")
             vollcellpose_flows = os.path.join(save_dir, "CellPoseFlows/")
+            vollcellpose_foreground = os.path.join(
+                save_dir, "CellPoseForeground/"
+            )
             flows = np.asarray(flows)
             Path(vollcellpose_results).mkdir(exist_ok=True)
 
@@ -2013,6 +2044,13 @@ def VollCellPose3D(
             imwrite(
                 (vollcellpose_flows + Name + ".tif"),
                 np.asarray(flows).astype("float32"),
+            )
+
+            Path(vollcellpose_foreground).mkdir(exist_ok=True)
+
+            imwrite(
+                (vollcellpose_foreground + Name + ".tif"),
+                np.asarray(foreground).astype("float32"),
             )
 
         if roi_model is not None:
@@ -3241,12 +3279,15 @@ def VollCellSeg(
         return instance_labels, skeleton, image
 
 
-def _cellpose_3D_block(axes, sized_smart_seeds, flows, nms_thresh, z_thresh=1):
+def _cellpose_3D_block(
+    axes, sized_smart_seeds, foreground, flows, nms_thresh, z_thresh=1
+):
 
     if "T" not in axes:
 
         voll_cell_seg = CellPose3DWater(
             sized_smart_seeds,
+            foreground,
             flows,
             nms_thresh,
             z_thresh=z_thresh,
@@ -3257,8 +3298,10 @@ def _cellpose_3D_block(axes, sized_smart_seeds, flows, nms_thresh, z_thresh=1):
         for time in range(sized_smart_seeds.shape[0]):
 
             cellpose_flows_time = flows[time]
+            cellpose_foreground_time = foreground[time]
             voll_cell_seg_time = CellPose3DWater(
                 sized_smart_seeds[time],
+                cellpose_foreground_time,
                 cellpose_flows_time,
                 nms_thresh,
                 z_thresh=z_thresh,
@@ -4790,7 +4833,9 @@ def CleanCellPose(cellpose_mask, nms_thresh, z_thresh=1):
     return cellpose_mask_copy
 
 
-def CellPose3DWater(sized_smart_seeds, flows, nms_thresh, z_thresh=1):
+def CellPose3DWater(
+    sized_smart_seeds, foreground, flows, nms_thresh, z_thresh=1
+):
 
     Copyflows = flows.copy()
     CopyMasks = sized_smart_seeds.copy()
@@ -4802,19 +4847,10 @@ def CellPose3DWater(sized_smart_seeds, flows, nms_thresh, z_thresh=1):
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
 
-    thresholds = threshold_multiotsu(Copyflows, classes=2)
-    regions = np.digitize(Copyflows, bins=thresholds)
-    probability_mask = regions > 0
-    probability_mask = binary_erosion(probability_mask, iterations=1)
-
-    probability_mask = binary_fill_holes(probability_mask)
-
     markers = morphology.dilation(
         markers_raw.astype("uint16"), morphology.ball(2)
     )
-    watershed_image_nuclei = watershed(
-        Copyflows, markers, mask=probability_mask
-    )
+    watershed_image_nuclei = watershed(Copyflows, markers, mask=foreground)
     watershed_image_nuclei = fill_label_holes(watershed_image_nuclei)
     watershed_image_nuclei = dilate_label_holes(
         watershed_image_nuclei, iterations=1
