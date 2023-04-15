@@ -1477,8 +1477,10 @@ def _apply_cellpose_network_3D(
         crop=crop,
     )
 
-    fading_map = dataset.tiler.get_fading_map()
-    fading_map = np.repeat(fading_map[np.newaxis, ...], out_channels, axis=0)
+    dataset.tiler.get_fading_map()
+    fading_map = np.repeat(
+        dataset.tiler.fading_map[np.newaxis, ...], out_channels, axis=0
+    )
 
     working_size = tuple(
         np.max(np.array(dataset.tiler.locations), axis=0)
