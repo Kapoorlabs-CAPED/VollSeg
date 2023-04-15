@@ -12,7 +12,6 @@ import os
 from pathlib import Path
 import torch
 import napari
-from torch.utils.data import DataLoader
 import gc
 import time as cputime
 from skimage.transform import resize
@@ -50,7 +49,7 @@ from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
-from .Tiles_3D import VolumeMerger
+from .Tiles_3D import VolumeSlicer
 
 Boxname = "ImageIDBox"
 GLOBAL_THRESH = 1.0e-2
@@ -1436,7 +1435,8 @@ def _apply_cellpose_network_3D(
     out_channels=4,
     feat_channels=16,
     num_levels=3,
-    patch_step=(2, 64, 64),
+    overlap=(1, 16, 16),
+    crop=(2, 32, 32),
     batch_size=1,
 ):
 
@@ -1464,32 +1464,60 @@ def _apply_cellpose_network_3D(
         model = model.cpu()
 
     model.eval()
+    tiler = VolumeSlicer(image_membrane, patch_size, overlap, crop)
 
     dataset = PredictTiled(
-        image=image_membrane, patch_size=patch_size, patch_step=patch_step
+        tiler=tiler,
+        image=image_membrane,
+        patch_size=patch_size,
+        overlap=overlap,
+        crop=crop,
     )
 
-    data_loader = DataLoader(
-        dataset, batch_size=batch_size, collate_fn=collate_fn
+    fading_map = tiler.get_fading_map()
+    fading_map = np.repeat(fading_map[np.newaxis, ...], out_channels, axis=0)
+
+    working_size = tuple(
+        np.max(np.array(tiler.locations), axis=0)
+        - np.min(np.array(tiler.locations), axis=0)
+        + np.array(patch_size)
     )
-    merger = VolumeMerger(image_membrane.shape, out_channels)
-    for data in data_loader:
-        with torch.no_grad():
-            tiles_batch, coords_batch = data
-            tiles_batch = tiles_batch[np.newaxis, ...]
-            tiles_batch = tiles_batch.float()
 
-            try:
-                pred_tile = model(tiles_batch.cuda())
-            except ValueError:
-                pred_tile = model(tiles_batch.cpu())
+    # Initialize maps (random to overcome memory leaks)
+    predicted_img = np.full(
+        (out_channels,) + working_size, 0, dtype=np.float32
+    )
+    norm_map = np.full((out_channels,) + working_size, 0, dtype=np.float32)
 
-            merger.integrate_batch(
-                pred_tile,
-                coords_batch,
+    for patch_idx in range(dataset.__len__()):
+
+        sample = dataset.__getitem__(patch_idx)
+        data = torch.autograd.Variable(
+            torch.from_numpy(sample[np.newaxis, ...]).cuda()
+        )
+        data = data.float()
+
+        # Predict the image
+        pred_patch = model(data)
+        pred_patch = pred_patch.cpu().data.numpy()
+        pred_patch = np.squeeze(pred_patch)
+
+        # Get the current slice position
+        slicing = tuple(
+            map(
+                slice,
+                (0,) + tuple(tiler.patch_start + tiler.global_crop_before),
+                (hparams.out_channels,)
+                + tuple(tiler.patch_end + tiler.global_crop_before),
             )
+        )
 
-    predicted_img = merger.merge()
+        # Add predicted patch and fading weights to the corresponding maps
+        predicted_img[slicing] = (
+            predicted_img[slicing] + pred_patch * fading_map
+        )
+        norm_map[slicing] = norm_map[slicing] + fading_map
+
     predicted_img = predicted_img.detach().cpu().numpy()
     print(
         f"cellpose in 3D done, {predicted_img.shape}, took {cputime.time() - start} seconds"

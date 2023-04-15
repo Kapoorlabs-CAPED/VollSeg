@@ -1,10 +1,9 @@
-from typing import Union, Tuple, List, Iterable, Any
+from typing import Tuple, Union
 
-__all__ = ["VolumeSlicer", "VolumeMerger"]
+__all__ = ["VolumeSlicer"]
 import numpy as np
-import torch
-
-from .inference import compute_pyramid_patch_weight_loss
+from scipy.ndimage import distance_transform_edt
+import itertools
 
 
 class VolumeSlicer:
@@ -14,217 +13,99 @@ class VolumeSlicer:
 
     def __init__(
         self,
-        volume_shape: Tuple[int, int, int],
-        voxel_size: Union[int, Tuple[int, int, int]],
-        voxel_step: Union[int, Tuple[int, int, int]],
-        weight="mean",
+        data,
+        patch_size: Union[int, Tuple[int, int, int]],
+        overlap: Tuple[int, int, int],
+        crop: Tuple[int, int, int],
     ):
         """
         :param volume_shape: Shape of the source image (D, H, W, C)
-        :param voxel_size: Tile size (Scalar or tuple (D, H, W, C)
+        :param patch_size: Tile size (Scalar or tuple (D, H, W, C)
         :param voxel_step: Step in pixels between voxels (Scalar or tuple (D, H, W))
         :param weight: Fusion algorithm. 'mean' - avergaing
         """
-        self.volume_shape = np.array(volume_shape)[:3]
+        self.data = data
+        self.data_shape = np.array(data.shape)
 
-        if isinstance(voxel_size, (tuple, list)):
-            if len(voxel_size) != 3:
+        if isinstance(patch_size, (tuple, list)):
+            if len(patch_size) != 3:
                 raise ValueError()
-            self.tile_size = np.array(voxel_size, dtype=int)
+            self.patch_size = np.array(patch_size, dtype=int)
         else:
-            self.tile_size = np.array([int(voxel_size)] * 3)
+            self.patch_size = np.array([int(patch_size)] * 3)
 
-        if isinstance(voxel_step, (tuple, list)):
-            if len(voxel_step) != 3:
+        if isinstance(overlap, (tuple, list)):
+            if len(overlap) != 3:
                 raise ValueError()
-            self.tile_step = np.array(voxel_step, dtype=int)
+            self.overlap = np.array(overlap, dtype=int)
         else:
-            self.tile_step = np.array([int(voxel_step)] * 3)
+            self.overlap = np.array([int(overlap)] * 3)
 
-        self.weight = weight
+        if isinstance(crop, (tuple, list)):
+            if len(crop) != 3:
+                raise ValueError()
+            self.crop = np.array(crop, dtype=int)
+        else:
+            self.crop = np.array([int(crop)] * 3)
 
-        if self.tile_step[0] < 1 or self.tile_step[0] > self.tile_size[0]:
-            raise ValueError()
-        if self.tile_step[1] < 1 or self.tile_step[1] > self.tile_size[1]:
-            raise ValueError()
-        if self.tile_step[2] < 1 or self.tile_step[2] > self.tile_size[2]:
-            raise ValueError()
-
-        overlap = self.tile_size - self.tile_step
-
-        # In case margin is not set, we compute it manually
-
-        self.num_tiles = np.maximum(
-            1, np.ceil((self.volume_shape - overlap) / self.tile_step)
-        ).astype(int)
-        self.extra_pad = self.tile_step * self.num_tiles - (
-            self.volume_shape - overlap
-        )
-        self.pad_before = self.extra_pad // 2
-        self.pad_after = self.extra_pad - self.pad_before
-        self.orignal_image_roi = (
-            slice(
-                self.pad_before[0], self.pad_before[0] + self.volume_shape[0]
-            ),
-            slice(
-                self.pad_before[1], self.pad_before[1] + self.volume_shape[1]
-            ),
-            slice(
-                self.pad_before[2], self.pad_before[2] + self.volume_shape[2]
-            ),
-        )
-        self.orignal_mask_roi = (
-            slice(None),
-            slice(
-                self.pad_before[0], self.pad_before[0] + self.volume_shape[0]
-            ),
-            slice(
-                self.pad_before[1], self.pad_before[1] + self.volume_shape[1]
-            ),
-            slice(
-                self.pad_before[2], self.pad_before[2] + self.volume_shape[2]
-            ),
-        )
-
-        rois = []
-        bbox_crops = []
-
-        dim_i = range(
-            0,
-            self.volume_shape[0] + self.extra_pad[0] - self.tile_size[0] + 1,
-            self.tile_step[0],
-        )
-        dim_j = range(
-            0,
-            self.volume_shape[1] + self.extra_pad[1] - self.tile_size[1] + 1,
-            self.tile_step[1],
-        )
-        dim_k = range(
-            0,
-            self.volume_shape[2] + self.extra_pad[2] - self.tile_size[2] + 1,
-            self.tile_step[2],
-        )
-
-        for i in dim_i:
-            for j in dim_j:
-                for k in dim_k:
-                    roi = (
-                        slice(i, i + self.tile_size[0]),
-                        slice(j, j + self.tile_size[1]),
-                        slice(k, k + self.tile_size[2]),
-                    )
-                    roi2 = (
-                        slice(i - self.pad_before[0], i + self.tile_size[0]),
-                        slice(j - self.pad_before[1], j + self.tile_size[1]),
-                        slice(k - self.pad_before[2], k + self.tile_size[2]),
-                    )
-                    rois.append(roi)
-                    bbox_crops.append(roi2)
-
-        self.crops = rois
-        self.bbox_crops = bbox_crops
-
-    def split(self, volume: np.ndarray, value=0) -> List[np.ndarray]:
-        if (volume.shape != self.volume_shape).any():
-            raise ValueError(
-                f"Volume shape {volume.shape} is not equal to the expected {self.volume_shape}"
-            )
-
-        pad_width = np.stack([self.pad_before, self.pad_after], axis=-1)
-        image_pad = np.pad(
-            volume, pad_width, mode="constant", constant_values=value
-        )
-
-        tiles = []
-        for roi in self.crops:
-            tile = image_pad[roi].copy()
-            tiles.append(tile)
-
-        return tiles
-
-    def iter_split(
-        self, volume: np.ndarray, value=0
-    ) -> Iterable[Tuple[np.ndarray, Any]]:
-        if (volume.shape != self.volume_shape).any():
-            raise ValueError(
-                f"Volume shape {volume.shape} is not equal to the expected {self.volume_shape}"
-            )
-
-        pad_width = np.stack([self.pad_before, self.pad_after], axis=-1)
-        image_pad = np.pad(
-            volume, pad_width, mode="constant", constant_values=value
-        )
-
-        for roi in self.crops:
-            tile = image_pad[roi].copy()
-            yield tile, roi
-
-    @property
-    def target_shape(self):
-        target_shape = self.volume_shape + self.extra_pad
-        return target_shape
-
-    def crop_to_orignal_size(self, volume):
-        return volume[self.orignal_image_roi]
-
-    def _mean(self, volume_size):
-        return np.ones(volume_size, dtype=np.float32)
-
-    def _pyramid(self, tile_size):
-        w, _, _ = compute_pyramid_patch_weight_loss(tile_size[0], tile_size[1])
-        return w
-
-
-class VolumeMerger:
-    """
-    Helper class to merge volume segmentations on CPU/GPU.
-    """
-
-    def __init__(
-        self, volume_shape, channels: int, device="cpu", dtype=torch.float32
-    ):
-        """
-        :param volume_shape: Shape of the source image
-        """
-        self.channels = channels
-
-        self.volume = torch.zeros(
-            (channels, *volume_shape), device=device, dtype=dtype
-        )
-
-    def accumulate_single(self, tile: torch.Tensor, roi):
-        """
-        Accumulates single element
-        :param sample: Predicted image of shape [C,D,H,W]
-        :param crop_coords: Corresponding tile crops w.r.t to original image
-        """
-        tile = tile.to(device=self.volume.device)
-        self.volume[:, roi] += tile
-
-    def integrate_batch(self, batch: torch.Tensor, rois):
-        """
-        Accumulates batch of tile predictions
-        :param batch: Predicted tiles  of shape [B,C,D,H,W]
-        :param crop_coords: Corresponding tile crops w.r.t to original image
-        """
-        if len(batch) != len(rois):
-            raise ValueError(
-                "Number of images in batch does not correspond to number of coordinates"
-            )
-
-        batch = batch.to(device=self.volume.device)
-        for tile, roi in zip(batch, rois):
-            if (
-                self.volume[:, roi[0], roi[1], roi[2]].shape[1]
-                == tile.shape[1]
-                and self.volume[:, roi[0], roi[1], roi[2]].shape[2]
-                == tile.shape[2]
-                and self.volume[:, roi[0], roi[1], roi[2]].shape[3]
-                == tile.shape[3]
-            ):
-                self.volume[:, roi[0], roi[1], roi[2]] += tile.type_as(
-                    self.volume
+        assert all(
+            [
+                p - 2 * o - 2 * c > 0
+                for p, o, c in zip(self.patch_size, self.overlap, self.crop)
+            ]
+        ), "Invalid combination of patch size, overlap and crop size."
+        # Calculate the position of each tile
+        locations = []
+        for i, p, o, c in zip(
+            self.data_shape, self.patch_size, self.overlap, self.crop
+        ):
+            # get starting coords
+            coords = (
+                np.arange(
+                    np.ceil((i + o + c) / np.maximum(p - o - 2 * c, 1)),
+                    dtype=np.int16,
                 )
+                * np.maximum(p - o - 2 * c, 1)
+                - o
+                - c
+            )
+            locations.append(coords)
+        self.locations = list(itertools.product(*locations))
+        self.global_crop_before = np.abs(
+            np.min(np.array(self.locations), axis=0)
+        )
+        self.global_crop_after = (
+            np.array(self.data_shape)
+            - np.max(np.array(self.locations), axis=0)
+            - np.array(self.patch_size)
+        )
 
-    def merge(self) -> torch.Tensor:
-        return self.volume
+    def get_fading_map(self):
+
+        fading_map = np.ones(self.patch_size)
+
+        if all([c == 0 for c in self.crop]):
+            self.crop = [1, 1, 1]
+
+        # Exclude crop region
+        crop_masking = np.zeros_like(fading_map)
+        crop_masking[
+            self.crop[0] : self.patch_size[0] - self.crop[0],
+            self.crop[1] : self.patch_size[1] - self.crop[1],
+            self.crop[2] : self.patch_size[2] - self.crop[2],
+        ] = 1
+        fading_map = fading_map * crop_masking
+
+        fading_map = distance_transform_edt(fading_map).astype(np.float32)
+
+        # Normalize
+        self.fading_map = fading_map / fading_map.max()
+
+    def split(self, idx):
+
+        self.patch_start = np.array(self.locations[idx])
+        self.patch_end = self.patch_start + np.array(self.patch_size)
+        slicing = tuple(
+            map(slice, np.maximum(self.patch_start, 0), self.patch_end)
+        )
+        self.tile = self.data[slicing]

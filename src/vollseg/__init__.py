@@ -23,7 +23,7 @@ from .CellPose3D import CellPose3DModel, CellPose3DTrain, CellPose3DPredict
 from .TrainTiledLoader import TrainTiled
 from .unet3d import AbstractUNet, UNet3D, ResidualUNet3D
 from .se import ChannelSELayer3D, ChannelSpatialSELayer3D, SpatialSELayer3D
-from .Tiles_3D import VolumeMerger, VolumeSlicer
+from .Tiles_3D import VolumeSlicer
 from .utils import (
     VollCellPose3D,
     VollCellSeg,
@@ -85,7 +85,6 @@ __all__ = (
     "ChannelSpatialSELayer3D",
     "SpatialSELayer3D",
     "CellPose3DPredict",
-    "VolumeMerger",
     "VolumeSlicer",
     "VollCellPose3D",
     "VollCellSeg",
