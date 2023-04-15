@@ -61,9 +61,10 @@ class AbstractUNet(nn.Module):
         pool_kernel_size=2,
         conv_padding=1,
         is3d=True,
+        network_type="unet",
     ):
         super().__init__()
-
+        print(network_type)
         if isinstance(f_maps, int):
             f_maps = number_of_features_per_level(
                 f_maps, num_levels=num_levels
@@ -163,6 +164,7 @@ class UNet3D(AbstractUNet):
         num_levels=4,
         is_segmentation=True,
         conv_padding=1,
+        network_type="unet",
         **kwargs,
     ):
         super().__init__(
@@ -177,6 +179,7 @@ class UNet3D(AbstractUNet):
             is_segmentation=is_segmentation,
             conv_padding=conv_padding,
             is3d=True,
+            network_type=network_type,
         )
 
 
@@ -199,6 +202,7 @@ class ResidualUNet3D(AbstractUNet):
         num_levels=4,
         is_segmentation=True,
         conv_padding=1,
+        network_type="resunet",
         **kwargs,
     ):
         super().__init__(
@@ -213,6 +217,7 @@ class ResidualUNet3D(AbstractUNet):
             is_segmentation=is_segmentation,
             conv_padding=conv_padding,
             is3d=True,
+            network_type=network_type,
         )
 
 

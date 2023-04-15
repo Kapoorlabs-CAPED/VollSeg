@@ -1465,7 +1465,7 @@ def _apply_cellpose_network_3D(
     start = cputime.time()
     torch.cuda.empty_cache()
     gc.collect()
-    model = CellPose3DModel(network_type=network_type, hparams=hparams)
+    model = CellPose3DModel(hparams=hparams)
     model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
     try:
         model = model.cuda()
@@ -2358,6 +2358,24 @@ def _cellpose_3D_star_block(
     cellres = None
     res = None
 
+    if cellpose_model_3D_pretrained_file is not None:
+        cellres = _apply_cellpose_network_3D(
+            cellpose_model_3D_pretrained_file,
+            image_membrane,
+            patch_size=patch_size,
+            in_channels=in_channels,
+            out_activation=out_activation,
+            network_type=network_type,
+            norm_method=norm_method,
+            background_weight=background_weight,
+            flow_weight=flow_weight,
+            out_channels=out_channels,
+            feat_channels=feat_channels,
+            num_levels=num_levels,
+            overlap=overlap,
+            crop=crop,
+        )
+
     if star_model is not None:
 
         res = VollSeg3D(
@@ -2382,24 +2400,6 @@ def _cellpose_3D_star_block(
             seedpool=seedpool,
             slice_merge=False,
             iou_threshold=iou_threshold,
-        )
-
-    if cellpose_model_3D_pretrained_file is not None:
-        cellres = _apply_cellpose_network_3D(
-            cellpose_model_3D_pretrained_file,
-            image_membrane,
-            patch_size=patch_size,
-            in_channels=in_channels,
-            out_activation=out_activation,
-            network_type=network_type,
-            norm_method=norm_method,
-            background_weight=background_weight,
-            flow_weight=flow_weight,
-            out_channels=out_channels,
-            feat_channels=feat_channels,
-            num_levels=num_levels,
-            overlap=overlap,
-            crop=crop,
         )
 
     return cellres, res

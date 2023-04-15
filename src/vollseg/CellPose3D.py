@@ -36,27 +36,27 @@ class CellPose3DPredict(LightningModule):
 class CellPose3DModel(LightningModule):
     def __init__(
         self,
-        network_type,
         hparams,
     ):
         super().__init__()
 
         self.save_hyperparameters(hparams)
-        self.network_type = network_type
-        if network_type == "resunet":
+        if hparams["network_type"] == "resunet":
             self.network = ResidualUNet3D(
                 in_channels=hparams["in_channels"],
                 out_channels=hparams["out_channels"],
                 f_maps=hparams["feat_channels"],
                 num_levels=hparams["num_levels"],
+                network_type=hparams["network_type"],
             )
-        if network_type == "unet":
+        if hparams["network_type"] == "unet":
 
             self.network = UNet3D(
                 in_channels=hparams["in_channels"],
                 out_channels=hparams["out_channels"],
                 f_maps=hparams["feat_channels"],
                 num_levels=hparams["num_levels"],
+                network_type=hparams["network_type"],
             )
         else:
 
