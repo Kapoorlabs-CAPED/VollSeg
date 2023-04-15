@@ -1467,22 +1467,22 @@ def _apply_cellpose_network_3D(
         model = model.cpu()
 
     model.eval()
-    tiler = VolumeSlicer(image_membrane, patch_size, overlap, crop)
+    predict_tiler = VolumeSlicer(image_membrane, patch_size, overlap, crop)
 
     dataset = PredictTiled(
-        tiler=tiler,
+        tiler=predict_tiler,
         image=image_membrane,
         patch_size=patch_size,
         overlap=overlap,
         crop=crop,
     )
 
-    fading_map = tiler.get_fading_map()
+    fading_map = dataset.tiler.get_fading_map()
     fading_map = np.repeat(fading_map[np.newaxis, ...], out_channels, axis=0)
 
     working_size = tuple(
-        np.max(np.array(tiler.locations), axis=0)
-        - np.min(np.array(tiler.locations), axis=0)
+        np.max(np.array(dataset.tiler.locations), axis=0)
+        - np.min(np.array(dataset.tiler.locations), axis=0)
         + np.array(patch_size)
     )
 
@@ -1509,9 +1509,15 @@ def _apply_cellpose_network_3D(
         slicing = tuple(
             map(
                 slice,
-                (0,) + tuple(tiler.patch_start + tiler.global_crop_before),
-                (hparams.out_channels,)
-                + tuple(tiler.patch_end + tiler.global_crop_before),
+                (0,)
+                + tuple(
+                    dataset.tiler.patch_start
+                    + dataset.tiler.global_crop_before
+                ),
+                (out_channels,)
+                + tuple(
+                    dataset.tiler.patch_end + dataset.tiler.global_crop_before
+                ),
             )
         )
 
