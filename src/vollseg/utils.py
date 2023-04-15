@@ -1028,7 +1028,8 @@ def _cellpose_3D_time_block(
     out_channels,
     feat_channels,
     num_levels,
-    patch_step,
+    overlap,
+    crop,
 ):
     if cellpose_model_3D_pretrained_file is not None:
 
@@ -1047,7 +1048,8 @@ def _cellpose_3D_time_block(
                         out_channels=out_channels,
                         feat_channels=feat_channels,
                         num_levels=num_levels,
-                        patch_step=patch_step,
+                        overlap=overlap,
+                        crop=crop,
                     )
                     for _x in tqdm(image_membrane)
                 )
@@ -1235,7 +1237,8 @@ def _cellpose_3D_star_time_block(
     out_channels,
     feat_channels,
     num_levels,
-    patch_step,
+    overlap,
+    crop,
     unet_model,
     star_model,
     roi_model,
@@ -1303,7 +1306,8 @@ def _cellpose_3D_star_time_block(
                     out_channels,
                     feat_channels,
                     num_levels,
-                    patch_step,
+                    overlap,
+                    crop,
                 )
             )
         )
@@ -1437,7 +1441,6 @@ def _apply_cellpose_network_3D(
     num_levels=3,
     overlap=(1, 16, 16),
     crop=(2, 32, 32),
-    batch_size=1,
 ):
 
     hparams = {
@@ -1547,7 +1550,8 @@ def VollCellPose3D(
     out_channels=4,
     feat_channels=16,
     num_levels=4,
-    patch_step=(2, 64, 64),
+    overlap=(1, 16, 16),
+    crop=(2, 32, 32),
     star_model=None,
     unet_model=None,
     roi_model=None,
@@ -1597,7 +1601,8 @@ def VollCellPose3D(
             out_channels,
             feat_channels,
             num_levels,
-            patch_step,
+            overlap,
+            crop,
             ExpandLabels,
             axes,
             noise_model,
@@ -1636,7 +1641,8 @@ def VollCellPose3D(
             out_channels,
             feat_channels,
             num_levels,
-            patch_step,
+            overlap,
+            crop,
             ExpandLabels,
             axes,
             noise_model,
@@ -1674,7 +1680,8 @@ def VollCellPose3D(
             out_channels,
             feat_channels,
             num_levels,
-            patch_step,
+            overlap,
+            crop,
             unet_model,
             star_model,
             roi_model,
@@ -2271,7 +2278,8 @@ def _cellpose_3D_star_block(
     out_channels,
     feat_channels,
     num_levels,
-    patch_step,
+    overlap,
+    crop,
     ExpandLabels,
     axes,
     noise_model,
@@ -2332,7 +2340,8 @@ def _cellpose_3D_star_block(
             out_channels=out_channels,
             feat_channels=feat_channels,
             num_levels=num_levels,
-            patch_step=patch_step,
+            overlap=overlap,
+            crop=crop,
         )
 
     return cellres, res
