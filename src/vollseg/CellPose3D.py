@@ -41,28 +41,12 @@ class CellPose3DModel(LightningModule):
         super().__init__()
 
         self.save_hyperparameters(hparams)
-        if hparams["network_type"] == "resunet":
-            self.network = ResidualUNet3D(
-                in_channels=hparams["in_channels"],
-                out_channels=hparams["out_channels"],
-                f_maps=hparams["feat_channels"],
-                num_levels=hparams["num_levels"],
-                network_type=hparams["network_type"],
-            )
-        if hparams["network_type"] == "unet":
-
-            self.network = UNet3D(
-                in_channels=hparams["in_channels"],
-                out_channels=hparams["out_channels"],
-                f_maps=hparams["feat_channels"],
-                num_levels=hparams["num_levels"],
-                network_type=hparams["network_type"],
-            )
-        else:
-
-            raise ValueError(
-                f'network_type should be unet or resunet but found {hparams["network_type"]} instead '
-            )
+        self.network = UNet3D(
+            in_channels=hparams["in_channels"],
+            out_channels=hparams["out_channels"],
+            f_maps=hparams["feat_channels"],
+            num_levels=hparams["num_levels"],
+        )
 
         self.in_channels = hparams["in_channels"]
         self.out_channels = hparams["out_channels"]
@@ -70,7 +54,146 @@ class CellPose3DModel(LightningModule):
         self.background_weight = hparams["background_weight"]
         self.flow_weight = hparams["flow_weight"]
         self.learning_rate = hparams["learning_rate"]
-        self.network_type = hparams["network_type"]
+
+    def load_pretrained(self, pretrained_file, strict=True, verbose=True):
+        if isinstance(pretrained_file, (list, tuple)):
+            pretrained_file = pretrained_file[0]
+
+        # Load the state dict
+        state_dict = torch.load(pretrained_file)["state_dict"]
+
+        # Make sure to have a weight dict
+        if not isinstance(state_dict, dict):
+            state_dict = dict(state_dict)
+
+        # Get parameter dict of current model
+        param_dict = dict(self.network.named_parameters())
+
+        layers = []
+        for layer in param_dict:
+            if strict and not "network." + layer in state_dict:
+                if verbose:
+                    print(f'Could not find weights for layer "{layer}"')
+                continue
+            try:
+                param_dict[layer].data.copy_(
+                    state_dict["network." + layer].data
+                )
+                layers.append(layer)
+            except (RuntimeError, KeyError) as e:
+                print(f"Error at layer {layer}:\n{e}")
+
+        self.network.load_state_dict(param_dict)
+
+        if verbose:
+            print(f"Loaded weights for the following layers:\n{layers}")
+
+    def background_loss(self, y_hat, y):
+        return F.l1_loss(y_hat, y)
+
+    def flow_loss(self, y_hat, y, mask):
+        loss = F.mse_loss(y_hat, y, reduction="none")
+        weight = torch.clamp(mask, min=0.01, max=1.0)
+        loss = torch.mul(loss, weight)
+        loss = torch.sum(loss)
+        loss = torch.div(loss, torch.clamp(torch.sum(weight), 1, mask.numel()))
+        return loss
+
+    def forward(self, z):
+        return self.network(z)
+
+    def training_step(self, batch, batch_idx):
+        # Get image ans mask of current batch
+        self.last_imgs, self.last_masks = batch["image"], batch["mask"]
+
+        # generate images
+        self.predictions = self.forward(self.last_imgs)
+
+        # get the losses
+        loss_bg = self.background_loss(
+            self.predictions[:, 0, ...], self.last_masks[:, 0, ...]
+        )
+
+        loss_flowx = self.flow_loss(
+            self.predictions[:, 1, ...],
+            self.last_masks[:, 1, ...],
+            self.last_masks[:, 0, ...],
+        )
+        loss_flowy = self.flow_loss(
+            self.predictions[:, 2, ...],
+            self.last_masks[:, 2, ...],
+            self.last_masks[:, 0, ...],
+        )
+        loss_flowz = self.flow_loss(
+            self.predictions[:, 3, ...],
+            self.last_masks[:, 3, ...],
+            self.last_masks[:, 0, ...],
+        )
+        loss_flow = (loss_flowx + loss_flowy + loss_flowz) / 3
+
+        loss = self.background_weight * loss_bg + self.flow_weight * loss_flow
+
+        return loss
+
+    def test_step(self, batch, batch_idx):
+
+        self._shared_eval(batch, batch_idx, "test")
+
+    def _shared_eval(self, batch, batch_idx, prefix):
+
+        x, y = batch["image"], batch["mask"]
+        y_hat = self.forward(x)
+        loss = F.mse_loss(y_hat, y)
+        self.log(
+            f"{prefix}_loss", loss, on_step=True, on_epoch=True, sync_dist=True
+        )
+
+    def validation_step(self, batch, batch_idx):
+
+        self._shared_eval(batch, batch_idx, "validation")
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(
+            self.network.parameters(), lr=self.learning_rate
+        )
+
+        schedular = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer=optimizer, factor=0.5
+        )
+        optimizer_scheduler = OrderedDict(
+            {
+                "optimizer": optimizer,
+                "lr_scheduler": {
+                    "scheduler": schedular,
+                    "monitor": "validation_loss",
+                    "frequency": 1,
+                },
+            }
+        )
+        return optimizer_scheduler
+
+
+class CellPoseRes3DModel(LightningModule):
+    def __init__(
+        self,
+        hparams,
+    ):
+        super().__init__()
+
+        self.save_hyperparameters(hparams)
+        self.network = ResidualUNet3D(
+            in_channels=hparams["in_channels"],
+            out_channels=hparams["out_channels"],
+            f_maps=hparams["feat_channels"],
+            num_levels=hparams["num_levels"],
+        )
+
+        self.in_channels = hparams["in_channels"]
+        self.out_channels = hparams["out_channels"]
+        self.patch_size = hparams["patch_size"]
+        self.background_weight = hparams["background_weight"]
+        self.flow_weight = hparams["flow_weight"]
+        self.learning_rate = hparams["learning_rate"]
 
     def load_pretrained(self, pretrained_file, strict=True, verbose=True):
         if isinstance(pretrained_file, (list, tuple)):

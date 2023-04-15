@@ -43,7 +43,7 @@ from skimage.segmentation import find_boundaries, relabel_sequential, watershed
 from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
 from tqdm import tqdm
-from .CellPose3D import CellPose3DModel
+from .CellPose3D import CellPose3DModel, CellPoseRes3DModel
 from .PredictTiledLoader import PredictTiled
 from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
@@ -1465,7 +1465,10 @@ def _apply_cellpose_network_3D(
     start = cputime.time()
     torch.cuda.empty_cache()
     gc.collect()
-    model = CellPose3DModel(hparams=hparams)
+    if network_type == "unet":
+        model = CellPose3DModel(hparams=hparams)
+    else:
+        model = CellPoseRes3DModel(hparams=hparams)
     model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
     try:
         model = model.cuda()
