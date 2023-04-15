@@ -5,7 +5,7 @@ from .cellposeutils3D import (
 )
 from .TrainTiledLoader import TrainTiled
 from torch.utils.data import DataLoader
-from .unet3d import UNet3D
+from .unet3d import ResidualUNet3D
 import torch
 import torch.nn.functional as F
 from torch import optim
@@ -41,7 +41,7 @@ class CellPose3DModel(LightningModule):
         super().__init__()
 
         self.save_hyperparameters(hparams)
-        self.network = UNet3D(
+        self.network = ResidualUNet3D(
             in_channels=hparams["in_channels"],
             out_channels=hparams["out_channels"],
             f_maps=hparams["feat_channels"],
