@@ -1501,7 +1501,6 @@ def _apply_cellpose_network_3D(
     predicted_img = np.full(
         (out_channels,) + working_size, 0, dtype=np.float32
     )
-    norm_map = np.full((out_channels,) + working_size, 0, dtype=np.float32)
 
     for patch_idx in range(dataset.__len__()):
 
@@ -1536,7 +1535,6 @@ def _apply_cellpose_network_3D(
         predicted_img[slicing] = (
             predicted_img[slicing] + pred_patch * fading_map
         )
-        norm_map[slicing] = norm_map[slicing] + fading_map
 
     predicted_img = predicted_img.detach().cpu().numpy()
     slicing = tuple(
