@@ -1505,10 +1505,9 @@ def _apply_cellpose_network_3D(
     for patch_idx in range(dataset.__len__()):
 
         sample = dataset.__getitem__(patch_idx)
-        data = torch.autograd.Variable(
-            torch.from_numpy(sample[np.newaxis, ...]).cuda()
-        )
-        data = data.float()
+        data = torch.from_numpy(
+            sample[np.newaxis, ...], dtype=torch.float32
+        ).cuda()
 
         # Predict the image
         pred_patch = model(data)
