@@ -242,6 +242,7 @@ class ResidualUNetSE3D(AbstractUNet):
         num_levels=4,
         is_segmentation=True,
         conv_padding=1,
+        network_type="resunet",
         **kwargs,
     ):
         super().__init__(
@@ -256,6 +257,7 @@ class ResidualUNetSE3D(AbstractUNet):
             is_segmentation=is_segmentation,
             conv_padding=conv_padding,
             is3d=True,
+            network_type=network_type,
         )
 
 

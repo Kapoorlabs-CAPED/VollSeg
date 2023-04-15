@@ -70,6 +70,7 @@ class CellPose3DModel(LightningModule):
         self.background_weight = hparams["background_weight"]
         self.flow_weight = hparams["flow_weight"]
         self.learning_rate = hparams["learning_rate"]
+        self.network_type = hparams["network_type"]
 
     def load_pretrained(self, pretrained_file, strict=True, verbose=True):
         if isinstance(pretrained_file, (list, tuple)):
