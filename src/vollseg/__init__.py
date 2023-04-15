@@ -21,7 +21,7 @@ from .CellPose import CellPose
 from .PredictTiledLoader import PredictTiled
 from .CellPose3D import CellPose3DModel, CellPose3DTrain, CellPose3DPredict
 from .TrainTiledLoader import TrainTiled
-from .unet3d import AbstractUNet, UNet3D
+from .unet3d import AbstractUNet, UNet3D, ResidualUNet3D
 from .se import ChannelSELayer3D, ChannelSpatialSELayer3D, SpatialSELayer3D
 from .Tiles_3D import VolumeMerger, VolumeSlicer
 from .utils import (
@@ -59,6 +59,7 @@ get_file = keras_import("utils", "get_file")
 
 
 __all__ = (
+    "ResidualUNet3D",
     "SmartSeeds3D",
     "SmartSeeds2D",
     "SeedPool",
