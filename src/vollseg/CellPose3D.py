@@ -5,7 +5,7 @@ from .cellposeutils3D import (
 )
 from .TrainTiledLoader import TrainTiled
 from torch.utils.data import DataLoader
-from .unet3d import ResidualUNet3D
+from .unet3d import ResidualUNet3D, UNet3D
 import torch
 import torch.nn.functional as F
 from torch import optim
@@ -41,12 +41,27 @@ class CellPose3DModel(LightningModule):
         super().__init__()
 
         self.save_hyperparameters(hparams)
-        self.network = ResidualUNet3D(
-            in_channels=hparams["in_channels"],
-            out_channels=hparams["out_channels"],
-            f_maps=hparams["feat_channels"],
-            num_levels=hparams["num_levels"],
-        )
+        if hparams["network_type"] == "resunet":
+            self.network = ResidualUNet3D(
+                in_channels=hparams["in_channels"],
+                out_channels=hparams["out_channels"],
+                f_maps=hparams["feat_channels"],
+                num_levels=hparams["num_levels"],
+            )
+        if hparams["network_type"] == "unet":
+
+            self.network = UNet3D(
+                in_channels=hparams["in_channels"],
+                out_channels=hparams["out_channels"],
+                f_maps=hparams["feat_channels"],
+                num_levels=hparams["num_levels"],
+            )
+        else:
+
+            raise ValueError(
+                f'network_type should be unet or resunet but found {hparams["network_type"]} instead '
+            )
+
         self.in_channels = hparams["in_channels"]
         self.out_channels = hparams["out_channels"]
         self.patch_size = hparams["patch_size"]
