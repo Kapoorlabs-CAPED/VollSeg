@@ -105,7 +105,12 @@ class VolumeSlicer:
 
         self.patch_start = np.array(self.locations[idx])
         self.patch_end = self.patch_start + np.array(self.patch_size)
+        pad_before = np.maximum(-self.patch_start, 0)
+        pad_after = np.maximum(self.patch_end - np.array(self.data_shape), 0)
+        pad_width = list(zip(pad_before, pad_after))
+
         slicing = tuple(
             map(slice, np.maximum(self.patch_start, 0), self.patch_end)
         )
         self.tile = self.data[slicing]
+        self.tile = np.pad(self.tile, pad_width, mode="reflect")
