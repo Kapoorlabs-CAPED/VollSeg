@@ -1465,7 +1465,7 @@ def _apply_cellpose_network_3D(
     start = cputime.time()
     torch.cuda.empty_cache()
     gc.collect()
-    model = CellPose3DModel(hparams=hparams)
+    model = CellPose3DModel(network_type=network_type, hparams=hparams)
     model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
     try:
         model = model.cuda()
