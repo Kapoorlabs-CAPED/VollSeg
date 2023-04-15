@@ -1533,7 +1533,6 @@ def _apply_cellpose_network_3D(
             predicted_img[slicing] + pred_patch * fading_map
         )
 
-    predicted_img = predicted_img.detach().cpu().numpy()
     slicing = tuple(
         map(
             slice,
