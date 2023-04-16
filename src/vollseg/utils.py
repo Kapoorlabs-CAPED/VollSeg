@@ -4099,6 +4099,7 @@ def VollSeg3D(
 
     if dounet:
 
+        gc.collect()
         if unet_model is not None:
             print("UNET segmentation on Image", patch.shape)
 
@@ -4730,70 +4731,73 @@ def STARPrediction3D(
     )
 
     print("Predictions Done")
+    if unet_mask is not None:
+        if UseProbability is False:
 
-    if UseProbability is False:
+            SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
+            Distance = np.zeros(
+                [
+                    SmallDistance.shape[0] * grid[0],
+                    SmallDistance.shape[1] * grid[1],
+                    SmallDistance.shape[2] * grid[2],
+                ]
+            )
 
-        SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
-        Distance = np.zeros(
+        Probability = np.zeros(
             [
-                SmallDistance.shape[0] * grid[0],
-                SmallDistance.shape[1] * grid[1],
-                SmallDistance.shape[2] * grid[2],
+                SmallProbability.shape[0] * grid[0],
+                SmallProbability.shape[1] * grid[1],
+                SmallProbability.shape[2] * grid[2],
             ]
         )
 
-    Probability = np.zeros(
-        [
-            SmallProbability.shape[0] * grid[0],
-            SmallProbability.shape[1] * grid[1],
-            SmallProbability.shape[2] * grid[2],
-        ]
-    )
-
-    # We only allow for the grid parameter to be 1 along the Z axis
-    for i in range(0, SmallProbability.shape[0]):
-        Probability[i, :] = resize(
-            SmallProbability[i, :],
-            output_shape=(Probability.shape[1], Probability.shape[2]),
-        )
-
-        if UseProbability is False:
-            Distance[i, :] = resize(
-                SmallDistance[i, :],
-                output_shape=(Distance.shape[1], Distance.shape[2]),
+        # We only allow for the grid parameter to be 1 along the Z axis
+        for i in range(0, SmallProbability.shape[0]):
+            Probability[i, :] = resize(
+                SmallProbability[i, :],
+                output_shape=(Probability.shape[1], Probability.shape[2]),
             )
 
-    if UseProbability:
+            if UseProbability is False:
+                Distance[i, :] = resize(
+                    SmallDistance[i, :],
+                    output_shape=(Distance.shape[1], Distance.shape[2]),
+                )
 
-        print("Using Probability maps")
-        MaxProjectDistance = Probability[
-            : star_labels.shape[0],
-            : star_labels.shape[1],
-            : star_labels.shape[2],
-        ]
+        if UseProbability:
 
+            print("Using Probability maps")
+            MaxProjectDistance = Probability[
+                : star_labels.shape[0],
+                : star_labels.shape[1],
+                : star_labels.shape[2],
+            ]
+
+        else:
+
+            print("Using Distance maps")
+            MaxProjectDistance = Distance[
+                : star_labels.shape[0],
+                : star_labels.shape[1],
+                : star_labels.shape[2],
+            ]
+
+        print("Doing Watershedding")
+
+        if unet_mask is None:
+            unet_mask = star_labels > 0
+
+        Watershed, markers = WatershedwithMask3D(
+            MaxProjectDistance,
+            star_labels.astype("uint16"),
+            unet_mask.astype("uint16"),
+            nms_thresh=nms_thresh,
+            seedpool=seedpool,
+        )
+        Watershed = fill_label_holes(Watershed.astype("uint16"))
     else:
 
-        print("Using Distance maps")
-        MaxProjectDistance = Distance[
-            : star_labels.shape[0],
-            : star_labels.shape[1],
-            : star_labels.shape[2],
-        ]
-
-    print("Doing Watershedding")
-
-    if unet_mask is None:
-        unet_mask = star_labels > 0
-
-    Watershed, markers = WatershedwithMask3D(
-        MaxProjectDistance,
-        star_labels.astype("uint16"),
-        unet_mask.astype("uint16"),
-        nms_thresh=nms_thresh,
-        seedpool=seedpool,
-    )
-    Watershed = fill_label_holes(Watershed.astype("uint16"))
+        Watershed = star_labels
 
     return Watershed, MaxProjectDistance, star_labels, markers
 
