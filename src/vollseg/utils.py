@@ -51,6 +51,27 @@ from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
 from .Tiles_3D import VolumeSlicer
 from torch.utils.data import DataLoader
+import tensorflow as tf
+from pynvml.smi import nvidia_smi
+
+nvsmi = nvidia_smi.getInstance()
+
+
+gpus = tf.config.list_physical_devices("GPU")
+if gpus:
+    try:
+        memory = nvsmi.DeviceQuery("memory.free")["gpu"][0]["fb_memory_usage"][
+            "free"
+        ]
+        tf.config.experimental.set_memory_growth(gpus[0], True)
+        tf.config.set_logical_device_configuration(
+            gpus[0],
+            [tf.config.LogicalDeviceConfiguration(memory_limit=0.5 * memory)],
+        )
+        logical_gpus = tf.config.list_logical_devices("GPU")
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        print(e)
 
 Boxname = "ImageIDBox"
 GLOBAL_THRESH = 1.0e-2
@@ -4601,18 +4622,12 @@ def SuperSTARPrediction(
         prob_thresh = model.thresholds.prob
         nms_thresh = model.thresholds.nms
 
-    if prob_thresh is not None and nms_thresh is not None:
-
-        star_labels, SmallProbability, SmallDistance = model.predict_vollseg(
-            image.astype("float32"),
-            n_tiles=n_tiles,
-            prob_thresh=prob_thresh,
-            nms_thresh=nms_thresh,
-        )
-    else:
-        star_labels, SmallProbability, SmallDistance = model.predict_vollseg(
-            image.astype("float32"), n_tiles=n_tiles
-        )
+    star_labels, SmallProbability, SmallDistance = model.predict_vollseg(
+        image.astype("float32"),
+        n_tiles=n_tiles,
+        prob_thresh=prob_thresh,
+        nms_thresh=nms_thresh,
+    )
 
     grid = model.config.grid
     Probability = resize(
@@ -4693,27 +4708,13 @@ def STARPrediction3D(
             f"Using user choice of prob_thresh = {prob_thresh} and nms_thresh = {nms_thresh}"
         )
 
-        if prob_thresh is not None and nms_thresh is not None:
-
-            (
-                star_labels,
-                SmallProbability,
-                SmallDistance,
-            ) = model.predict_vollseg(
-                image.astype("float32"),
-                axes=axes,
-                n_tiles=n_tiles,
-                prob_thresh=prob_thresh,
-                nms_thresh=nms_thresh,
-            )
-        else:
-            (
-                star_labels,
-                SmallProbability,
-                SmallDistance,
-            ) = model.predict_vollseg(
-                image.astype("float32"), axes=axes, n_tiles=n_tiles
-            )
+    (star_labels, SmallProbability, SmallDistance,) = model.predict_vollseg(
+        image.astype("float32"),
+        axes=axes,
+        n_tiles=n_tiles,
+        prob_thresh=prob_thresh,
+        nms_thresh=nms_thresh,
+    )
 
     print("Predictions Done")
 
