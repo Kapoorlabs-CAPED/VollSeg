@@ -667,7 +667,7 @@ def VollSeg2D(
         Binary = regions > 0
         Mask = Binary.copy()
 
-        Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.unit8, RGB=RGB)
+        Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.uint8, RGB=RGB)
         Mask_patch = Mask.copy()
     elif noise_model is not None and dounet is False:
 
@@ -691,7 +691,7 @@ def VollSeg2D(
         if RGB:
             Mask = Mask[:, :, 0]
             Mask_patch = Mask_patch[:, :, 0]
-        Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.unit8, RGB=RGB)
+        Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.uint8, RGB=RGB)
         Mask_patch = Mask.copy()
     # Smart Seed prediction
     print("Stardist segmentation on Image")
@@ -742,7 +742,7 @@ def VollSeg2D(
         image, roi_bbox, probability_map, RGB=RGB
     )
     skeleton = Region_embedding(
-        image, roi_bbox, skeleton, dtype=np.unit8, RGB=RGB
+        image, roi_bbox, skeleton, dtype=np.uint8, RGB=RGB
     )
     if Mask is None:
         Mask = smart_seeds > 0
@@ -4119,7 +4119,7 @@ def VollSeg3D(
                     Mask[i].astype("uint16"), max_size=max_size
                 )
             Mask_patch = Mask.copy()
-            Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.unit8)
+            Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.uint8)
             if slice_merge:
                 Mask = match_labels(
                     Mask.astype("uint16"), iou_threshold=iou_threshold
@@ -4157,7 +4157,7 @@ def VollSeg3D(
         else:
             Mask = label(Mask > 0)
         Mask_patch = Mask.copy()
-        Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.unit8)
+        Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.uint8)
         instance_labels[:, : Mask.shape[1], : Mask.shape[2]] = Mask
 
     if star_model is not None:
