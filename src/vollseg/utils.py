@@ -1504,8 +1504,9 @@ def _apply_cellpose_network_3D(
         (out_channels,) + working_size, 0, dtype=np.float32
     )
     dataloader = DataLoader(dataset, batch_size=batch_size)
-    for data in dataloader:
+    for data_patch in dataloader:
 
+        data, patch_start, patch_end = data_patch
         print(data.shape, type(data))
         # Predict the image
         pred_patch = model(data)
@@ -1517,15 +1518,9 @@ def _apply_cellpose_network_3D(
         slicing = tuple(
             map(
                 slice,
-                (0,)
-                + tuple(
-                    dataset.tiler.patch_start
-                    + dataset.tiler.global_crop_before
-                ),
+                (0,) + tuple(patch_start + predict_tiler.global_crop_before),
                 (out_channels,)
-                + tuple(
-                    dataset.tiler.patch_end + dataset.tiler.global_crop_before
-                ),
+                + tuple(patch_end + predict_tiler.global_crop_before),
             )
         )
 
@@ -1537,8 +1532,8 @@ def _apply_cellpose_network_3D(
     slicing = tuple(
         map(
             slice,
-            (0,) + tuple(dataset.tiler.global_crop_before),
-            (hparams.out_channels,) + tuple(dataset.tiler.global_crop_after),
+            (0,) + tuple(predict_tiler.global_crop_before),
+            (out_channels,) + tuple(predict_tiler.global_crop_after),
         )
     )
     predicted_img = predicted_img[slicing]

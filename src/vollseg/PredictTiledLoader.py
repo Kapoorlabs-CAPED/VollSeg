@@ -35,4 +35,8 @@ class PredictTiled(Dataset):
 
         self.tiler.split(idx)
 
-        return self.tiler.tile[np.newaxis, ...]
+        return (
+            self.tiler.tile[np.newaxis, ...],
+            self.tiler.patch_start,
+            self.tiler.patch_end,
+        )
