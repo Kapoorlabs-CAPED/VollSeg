@@ -1517,26 +1517,27 @@ def _apply_cellpose_network_3D(
         pred_patch = np.squeeze(pred_patch)
 
         # Get the current slice position
-
-        slicing = tuple(
-            map(
-                slice,
-                (0,)
-                + tuple(
-                    patch_start
-                    + torch.tensor(predict_tiler.global_crop_before)
-                ),
-                (out_channels,)
-                + tuple(
-                    patch_end + torch.tensor(predict_tiler.global_crop_before)
-                ),
+        for idx in range(batch_size):
+            slicing = tuple(
+                map(
+                    slice,
+                    (0,)
+                    + tuple(
+                        patch_start[idx]
+                        + torch.tensor(predict_tiler.global_crop_before)[idx]
+                    ),
+                    (out_channels,)
+                    + tuple(
+                        patch_end[idx]
+                        + torch.tensor(predict_tiler.global_crop_before)[idx]
+                    ),
+                )
             )
-        )
 
-        # Add predicted patch and fading weights to the corresponding maps
-        predicted_img[slicing] = (
-            predicted_img[slicing.int()] + pred_patch * fading_map
-        )
+            # Add predicted patch and fading weights to the corresponding maps
+            predicted_img[slicing] = (
+                predicted_img[slicing] + pred_patch * fading_map
+            )
 
     slicing = tuple(
         map(
