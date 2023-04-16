@@ -1024,6 +1024,7 @@ def _cellpose_3D_time_block(
     in_channels,
     out_activation,
     network_type,
+    batch_size,
     norm_method,
     background_weight,
     flow_weight,
@@ -1053,6 +1054,7 @@ def _cellpose_3D_time_block(
                         num_levels=num_levels,
                         overlap=overlap,
                         crop=crop,
+                        batch_size=batch_size,
                     )
                     for _x in tqdm(image_membrane)
                 )
@@ -1235,6 +1237,7 @@ def _cellpose_3D_star_time_block(
     in_channels,
     out_activation,
     network_type,
+    batch_size,
     norm_method,
     background_weight,
     flow_weight,
@@ -1305,6 +1308,7 @@ def _cellpose_3D_star_time_block(
                     in_channels,
                     out_activation,
                     network_type,
+                    batch_size,
                     norm_method,
                     background_weight,
                     flow_weight,
@@ -1507,21 +1511,30 @@ def _apply_cellpose_network_3D(
     for data_patch in dataloader:
 
         data, patch_start, patch_end = data_patch
-        print(data.shape, type(data))
         # Predict the image
-        pred_patch = model(data)
-        print(pred_patch.shape, "pred")
+        pred_patch = model(data.cuda().float())
         pred_patch = pred_patch.cpu().data.numpy()
         pred_patch = np.squeeze(pred_patch)
 
         # Get the current slice position
-        slicing = tuple(
-            map(
-                slice,
-                (0,) + tuple(patch_start + predict_tiler.global_crop_before),
-                (out_channels,)
-                + tuple(patch_end + predict_tiler.global_crop_before),
-            )
+
+        patch_global_start_location = (
+            patch_start.data.numpy() + predict_tiler.global_crop_before
+        )
+        patch_global_end_location = (
+            patch_end.data.numpy() + predict_tiler.global_crop_before
+        )
+        slicing = (
+            slice(0, out_channels),
+            slice(
+                patch_global_start_location[0], patch_global_end_location[0]
+            ),
+            slice(
+                patch_global_start_location[1], patch_global_end_location[1]
+            ),
+            slice(
+                patch_global_start_location[2], patch_global_end_location[2]
+            ),
         )
 
         # Add predicted patch and fading weights to the corresponding maps
@@ -1575,6 +1588,7 @@ def VollCellPose3D(
     in_channels=1,
     out_activation="tanh",
     network_type="unet",
+    batch_size=1,
     norm_method="instance",
     background_weight=1,
     flow_weight=1,
@@ -1627,6 +1641,7 @@ def VollCellPose3D(
             in_channels,
             out_activation,
             network_type,
+            batch_size,
             norm_method,
             background_weight,
             flow_weight,
@@ -1668,6 +1683,7 @@ def VollCellPose3D(
             in_channels,
             out_activation,
             network_type,
+            batch_size,
             norm_method,
             background_weight,
             flow_weight,
@@ -1708,6 +1724,7 @@ def VollCellPose3D(
             in_channels,
             out_activation,
             network_type,
+            batch_size,
             norm_method,
             background_weight,
             flow_weight,
@@ -2322,6 +2339,7 @@ def _cellpose_3D_star_block(
     in_channels,
     out_activation,
     network_type,
+    batch_size,
     norm_method,
     background_weight,
     flow_weight,
@@ -2367,6 +2385,7 @@ def _cellpose_3D_star_block(
             num_levels=num_levels,
             overlap=overlap,
             crop=crop,
+            batch_size=batch_size,
         )
 
     if star_model is not None:
