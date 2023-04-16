@@ -1816,6 +1816,7 @@ def VollCellPose3D(
         markers = np.asarray(markers)
         skeleton = np.asarray(skeleton)
         roi_image = np.asarray(roi_image)
+
         voll_cell_seg = _cellpose_3D_block(
             axes,
             sized_smart_seeds,
@@ -3331,6 +3332,7 @@ def _cellpose_3D_block(
     axes, sized_smart_seeds, foreground, flows, nms_thresh, z_thresh=1
 ):
 
+    print("Invoking StarDist seeds on Membrane map")
     if "T" not in axes:
 
         voll_cell_seg = CellPose3DWater(
@@ -4941,7 +4943,7 @@ def CellPose3DWater(
     starproperties = measure.regionprops(CopyMasks)
     KeepCoordinates = [prop.centroid for prop in starproperties]
     KeepCoordinates = np.asarray(KeepCoordinates)
-
+    print("Nuclei seeds", len(KeepCoordinates))
     coordinates_int = np.round(KeepCoordinates).astype(int)
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
@@ -4950,10 +4952,7 @@ def CellPose3DWater(
         markers_raw.astype("uint16"), morphology.ball(2)
     )
     watershed_image_nuclei = watershed(Copyflows, markers, mask=foreground)
-    watershed_image_nuclei = fill_label_holes(watershed_image_nuclei)
-    watershed_image_nuclei = dilate_label_holes(
-        watershed_image_nuclei, iterations=1
-    )
+    print("Nuclei to Membrane watershed complete")
 
     relabeled = NMSLabel(
         watershed_image_nuclei, nms_thresh, z_thresh=z_thresh
