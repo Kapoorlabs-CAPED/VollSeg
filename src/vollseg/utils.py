@@ -1551,7 +1551,7 @@ def _apply_cellpose_network_3D(
                 predict_tiler.global_crop_before
             )
             # Get the current slice position
-            for idx in range(batch_size):
+            for idx in range(min(local_start.shape[0], local_end.shape[0])):
                 slicing = tuple(
                     map(
                         slice,
