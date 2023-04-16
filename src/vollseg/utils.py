@@ -1518,23 +1518,13 @@ def _apply_cellpose_network_3D(
 
         # Get the current slice position
 
-        patch_global_start_location = (
-            patch_start.data.numpy() + predict_tiler.global_crop_before
-        )
-        patch_global_end_location = (
-            patch_end.data.numpy() + predict_tiler.global_crop_before
-        )
-        slicing = (
-            slice(0, out_channels),
-            slice(
-                patch_global_start_location[0], patch_global_end_location[0]
-            ),
-            slice(
-                patch_global_start_location[1], patch_global_end_location[1]
-            ),
-            slice(
-                patch_global_start_location[2], patch_global_end_location[2]
-            ),
+        slicing = tuple(
+            map(
+                slice,
+                (0,) + tuple(patch_start + predict_tiler.global_crop_before),
+                (out_channels,)
+                + tuple(patch_end + predict_tiler.global_crop_before),
+            )
         )
 
         # Add predicted patch and fading weights to the corresponding maps
