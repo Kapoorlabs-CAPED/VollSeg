@@ -12,7 +12,6 @@ class PredictTiled(Dataset):
     def __init__(
         self,
         tiler: VolumeSlicer,
-        image: np.ndarray,
         patch_size=(8, 256, 256),
         overlap=(1, 16, 16),
         crop=(2, 32, 32),
@@ -22,7 +21,6 @@ class PredictTiled(Dataset):
         assert len(patch_size) == 3, "Patch size must be 3-dimensional."
         # Save parameters
         self.tiler = tiler
-        self.image = image
         self.patch_size = patch_size
         self.overlap = overlap
         self.crop = crop

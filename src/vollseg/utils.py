@@ -1486,7 +1486,6 @@ def _apply_cellpose_network_3D(
 
     dataset = PredictTiled(
         tiler=predict_tiler,
-        image=image_membrane,
         patch_size=patch_size,
         overlap=overlap,
         crop=crop,
@@ -1529,13 +1528,6 @@ def _apply_cellpose_network_3D(
                 )
             )
 
-            print(
-                idx,
-                slicing,
-                pred_patch.shape,
-                predicted_img.shape,
-                fading_map.shape,
-            )
             # Add predicted patch and fading weights to the corresponding maps
             predicted_img[slicing] = (
                 predicted_img[slicing] + pred_patch[idx, ...] * fading_map
@@ -1551,7 +1543,6 @@ def _apply_cellpose_network_3D(
     predicted_img = predicted_img[slicing]
 
     # Save the predicted image
-    predicted_img = np.transpose(predicted_img, (1, 2, 3, 0))
     predicted_img = predicted_img.astype(np.float32)
     print(
         f"cellpose in 3D done, {predicted_img.shape}, took {cputime.time() - start} seconds"
