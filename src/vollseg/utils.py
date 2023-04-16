@@ -730,13 +730,13 @@ def VollSeg2D(
     smart_seeds = expand_labels(smart_seeds, distance=1)
 
     smart_seeds = Region_embedding(
-        image, roi_bbox, smart_seeds, dtype=np.unit16, RGB=RGB
+        image, roi_bbox, smart_seeds, dtype=np.uint16, RGB=RGB
     )
     markers = Region_embedding(
-        image, roi_bbox, markers, dtype=np.unit16, RGB=RGB
+        image, roi_bbox, markers, dtype=np.uint16, RGB=RGB
     )
     star_labels = Region_embedding(
-        image, roi_bbox, star_labels, dtype=np.unit16, RGB=RGB
+        image, roi_bbox, star_labels, dtype=np.uint16, RGB=RGB
     )
     probability_map = Region_embedding(
         image, roi_bbox, probability_map, RGB=RGB
@@ -4193,12 +4193,12 @@ def VollSeg3D(
         smart_seeds = fill_label_holes(smart_seeds.astype("uint16"))
 
         smart_seeds = Region_embedding(
-            image, roi_bbox, smart_seeds, dtype=np.unit16
+            image, roi_bbox, smart_seeds, dtype=np.uint16
         )
         sized_smart_seeds[
             :, : smart_seeds.shape[1], : smart_seeds.shape[2]
         ] = smart_seeds
-        markers = Region_embedding(image, roi_bbox, markers, dtype=np.unit16)
+        markers = Region_embedding(image, roi_bbox, markers, dtype=np.uint16)
         sized_markers[
             :, : smart_seeds.shape[1], : smart_seeds.shape[2]
         ] = markers
@@ -4207,7 +4207,7 @@ def VollSeg3D(
             :, : probability_map.shape[1], : probability_map.shape[2]
         ] = probability_map
         star_labels = Region_embedding(
-            image, roi_bbox, star_labels, dtype=np.unit16
+            image, roi_bbox, star_labels, dtype=np.uint16
         )
         sized_stardist[
             :, : star_labels.shape[1], : star_labels.shape[2]
