@@ -346,6 +346,7 @@ class CellPose3DTrain:
         num_gpu=1,
         zoom_factor=(1, 1, 1),
         ckpt_path=None,
+        network_type="resunet",
     ):
 
         self.base_dir = base_dir
@@ -380,6 +381,7 @@ class CellPose3DTrain:
         self.save_raw_h5_name = "raw_h5/"
         self.save_real_mask_h5_name = "real_mask_h5/"
         self.ckpt_path = ckpt_path
+        self.network_type = network_type
         torch.cuda.empty_cache()
 
     def _create_training_h5(self):
@@ -507,7 +509,10 @@ class CellPose3DTrain:
         )
         Path(self.save_real_mask_h5).mkdir(exist_ok=True)
 
-        self.model = CellPose3DModel(hparams)
+        if self.network_type == "unet":
+            self.model = CellPose3DModel(hparams)
+        else:
+            self.model = CellPoseRes3DModel(hparams)
 
         checkpoint_callback = ModelCheckpoint(
             dirpath=Path(self.model_dir),
