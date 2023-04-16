@@ -502,9 +502,9 @@ def Skel(smart_seedsLabels, RGB=False):
 # If there are neighbouring seeds we do not put more seeds
 
 
-def Region_embedding(image, region, sourceimage, RGB=False):
+def Region_embedding(image, region, sourceimage, dtype=np.float32, RGB=False):
 
-    returnimage = np.zeros(image.shape)
+    returnimage = np.zeros(image.shape, dtype=dtype)
     if len(region) == 4 and len(image.shape) == 2:
         rowstart = region[0]
         colstart = region[1]
@@ -667,7 +667,7 @@ def VollSeg2D(
         Binary = regions > 0
         Mask = Binary.copy()
 
-        Mask = Region_embedding(image, roi_bbox, Mask, RGB=RGB)
+        Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.unit8, RGB=RGB)
         Mask_patch = Mask.copy()
     elif noise_model is not None and dounet is False:
 
@@ -691,7 +691,7 @@ def VollSeg2D(
         if RGB:
             Mask = Mask[:, :, 0]
             Mask_patch = Mask_patch[:, :, 0]
-        Mask = Region_embedding(image, roi_bbox, Mask, RGB=RGB)
+        Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.unit8, RGB=RGB)
         Mask_patch = Mask.copy()
     # Smart Seed prediction
     print("Stardist segmentation on Image")
@@ -729,13 +729,21 @@ def VollSeg2D(
 
     smart_seeds = expand_labels(smart_seeds, distance=1)
 
-    smart_seeds = Region_embedding(image, roi_bbox, smart_seeds, RGB=RGB)
-    markers = Region_embedding(image, roi_bbox, markers, RGB=RGB)
-    star_labels = Region_embedding(image, roi_bbox, star_labels, RGB=RGB)
+    smart_seeds = Region_embedding(
+        image, roi_bbox, smart_seeds, dtype=np.unit16, RGB=RGB
+    )
+    markers = Region_embedding(
+        image, roi_bbox, markers, dtype=np.unit16, RGB=RGB
+    )
+    star_labels = Region_embedding(
+        image, roi_bbox, star_labels, dtype=np.unit16, RGB=RGB
+    )
     probability_map = Region_embedding(
         image, roi_bbox, probability_map, RGB=RGB
     )
-    skeleton = Region_embedding(image, roi_bbox, skeleton, RGB=RGB)
+    skeleton = Region_embedding(
+        image, roi_bbox, skeleton, dtype=np.unit8, RGB=RGB
+    )
     if Mask is None:
         Mask = smart_seeds > 0
 
@@ -4111,7 +4119,7 @@ def VollSeg3D(
                     Mask[i].astype("uint16"), max_size=max_size
                 )
             Mask_patch = Mask.copy()
-            Mask = Region_embedding(image, roi_bbox, Mask)
+            Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.unit8)
             if slice_merge:
                 Mask = match_labels(
                     Mask.astype("uint16"), iou_threshold=iou_threshold
@@ -4149,8 +4157,9 @@ def VollSeg3D(
         else:
             Mask = label(Mask > 0)
         Mask_patch = Mask.copy()
-        Mask = Region_embedding(image, roi_bbox, Mask)
+        Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.unit8)
         instance_labels[:, : Mask.shape[1], : Mask.shape[2]] = Mask
+
     if star_model is not None:
         print("Stardist segmentation on Image")
         if donormalize:
@@ -4182,11 +4191,13 @@ def VollSeg3D(
             )
         smart_seeds = fill_label_holes(smart_seeds.astype("uint16"))
 
-        smart_seeds = Region_embedding(image, roi_bbox, smart_seeds)
+        smart_seeds = Region_embedding(
+            image, roi_bbox, smart_seeds, dtype=np.unit16
+        )
         sized_smart_seeds[
             :, : smart_seeds.shape[1], : smart_seeds.shape[2]
         ] = smart_seeds
-        markers = Region_embedding(image, roi_bbox, markers)
+        markers = Region_embedding(image, roi_bbox, markers, dtype=np.unit16)
         sized_markers[
             :, : smart_seeds.shape[1], : smart_seeds.shape[2]
         ] = markers
@@ -4194,7 +4205,9 @@ def VollSeg3D(
         sized_probability_map[
             :, : probability_map.shape[1], : probability_map.shape[2]
         ] = probability_map
-        star_labels = Region_embedding(image, roi_bbox, star_labels)
+        star_labels = Region_embedding(
+            image, roi_bbox, star_labels, dtype=np.unit16
+        )
         sized_stardist[
             :, : star_labels.shape[1], : star_labels.shape[2]
         ] = star_labels
