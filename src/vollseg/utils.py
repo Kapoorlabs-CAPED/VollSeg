@@ -1798,6 +1798,40 @@ def VollCellPose3D(
         noise_model is None
         and star_model is not None
         and roi_model is not None
+        and unet_model is not None
+        and cellpose_model_3D_pretrained_file is not None
+    ):
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            roi_image,
+        ) = res
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+        roi_image = np.asarray(roi_image)
+
+        voll_cell_seg = _cellpose_3D_block(
+            axes,
+            sized_smart_seeds,
+            foreground,
+            flows,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
+
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is not None
+        and unet_model is None
         and cellpose_model_3D_pretrained_file is not None
     ):
         (
@@ -1845,6 +1879,36 @@ def VollCellPose3D(
         noise_model is None
         and star_model is not None
         and roi_model is None
+        and unet_model is not None
+        and cellpose_model_3D_pretrained_file is not None
+    ):
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+        ) = res
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+        voll_cell_seg = _cellpose_3D_block(
+            axes,
+            sized_smart_seeds,
+            foreground,
+            flows,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is None
+        and unet_model is None
         and cellpose_model_3D_pretrained_file is not None
     ):
         (
@@ -1891,6 +1955,40 @@ def VollCellPose3D(
         noise_model is not None
         and star_model is not None
         and roi_model is not None
+        and unet_model is not None
+        and cellpose_model_3D_pretrained_file is not None
+    ):
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            image,
+            roi_image,
+        ) = res
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+        image = np.asarray(image)
+        roi_image = np.asarray(roi_image)
+        voll_cell_seg = _cellpose_3D_block(
+            axes,
+            sized_smart_seeds,
+            foreground,
+            flows,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
+    if (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is not None
+        and unet_model is None
         and cellpose_model_3D_pretrained_file is not None
     ):
         (
@@ -1924,6 +2022,48 @@ def VollCellPose3D(
         noise_model is not None
         and star_model is not None
         and roi_model is None
+        and unet_model is not None
+        and cellpose_model_3D_pretrained_file is not None
+    ):
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            image,
+        ) = res
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            roi_image,
+        ) = res
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+        roi_image = np.asarray(roi_image)
+        voll_cell_seg = _cellpose_3D_block(
+            axes,
+            sized_smart_seeds,
+            foreground,
+            flows,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
+
+    if (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is None
+        and unet_model is None
         and cellpose_model_3D_pretrained_file is not None
     ):
         (
@@ -1964,6 +2104,39 @@ def VollCellPose3D(
         noise_model is None
         and star_model is not None
         and roi_model is not None
+        and unet_model is not None
+        and cellpose_model_3D_pretrained_file is not None
+    ):
+
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            roi_image,
+        ) = res
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+        roi_image = np.asarray(roi_image)
+        voll_cell_seg = _cellpose_3D_block(
+            axes,
+            sized_smart_seeds,
+            foreground,
+            flows,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is not None
+        and unet_model is None
         and cellpose_model_3D_pretrained_file is not None
     ):
 
