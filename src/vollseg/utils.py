@@ -1536,7 +1536,7 @@ def _apply_cellpose_network_3D(
 
             # Add predicted patch and fading weights to the corresponding maps
             predicted_img[slicing] = (
-                predicted_img[slicing] + pred_patch * fading_map
+                predicted_img[slicing] + pred_patch[idx, ...] * fading_map
             )
 
     slicing = tuple(
