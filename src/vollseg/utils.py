@@ -1507,31 +1507,34 @@ def _apply_cellpose_network_3D(
         (out_channels,) + working_size, 0, dtype=np.float32
     )
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4)
-    for data_patch in dataloader:
+    with torch.no_grad():
+        for data_patch in dataloader:
 
-        data, patch_start, patch_end = data_patch
-        # Predict the image
-        pred_patch = model(data.cuda().float())
-        pred_patch = pred_patch.cpu().data.numpy()
+            data, patch_start, patch_end = data_patch
+            # Predict the image
+            pred_patch = model(data.cuda().float())
+            pred_patch = pred_patch.cpu().data.numpy()
 
-        local_start = patch_start + torch.tensor(
-            predict_tiler.global_crop_before
-        )
-        local_end = patch_end + torch.tensor(predict_tiler.global_crop_before)
-        # Get the current slice position
-        for idx in range(batch_size):
-            slicing = tuple(
-                map(
-                    slice,
-                    (0,) + tuple(local_start[idx]),
-                    (out_channels,) + tuple(local_end[idx]),
+            local_start = patch_start + torch.tensor(
+                predict_tiler.global_crop_before
+            )
+            local_end = patch_end + torch.tensor(
+                predict_tiler.global_crop_before
+            )
+            # Get the current slice position
+            for idx in range(batch_size):
+                slicing = tuple(
+                    map(
+                        slice,
+                        (0,) + tuple(local_start[idx]),
+                        (out_channels,) + tuple(local_end[idx]),
+                    )
                 )
-            )
 
-            # Add predicted patch and fading weights to the corresponding maps
-            predicted_img[slicing] = (
-                predicted_img[slicing] + pred_patch[idx, ...] * fading_map
-            )
+                # Add predicted patch and fading weights to the corresponding maps
+                predicted_img[slicing] = (
+                    predicted_img[slicing] + pred_patch[idx, ...] * fading_map
+                )
 
     slicing = tuple(
         map(
