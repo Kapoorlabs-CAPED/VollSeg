@@ -50,6 +50,7 @@ from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
 from .Tiles_3D import VolumeSlicer
+from torch.utils.data import DataLoader
 
 Boxname = "ImageIDBox"
 GLOBAL_THRESH = 1.0e-2
@@ -1446,6 +1447,7 @@ def _apply_cellpose_network_3D(
     num_levels=3,
     overlap=(1, 16, 16),
     crop=(2, 32, 32),
+    batch_size=1,
 ):
 
     hparams = {
@@ -1501,12 +1503,9 @@ def _apply_cellpose_network_3D(
     predicted_img = np.full(
         (out_channels,) + working_size, 0, dtype=np.float32
     )
+    dataloader = DataLoader(dataset, batch_size=batch_size)
+    for data in dataloader:
 
-    for patch_idx in range(dataset.__len__()):
-
-        sample = dataset.__getitem__(patch_idx)
-        data = torch.tensor(sample[np.newaxis, ...]).cuda()
-        data = data.float()
         print(data.shape, type(data))
         # Predict the image
         pred_patch = model(data)
