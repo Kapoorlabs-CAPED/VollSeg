@@ -1506,14 +1506,14 @@ def _apply_cellpose_network_3D(
     predicted_img = np.full(
         (out_channels,) + working_size, 0, dtype=np.float32
     )
-    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4)
+    dataloader = DataLoader(dataset, batch_size=batch_size)
     with torch.no_grad():
         for data_patch in dataloader:
 
             data, patch_start, patch_end = data_patch
             # Predict the image
             pred_patch = model(data.cuda().float())
-            pred_patch = pred_patch.cpu().data.numpy()
+            pred_patch = pred_patch.detach().cpu().data.numpy()
 
             local_start = patch_start + torch.tensor(
                 predict_tiler.global_crop_before
@@ -2362,25 +2362,6 @@ def _cellpose_3D_star_block(
     cellres = None
     res = None
 
-    if cellpose_model_3D_pretrained_file is not None:
-        cellres = _apply_cellpose_network_3D(
-            cellpose_model_3D_pretrained_file,
-            image_membrane,
-            patch_size=patch_size,
-            in_channels=in_channels,
-            out_activation=out_activation,
-            network_type=network_type,
-            norm_method=norm_method,
-            background_weight=background_weight,
-            flow_weight=flow_weight,
-            out_channels=out_channels,
-            feat_channels=feat_channels,
-            num_levels=num_levels,
-            overlap=overlap,
-            crop=crop,
-            batch_size=batch_size,
-        )
-
     if star_model is not None:
 
         res = VollSeg3D(
@@ -2405,6 +2386,25 @@ def _cellpose_3D_star_block(
             seedpool=seedpool,
             slice_merge=False,
             iou_threshold=iou_threshold,
+        )
+
+    if cellpose_model_3D_pretrained_file is not None:
+        cellres = _apply_cellpose_network_3D(
+            cellpose_model_3D_pretrained_file,
+            image_membrane,
+            patch_size=patch_size,
+            in_channels=in_channels,
+            out_activation=out_activation,
+            network_type=network_type,
+            norm_method=norm_method,
+            background_weight=background_weight,
+            flow_weight=flow_weight,
+            out_channels=out_channels,
+            feat_channels=feat_channels,
+            num_levels=num_levels,
+            overlap=overlap,
+            crop=crop,
+            batch_size=batch_size,
         )
 
     return cellres, res
