@@ -1476,7 +1476,10 @@ def _apply_cellpose_network_3D(
     else:
         model = CellPoseRes3DModel(hparams=hparams)
     model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
-    model = model.cpu()
+    try:
+        model = model.cuda()
+    except ValueError:
+        model = model.cpu()
 
     model.eval()
     predict_tiler = VolumeSlicer(image_membrane, patch_size, overlap, crop)
@@ -1503,12 +1506,12 @@ def _apply_cellpose_network_3D(
     predicted_img = np.full(
         (out_channels,) + working_size, 0, dtype=np.float32
     )
-    dataloader = DataLoader(dataset, batch_size=batch_size)
+    dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=4)
     for data_patch in dataloader:
 
         data, patch_start, patch_end = data_patch
         # Predict the image
-        pred_patch = model(data.cpu().float())
+        pred_patch = model(data.cuda().float())
         pred_patch = pred_patch.cpu().data.numpy()
 
         local_start = patch_start + torch.tensor(
