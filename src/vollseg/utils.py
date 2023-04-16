@@ -4798,6 +4798,19 @@ def STARPrediction3D(
     else:
 
         Watershed = star_labels
+        properties = measure.regionprops(star_labels)
+
+        Coordinates = [prop.centroid for prop in properties]
+        Coordinates.append((0, 0, 0))
+
+        Coordinates = np.asarray(Coordinates)
+        coordinates_int = np.round(Coordinates).astype(int)
+
+        markers_raw = np.zeros_like(star_labels)
+        markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+        markers = morphology.dilation(
+            markers_raw.astype("uint16"), morphology.ball(2)
+        )
         if UseProbability is False:
 
             SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
