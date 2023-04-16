@@ -4798,6 +4798,55 @@ def STARPrediction3D(
     else:
 
         Watershed = star_labels
+        if UseProbability is False:
+
+            SmallDistance = MaxProjectDist(SmallDistance, axis=-1)
+            Distance = np.zeros(
+                [
+                    SmallDistance.shape[0] * grid[0],
+                    SmallDistance.shape[1] * grid[1],
+                    SmallDistance.shape[2] * grid[2],
+                ]
+            )
+
+        Probability = np.zeros(
+            [
+                SmallProbability.shape[0] * grid[0],
+                SmallProbability.shape[1] * grid[1],
+                SmallProbability.shape[2] * grid[2],
+            ]
+        )
+
+        # We only allow for the grid parameter to be 1 along the Z axis
+        for i in range(0, SmallProbability.shape[0]):
+            Probability[i, :] = resize(
+                SmallProbability[i, :],
+                output_shape=(Probability.shape[1], Probability.shape[2]),
+            )
+
+            if UseProbability is False:
+                Distance[i, :] = resize(
+                    SmallDistance[i, :],
+                    output_shape=(Distance.shape[1], Distance.shape[2]),
+                )
+
+        if UseProbability:
+
+            print("Using Probability maps")
+            MaxProjectDistance = Probability[
+                : star_labels.shape[0],
+                : star_labels.shape[1],
+                : star_labels.shape[2],
+            ]
+
+        else:
+
+            print("Using Distance maps")
+            MaxProjectDistance = Distance[
+                : star_labels.shape[0],
+                : star_labels.shape[1],
+                : star_labels.shape[2],
+            ]
 
     return Watershed, MaxProjectDistance, star_labels, markers
 
