@@ -43,6 +43,11 @@ from skimage.segmentation import find_boundaries, relabel_sequential, watershed
 from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
 from tqdm import tqdm
+
+from .StarDist3D import StarDist3D
+from .UNET import UNET
+from .CARE import CARE
+from .MASKUNET import MASKUNET
 from .CellPose3D import CellPose3DModel, CellPoseRes3DModel
 from .PredictTiledLoader import PredictTiled
 from vollseg.matching import matching
@@ -2543,12 +2548,15 @@ def _cellpose_star_block(
     gpu,
     unet_model,
     star_model,
+    star_model_membrane,
     roi_model,
     ExpandLabels,
     axes,
     noise_model,
     prob_thresh,
     nms_thresh,
+    prob_thresh_membrane,
+    nms_thresh_membrane,
     donormalize,
     n_tiles,
     UseProbability,
@@ -2661,17 +2669,21 @@ def VollCellSeg(
     anisotropy=None,
     star_model=None,
     unet_model=None,
+    unet_model_membrane=None,
     roi_model=None,
     noise_model=None,
     cellpose_model=None,
     custom_cellpose_model: bool = False,
     pretrained_cellpose_model_path: str = None,
     cellpose_model_name="cyto2",
+    star_model_membrane=None,
     gpu: bool = False,
     axes: str = "ZYX",
     prob_thresh: float = None,
     ExpandLabels: bool = False,
     nms_thresh: float = None,
+    prob_thresh_membrane: float = None,
+    nms_thresh_membrane: float = None,
     min_size_mask: int = 10,
     min_size: int = 10,
     max_size: int = 10000,
@@ -2694,6 +2706,10 @@ def VollCellSeg(
         prob_thresh = star_model.thresholds.prob
         nms_thresh = star_model.thresholds.nms
 
+    if prob_thresh_membrane is None and nms_thresh_membrane is None:
+        prob_thresh_membrane = star_model_membrane.thresholds.prob
+        nms_thresh_membrane = star_model_membrane.thresholds.nms
+
     if len(image.shape) == 3 and "T" not in axes:
         # Just a 3D image
         image_membrane = image
@@ -2713,13 +2729,17 @@ def VollCellSeg(
             pretrained_cellpose_model_path,
             gpu,
             unet_model,
+            unet_model_membrane,
             star_model,
+            star_model_membrane,
             roi_model,
             ExpandLabels,
             axes,
             noise_model,
             prob_thresh,
             nms_thresh,
+            prob_thresh_membrane,
+            nms_thresh_membrane,
             donormalize,
             n_tiles,
             UseProbability,
@@ -4384,6 +4404,577 @@ def VollSeg3D(
         and unet_model is not None
     ):
         return instance_labels.astype("uint16"), skeleton, image
+
+
+def SuperVollSeg3D(
+    image_nuclei: np.ndarray,
+    image_membrane: np.ndarray,
+    unet_model_nuclei: UNET,
+    unet_model_membrane: UNET,
+    star_model_nuclei: StarDist3D,
+    star_model_membrane: StarDist3D,
+    axes="ZYX",
+    noise_model: CARE = None,
+    roi_model_nuclei: MASKUNET = None,
+    prob_thresh_nuclei: float = None,
+    nms_thresh_nuclei: float = None,
+    prob_thresh_membrane: float = None,
+    nms_thresh_membrane: float = None,
+    min_size_mask: int = 100,
+    min_size: int = 100,
+    max_size: int = 10000000,
+    n_tiles: tuple = (1, 2, 2),
+    UseProbability: bool = True,
+    ExpandLabels: bool = True,
+    dounet: bool = True,
+    seedpool: bool = True,
+    donormalize: bool = True,
+    lower_perc: float = 1,
+    upper_perc: float = 99.8,
+    slice_merge: bool = False,
+    iou_threshold: float = 0.3,
+):
+
+    print("Generating VollSeg results")
+    sizeZ = image_nuclei.shape[0]
+    sizeY = image_nuclei.shape[1]
+    sizeX = image_nuclei.shape[2]
+    if len(n_tiles) >= len(image_nuclei.shape):
+        n_tiles = (n_tiles[-3], n_tiles[-2], n_tiles[-1])
+    else:
+        tiles = n_tiles
+    instance_labels_nuclei = np.zeros([sizeZ, sizeY, sizeX], dtype="uint16")
+    sized_smart_seeds_nuclei = np.zeros([sizeZ, sizeY, sizeX], dtype="uint16")
+    sized_probability_map_nuclei = np.zeros(
+        [sizeZ, sizeY, sizeX], dtype="float32"
+    )
+    sized_markers_nuclei = np.zeros([sizeZ, sizeY, sizeX], dtype="uint16")
+    sized_stardist_nuclei = np.zeros([sizeZ, sizeY, sizeX], dtype="uint16")
+
+    instance_labels_membrane = np.zeros([sizeZ, sizeY, sizeX], dtype="uint16")
+    sized_smart_seeds_membrane = np.zeros(
+        [sizeZ, sizeY, sizeX], dtype="uint16"
+    )
+    sized_probability_map_membrane = np.zeros(
+        [sizeZ, sizeY, sizeX], dtype="float32"
+    )
+    sized_markers_membrane = np.zeros([sizeZ, sizeY, sizeX], dtype="uint16")
+    sized_stardist_membrane = np.zeros([sizeZ, sizeY, sizeX], dtype="uint16")
+
+    Mask_nuclei_patch = None
+    Mask_membrane_patch = None
+    roi_image = None
+    if noise_model is not None:
+        print("Denoising Image")
+
+        image_nuclei = noise_model.predict(
+            image_nuclei.astype("float32"), axes=axes, n_tiles=n_tiles
+        )
+        pixel_condition = image_nuclei < 0
+        pixel_replace_condition = 0
+        image_nuclei = image_conditionals(
+            image_nuclei, pixel_condition, pixel_replace_condition
+        )
+
+    if roi_model_nuclei is not None:
+
+        print("Creating overall mask for the tissue")
+        model_dim = roi_model_nuclei.config.n_dim
+        if model_dim < len(image_nuclei.shape):
+            if len(n_tiles) >= len(image_nuclei.shape):
+                tiles = (n_tiles[-2], n_tiles[-1])
+            else:
+                tiles = n_tiles
+            maximage = np.amax(image_nuclei, axis=0)
+            Segmented = roi_model_nuclei.predict(
+                maximage.astype("float32"), "YX", n_tiles=tiles
+            )
+            try:
+                thresholds = threshold_multiotsu(Segmented, classes=2)
+
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(Segmented, bins=thresholds)
+            except ValueError:
+
+                regions = Segmented
+
+            roi_image = regions > 0
+            roi_image = label(roi_image)
+            roi_bbox = Bbox_region(roi_image)
+            if roi_bbox is not None:
+                rowstart = roi_bbox[0]
+                colstart = roi_bbox[1]
+                endrow = roi_bbox[2]
+                endcol = roi_bbox[3]
+                region = (
+                    slice(0, image_nuclei.shape[0]),
+                    slice(rowstart, endrow),
+                    slice(colstart, endcol),
+                )
+            else:
+                region = (
+                    slice(0, image_nuclei.shape[0]),
+                    slice(0, image_nuclei.shape[1]),
+                    slice(0, image_nuclei.shape[2]),
+                )
+                rowstart = 0
+                colstart = 0
+                endrow = image_nuclei.shape[2]
+                endcol = image_nuclei.shape[1]
+                roi_bbox = [colstart, rowstart, endcol, endrow]
+        elif model_dim == len(image_nuclei.shape):
+            Segmented = roi_model_nuclei.predict(
+                maximage.astype("float32"), "YX", n_tiles=n_tiles
+            )
+            try:
+                thresholds = threshold_multiotsu(Segmented, classes=2)
+
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(Segmented, bins=thresholds)
+            except ValueError:
+
+                regions = Segmented
+
+            roi_image = regions > 0
+            roi_image = label(roi_image)
+            roi_bbox = Bbox_region(roi_image)
+            if roi_bbox is not None:
+                zstart = roi_bbox[0]
+                rowstart = roi_bbox[1]
+                colstart = roi_bbox[2]
+                zend = roi_bbox[3]
+                endrow = roi_bbox[4]
+                endcol = roi_bbox[5]
+                region = (
+                    slice(zstart, zend),
+                    slice(rowstart, endrow),
+                    slice(colstart, endcol),
+                )
+            else:
+
+                region = (
+                    slice(0, image_nuclei.shape[0]),
+                    slice(0, image_nuclei.shape[1]),
+                    slice(0, image_nuclei.shape[2]),
+                )
+                rowstart = 0
+                colstart = 0
+                endrow = image_nuclei.shape[2]
+                endcol = image_nuclei.shape[1]
+                roi_bbox = [colstart, rowstart, endcol, endrow]
+
+        # The actual pixels in that region.
+        if roi_bbox is not None:
+            patch_nuclei = image_nuclei[region]
+            patch_membrane = image_membrane[region]
+
+        else:
+            patch_nuclei = image_nuclei
+            patch_membrane = image_membrane
+
+    else:
+
+        patch_nuclei = image_nuclei
+        patch_membrane = image_membrane
+
+        region = (
+            slice(0, image_nuclei.shape[0]),
+            slice(0, image_nuclei.shape[1]),
+            slice(0, image_nuclei.shape[2]),
+        )
+        rowstart = 0
+        colstart = 0
+        endrow = image_nuclei.shape[2]
+        endcol = image_nuclei.shape[1]
+        roi_bbox = [colstart, rowstart, endcol, endrow]
+
+    if dounet:
+
+        gc.collect()
+        if unet_model_nuclei is not None:
+            print("UNET segmentation on Nuclei Image", patch_nuclei.shape)
+
+            Mask_nuclei = UNETPrediction3D(
+                patch_nuclei,
+                unet_model_nuclei,
+                n_tiles,
+                axes,
+                iou_threshold=iou_threshold,
+                slice_merge=slice_merge,
+                ExpandLabels=ExpandLabels,
+            )
+            for i in range(0, Mask_nuclei.shape[0]):
+                Mask_nuclei[i] = remove_small_objects(
+                    Mask_nuclei[i].astype("uint16"), min_size=min_size_mask
+                )
+                Mask_nuclei[i] = remove_big_objects(
+                    Mask_nuclei[i].astype("uint16"), max_size=max_size
+                )
+            Mask_nuclei_patch = Mask_nuclei.copy()
+            Mask_nuclei = Region_embedding(
+                image_nuclei, roi_bbox, Mask_nuclei, dtype=np.uint8
+            )
+            if slice_merge:
+                Mask_nuclei = match_labels(
+                    Mask_nuclei.astype("uint16"), iou_threshold=iou_threshold
+                )
+            else:
+                Mask_nuclei = label(Mask_nuclei > 0)
+            instance_labels_nuclei[
+                :, : Mask_nuclei.shape[1], : Mask_nuclei.shape[2]
+            ] = Mask_nuclei
+
+        if unet_model_membrane is not None:
+
+            print("UNET segmentation on Membrane Image", patch_membrane.shape)
+
+            Mask_membrane = UNETPrediction3D(
+                patch_membrane,
+                unet_model_membrane,
+                n_tiles,
+                axes,
+                iou_threshold=iou_threshold,
+                slice_merge=slice_merge,
+                ExpandLabels=ExpandLabels,
+            )
+            for i in range(0, Mask_membrane.shape[0]):
+                Mask_membrane[i] = remove_small_objects(
+                    Mask_membrane[i].astype("uint16"), min_size=min_size_mask
+                )
+                Mask_membrane[i] = remove_big_objects(
+                    Mask_membrane[i].astype("uint16"), max_size=max_size
+                )
+            Mask_membrane_patch = Mask_membrane.copy()
+            Mask_membrane = Region_embedding(
+                image_membrane, roi_bbox, Mask_membrane, dtype=np.uint8
+            )
+            if slice_merge:
+                Mask_membrane = match_labels(
+                    Mask_membrane.astype("uint16"), iou_threshold=iou_threshold
+                )
+            else:
+                Mask_membrane = label(Mask_membrane > 0)
+            instance_labels_membrane[
+                :, : Mask_membrane.shape[1], : Mask_membrane.shape[2]
+            ] = Mask_membrane
+
+    elif noise_model is not None and dounet is False:
+
+        Mask_nuclei = np.zeros(patch_nuclei.shape)
+
+        for i in range(0, Mask_nuclei.shape[0]):
+
+            try:
+                thresholds = threshold_multiotsu(patch_nuclei[i, :], classes=2)
+
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(patch_nuclei[i], bins=thresholds)
+
+            except ValueError:
+
+                regions = patch_nuclei[i]
+            Mask_nuclei[i] = regions > 0
+            Mask_nuclei[i] = label(Mask_nuclei[i, :])
+
+            Mask_nuclei[i] = remove_small_objects(
+                Mask_nuclei[i].astype("uint16"), min_size=min_size_mask
+            )
+            Mask_nuclei[i] = remove_big_objects(
+                Mask_nuclei[i].astype("uint16"), max_size=max_size
+            )
+        if slice_merge:
+            Mask_nuclei = match_labels(
+                Mask_nuclei, iou_threshold=iou_threshold
+            )
+        else:
+            Mask_nuclei = label(Mask_nuclei > 0)
+        Mask_nuclei_patch = Mask_nuclei.copy()
+        Mask_nuclei = Region_embedding(
+            image_nuclei, roi_bbox, Mask_nuclei, dtype=np.uint8
+        )
+        instance_labels_nuclei[
+            :, : Mask_nuclei.shape[1], : Mask_nuclei.shape[2]
+        ] = Mask_nuclei
+
+        Mask_membrane = np.zeros(patch_membrane.shape)
+
+        for i in range(0, Mask_membrane.shape[0]):
+
+            try:
+                thresholds = threshold_multiotsu(
+                    patch_membrane[i, :], classes=2
+                )
+
+                # Using the threshold values, we generate the three regions.
+                regions = np.digitize(patch_membrane[i], bins=thresholds)
+
+            except ValueError:
+
+                regions = patch_membrane[i]
+            Mask_membrane[i] = regions > 0
+            Mask_membrane[i] = label(Mask_membrane[i, :])
+
+            Mask_membrane[i] = remove_small_objects(
+                Mask_membrane[i].astype("uint16"), min_size=min_size_mask
+            )
+            Mask_membrane[i] = remove_big_objects(
+                Mask_membrane[i].astype("uint16"), max_size=max_size
+            )
+        if slice_merge:
+            Mask_membrane = match_labels(
+                Mask_membrane, iou_threshold=iou_threshold
+            )
+        else:
+            Mask_membrane = label(Mask_membrane > 0)
+        Mask_membrane_patch = Mask_membrane.copy()
+        Mask_membrane = Region_embedding(
+            image_membrane, roi_bbox, Mask_membrane, dtype=np.uint8
+        )
+        instance_labels_membrane[
+            :, : Mask_membrane.shape[1], : Mask_membrane.shape[2]
+        ] = Mask_membrane
+
+    if star_model_nuclei is not None:
+        print("Stardist segmentation on Nuclei Image")
+        if donormalize:
+
+            patch_star_nuclei = normalize(
+                patch_nuclei, lower_perc, upper_perc, axis=(0, 1, 2)
+            )
+        else:
+            patch_star_nuclei = patch_nuclei
+
+        (
+            smart_seeds_nuclei,
+            probability_map_nuclei,
+            star_labels_nuclei,
+            markers_nuclei,
+        ) = STARPrediction3D(
+            patch_star_nuclei,
+            axes,
+            star_model_nuclei,
+            n_tiles,
+            unet_mask=Mask_nuclei_patch,
+            UseProbability=UseProbability,
+            seedpool=seedpool,
+            prob_thresh=prob_thresh_nuclei,
+            nms_thresh=nms_thresh_nuclei,
+        )
+        print("Removing small/large objects")
+        for i in tqdm(range(0, smart_seeds_nuclei.shape[0])):
+            smart_seeds_nuclei[i] = remove_small_objects(
+                smart_seeds_nuclei[i, :].astype("uint16"), min_size=min_size
+            )
+            smart_seeds_nuclei[i] = remove_big_objects(
+                smart_seeds_nuclei[i, :].astype("uint16"), max_size=max_size
+            )
+        smart_seeds_nuclei = fill_label_holes(
+            smart_seeds_nuclei.astype("uint16")
+        )
+
+        smart_seeds_nuclei = Region_embedding(
+            image_nuclei, roi_bbox, smart_seeds_nuclei, dtype=np.uint16
+        )
+        sized_smart_seeds_nuclei[
+            :, : smart_seeds_nuclei.shape[1], : smart_seeds_nuclei.shape[2]
+        ] = smart_seeds_nuclei
+        markers_nuclei = Region_embedding(
+            image_nuclei, roi_bbox, markers_nuclei, dtype=np.uint16
+        )
+        sized_markers_nuclei[
+            :, : smart_seeds_nuclei.shape[1], : smart_seeds_nuclei.shape[2]
+        ] = markers_nuclei
+        probability_map_nuclei = Region_embedding(
+            image_nuclei, roi_bbox, probability_map_nuclei
+        )
+        sized_probability_map_nuclei[
+            :,
+            : probability_map_nuclei.shape[1],
+            : probability_map_nuclei.shape[2],
+        ] = probability_map_nuclei
+        star_labels_nuclei = Region_embedding(
+            image_nuclei, roi_bbox, star_labels_nuclei, dtype=np.uint16
+        )
+        sized_stardist_nuclei[
+            :, : star_labels_nuclei.shape[1], : star_labels_nuclei.shape[2]
+        ] = star_labels_nuclei
+        skeleton_nuclei = np.zeros_like(sized_smart_seeds_nuclei)
+        for i in range(0, sized_smart_seeds_nuclei.shape[0]):
+            skeleton_nuclei[i] = SmartSkel(
+                sized_smart_seeds_nuclei[i], sized_probability_map_nuclei[i]
+            )
+        skeleton_nuclei = skeleton_nuclei > 0
+
+    if star_model_membrane is not None:
+        print("Stardist segmentation on Membrane Image")
+        if donormalize:
+
+            patch_star_membrane = normalize(
+                patch_membrane, lower_perc, upper_perc, axis=(0, 1, 2)
+            )
+        else:
+            patch_star_membrane = patch_membrane
+
+        (
+            smart_seeds_membrane,
+            probability_map_membrane,
+            star_labels_membrane,
+            markers_membrane,
+        ) = STARPrediction3D(
+            patch_star_membrane,
+            axes,
+            star_model_membrane,
+            n_tiles,
+            unet_mask=Mask_membrane_patch,
+            UseProbability=UseProbability,
+            seedpool=seedpool,
+            prob_thresh=prob_thresh_membrane,
+            nms_thresh=nms_thresh_membrane,
+        )
+        print("Removing small/large objects")
+        for i in tqdm(range(0, smart_seeds_membrane.shape[0])):
+            smart_seeds_membrane[i] = remove_small_objects(
+                smart_seeds_membrane[i, :].astype("uint16"), min_size=min_size
+            )
+            smart_seeds_membrane[i] = remove_big_objects(
+                smart_seeds_membrane[i, :].astype("uint16"), max_size=max_size
+            )
+        smart_seeds_membrane = fill_label_holes(
+            smart_seeds_membrane.astype("uint16")
+        )
+
+        smart_seeds_membrane = Region_embedding(
+            image_membrane, roi_bbox, smart_seeds_membrane, dtype=np.uint16
+        )
+        sized_smart_seeds_membrane[
+            :, : smart_seeds_membrane.shape[1], : smart_seeds_membrane.shape[2]
+        ] = smart_seeds_membrane
+        markers_membrane = Region_embedding(
+            image_membrane, roi_bbox, markers_membrane, dtype=np.uint16
+        )
+        sized_markers_membrane[
+            :, : smart_seeds_membrane.shape[1], : smart_seeds_membrane.shape[2]
+        ] = markers_membrane
+        probability_map_membrane = Region_embedding(
+            image_membrane, roi_bbox, probability_map_membrane
+        )
+        sized_probability_map_membrane[
+            :,
+            : probability_map_membrane.shape[1],
+            : probability_map_membrane.shape[2],
+        ] = probability_map_membrane
+        star_labels_membrane = Region_embedding(
+            image_membrane, roi_bbox, star_labels_membrane, dtype=np.uint16
+        )
+        sized_stardist_membrane[
+            :, : star_labels_membrane.shape[1], : star_labels_membrane.shape[2]
+        ] = star_labels_membrane
+        skeleton_membrane = np.zeros_like(sized_smart_seeds_membrane)
+        for i in range(0, sized_smart_seeds_membrane.shape[0]):
+            skeleton_membrane[i] = SmartSkel(
+                sized_smart_seeds_membrane[i],
+                sized_probability_map_membrane[i],
+            )
+        skeleton_membrane = skeleton_membrane > 0
+
+    if (
+        noise_model is None
+        and roi_image is not None
+        and star_model_nuclei is not None
+        and star_model_membrane is None
+    ):
+        return (
+            sized_smart_seeds_nuclei.astype("uint16"),
+            instance_labels_nuclei.astype("uint16"),
+            star_labels_nuclei.astype("uint16"),
+            sized_probability_map_nuclei,
+            markers_nuclei.astype("uint16"),
+            skeleton_nuclei.astype("uint16"),
+            roi_image.astype("uint16"),
+        )
+    if (
+        noise_model is None
+        and roi_image is None
+        and star_model_nuclei is not None
+        and star_model_membrane is None
+    ):
+        return (
+            sized_smart_seeds_nuclei.astype("uint16"),
+            instance_labels_nuclei.astype("uint16"),
+            star_labels_nuclei.astype("uint16"),
+            sized_probability_map_nuclei,
+            markers_nuclei.astype("uint16"),
+            skeleton_nuclei.astype("uint16"),
+        )
+    if (
+        noise_model is not None
+        and roi_image is None
+        and star_model_nuclei is not None
+        and star_model_membrane is None
+    ):
+        return (
+            sized_smart_seeds_nuclei.astype("uint16"),
+            instance_labels_nuclei.astype("uint16"),
+            star_labels_nuclei.astype("uint16"),
+            sized_probability_map_nuclei,
+            markers_nuclei.astype("uint16"),
+            skeleton_nuclei.astype("uint16"),
+            image_nuclei,
+        )
+    if (
+        noise_model is not None
+        and roi_image is not None
+        and star_model_nuclei is not None
+        and star_model_membrane is None
+    ):
+        return (
+            sized_smart_seeds_nuclei.astype("uint16"),
+            instance_labels_nuclei.astype("uint16"),
+            star_labels_nuclei.astype("uint16"),
+            sized_probability_map_nuclei,
+            markers_nuclei.astype("uint16"),
+            skeleton_nuclei.astype("uint16"),
+            image_nuclei,
+            roi_image.astype("uint16"),
+        )
+
+    if (
+        noise_model is not None
+        and roi_image is not None
+        and star_model_nuclei is None
+        and star_model_membrane is None
+    ):
+        return (
+            instance_labels_nuclei.astype("uint16"),
+            skeleton_nuclei,
+            image_nuclei,
+        )
+
+    if (
+        noise_model is not None
+        and roi_image is None
+        and star_model_nuclei is None
+        and unet_model_nuclei is None
+        and star_model_membrane is None
+    ):
+        return (
+            instance_labels_nuclei.astype("uint16"),
+            skeleton_nuclei,
+            image_nuclei,
+        )
+
+    if (
+        noise_model is None
+        and roi_image is None
+        and star_model_nuclei is None
+        and unet_model_nuclei is not None
+        and star_model_membrane is None
+    ):
+        return (
+            instance_labels_nuclei.astype("uint16"),
+            skeleton_nuclei,
+            image_nuclei,
+        )
 
 
 def image_pixel_duplicator(image, size):
