@@ -4532,8 +4532,12 @@ def VollSamZ(
     max_size: int,
 ):
 
+    instance_labels_across = []
     for i in range(image.shape[0]):
-        channel_image = image[i, ...]
+        channel_image = image[i]
+        channel_image = channel_image - channel_image.min()
+        channel_image = channel_image / channel_image.max()
+        channel_image = channel_image * 255
         instance_labels_currentz = mask_generator.generate(
             channel_image[..., np.newaxis]
         )
@@ -4543,7 +4547,8 @@ def VollSamZ(
         instance_labels_currentz = remove_big_objects(
             instance_labels_currentz.astype("uint16"), max_size=max_size
         )
-
+        instance_labels_across.append(instance_labels_currentz)
+    instance_labels_across = np.asarray(instance_labels_across)
     merged_instance_labels = merge_labels_across_volume(
         instance_labels_currentz
     )
