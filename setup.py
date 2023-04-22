@@ -36,7 +36,7 @@ setup(
         "torch",
         "test_tube",
         "lightning",
-        "segment-anything-1.0",
+        "segment-anything",
     ],
     packages=find_packages(),
     classifiers=[
