@@ -4578,7 +4578,7 @@ def VollSam2D(
     channel_image = channel_image * 255
 
     instance_labels_currentz = return_masks(
-        mask_generator.generate(channel_image.astype(np.uint8))
+        mask_generator.generate(channel_image.astype(np.uint8)), channel_image
     )
     instance_labels_currentz = remove_small_objects(
         instance_labels_currentz.astype("uint16"), min_size=min_size
@@ -4590,20 +4590,26 @@ def VollSam2D(
     return instance_labels_currentz
 
 
-def return_masks(instance_labels):
+def return_masks(instance_labels, image):
 
-    segmentation_image = instance_labels[0]["segmentation"].astype("uint16")
-    segmentation_image[np.where(segmentation_image > 0)] = 2
-    for i in range(1, len(instance_labels)):
-        m = instance_labels[i]["segmentation"].astype("uint16")
-        m[np.where(m > 0)] = 2 + i
-
-        segmentation_image = join_segmentations(segmentation_image, m)
-        segmentation_image, _, _ = relabel_sequential(
-            segmentation_image, offset=segmentation_image.max()
+    if len(instance_labels) > 0:
+        segmentation_image = instance_labels[0]["segmentation"].astype(
+            "uint16"
         )
+        segmentation_image[np.where(segmentation_image > 0)] = 2
+        for i in range(1, len(instance_labels)):
+            m = instance_labels[i]["segmentation"].astype("uint16")
+            m[np.where(m > 0)] = 2 + i
 
-    return segmentation_image
+            segmentation_image = join_segmentations(segmentation_image, m)
+            segmentation_image, _, _ = relabel_sequential(
+                segmentation_image, offset=segmentation_image.max()
+            )
+
+        return segmentation_image
+    else:
+
+        return np.zeros_like(image)
 
 
 def SuperVollSeg3D(
