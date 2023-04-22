@@ -4540,7 +4540,7 @@ def VollSamZ(
         channel_image = channel_image * 255
 
         instance_labels_currentz = mask_generator.generate(
-            channel_image[..., np.newaxis].astype("np.float32")
+            channel_image[..., np.newaxis].astype(np.float32)
         )
         instance_labels_currentz = remove_small_objects(
             instance_labels_currentz.astype("uint16"), min_size=min_size
