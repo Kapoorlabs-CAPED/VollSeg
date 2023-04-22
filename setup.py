@@ -37,6 +37,7 @@ setup(
         "test_tube",
         "lightning",
         "transformers@git+https://github.com/huggingface/transformers.git",
+        "segment-anything@git+https://github.com/facebookresearch/segment-anything.git",
     ],
     packages=find_packages(),
     classifiers=[

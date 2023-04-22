@@ -56,6 +56,9 @@ from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
 from .Tiles_3D import VolumeSlicer
 from torch.utils.data import DataLoader
+from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 Boxname = "ImageIDBox"
@@ -1483,17 +1486,13 @@ def _apply_cellpose_network_3D(
     }
 
     start = cputime.time()
-    torch.cuda.empty_cache()
     gc.collect()
     if network_type == "unet":
         model = CellPose3DModel(hparams=hparams)
     else:
         model = CellPoseRes3DModel(hparams=hparams)
     model = model.load_from_checkpoint(cellpose_model_3D_pretrained_file)
-    try:
-        model = model.cuda()
-    except ValueError:
-        model = model.cpu()
+    model = model.to(device)
 
     model.eval()
     predict_tiler = VolumeSlicer(image_membrane, patch_size, overlap, crop)
@@ -1526,7 +1525,7 @@ def _apply_cellpose_network_3D(
 
             data, patch_start, patch_end = data_patch
             # Predict the image
-            pred_patch = model(data.cuda().float())
+            pred_patch = model(data.to(device).float())
             pred_patch = pred_patch.detach().cpu().data.numpy()
 
             local_start = patch_start + torch.tensor(
@@ -1580,7 +1579,6 @@ def _apply_cellpose_network_3D(
     flow_img = np.amax(predicted_img, axis=projection_axis)
 
     print("returning cellpose map", flow_img.shape)
-    torch.cuda.empty_cache()
     gc.collect()
 
     return foreground_map, flow_img
@@ -4404,6 +4402,85 @@ def VollSeg3D(
         and unet_model is not None
     ):
         return instance_labels.astype("uint16"), skeleton, image
+
+
+def VollSam(
+    image_nuclei: np.ndarray,
+    image_membrane: np.ndarray,
+    ckpt_directory: str,
+    ckpt_model_name: str,
+    model_type: str,
+    axes="ZYX",
+):
+    assert image_nuclei.shape == image_membrane.shape
+    sam = sam_model_registry[model_type](
+        checkpoint=os.path.join(ckpt_directory, ckpt_model_name)
+    )
+    mask_generator = SamAutomaticMaskGenerator(sam)
+    if len(image_nuclei.shape) == 2:
+        instance_labels_nuclei = mask_generator.generate(image_nuclei)
+        instance_labels_membrane = mask_generator.generate(image_membrane)
+
+    if len(image_nuclei.shape) == 3 and "T" not in axes:
+        instance_labels_nuclei = VollSam3D(image_nuclei, mask_generator)
+        instance_labels_membrane = VollSam3D(image_membrane, mask_generator)
+
+    if len(image_nuclei.shape) == 3 and "T" in axes:
+        instance_labels_nuclei = tuple(
+            zip(
+                *tuple(
+                    VollSam2D(_x, mask_generator) for _x in tqdm(image_nuclei)
+                )
+            )
+        )
+
+        instance_labels_membrane = tuple(
+            zip(
+                *tuple(
+                    VollSam2D(_x, mask_generator)
+                    for _x in tqdm(image_membrane)
+                )
+            )
+        )
+
+    if len(image_nuclei.shape) == 4:
+        instance_labels_nuclei = tuple(
+            zip(
+                *tuple(
+                    VollSam3D(_x, mask_generator) for _x in tqdm(image_nuclei)
+                )
+            )
+        )
+
+        instance_labels_membrane = tuple(
+            zip(
+                *tuple(
+                    VollSam3D(_x, mask_generator)
+                    for _x in tqdm(image_membrane)
+                )
+            )
+        )
+
+    return instance_labels_nuclei, instance_labels_membrane
+
+
+def VollSam3D(image: np.ndarray, mask_generator: SamAutomaticMaskGenerator):
+
+    for i in range(image.shape[0]):
+        instance_labels_currentz = mask_generator.generate(image[i, ...])
+
+    merged_instance_labels = merge_labels_across_volume(
+        instance_labels_currentz
+    )
+
+    return merged_instance_labels
+
+
+def VollSam2D(image: np.ndarray, mask_generator: SamAutomaticMaskGenerator):
+
+    instance_labels = mask_generator.generate(image)
+
+    return instance_labels
 
 
 def SuperVollSeg3D(
