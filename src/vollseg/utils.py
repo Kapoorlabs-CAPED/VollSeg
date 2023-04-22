@@ -4465,7 +4465,7 @@ def VollSam(
         instance_labels_membrane = instance_labels_nuclei
 
     if len(image.shape) == 3 and "T" not in axes:
-        instance_labels_nuclei = VollSam3D(
+        instance_labels_nuclei = VollSamSpace(
             image, mask_generator, min_size, max_size
         )
         instance_labels_membrane = instance_labels_nuclei
@@ -4474,11 +4474,11 @@ def VollSam(
         image_membrane = image[:, channel_membrane, :, :]
         image_nuclei = image[:, channel_nuclei, :, :]
 
-        instance_labels_nuclei = VollSam3D(
+        instance_labels_nuclei = VollSamSpace(
             image_nuclei, mask_generator, min_size, max_size
         )
 
-        instance_labels_membrane = VollSam3D(
+        instance_labels_membrane = VollSamSpace(
             image_membrane, mask_generator, min_size, max_size
         )
 
@@ -4490,7 +4490,7 @@ def VollSam(
         instance_labels_nuclei = tuple(
             zip(
                 *tuple(
-                    VollSam2D(_x, mask_generator, min_size, max_size)
+                    VollSamTime(_x, mask_generator, min_size, max_size)
                     for _x in tqdm(image_nuclei)
                 )
             )
@@ -4499,26 +4499,7 @@ def VollSam(
         instance_labels_membrane = tuple(
             zip(
                 *tuple(
-                    VollSam2D(_x, mask_generator, min_size, max_size)
-                    for _x in tqdm(image_membrane)
-                )
-            )
-        )
-
-    if len(image_nuclei.shape) == 4:
-        instance_labels_nuclei = tuple(
-            zip(
-                *tuple(
-                    VollSam3D(_x, mask_generator, min_size, max_size)
-                    for _x in tqdm(image_nuclei)
-                )
-            )
-        )
-
-        instance_labels_membrane = tuple(
-            zip(
-                *tuple(
-                    VollSam3D(_x, mask_generator, min_size, max_size)
+                    VollSamTime(_x, mask_generator, min_size, max_size)
                     for _x in tqdm(image_membrane)
                 )
             )
@@ -4544,7 +4525,7 @@ def VollSam(
     return instance_labels_nuclei, instance_labels_membrane
 
 
-def VollSam3D(
+def VollSamTime(
     image: np.ndarray,
     mask_generator: SamAutomaticMaskGenerator,
     min_size: int,
@@ -4567,7 +4548,7 @@ def VollSam3D(
     return merged_instance_labels
 
 
-def VollSam2D(
+def VollSamSpace(
     image: np.ndarray,
     mask_generator: SamAutomaticMaskGenerator,
     min_size: int,
