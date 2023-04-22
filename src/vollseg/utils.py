@@ -4417,7 +4417,7 @@ def VollSam(
     channel_membrane: int = 0,
     channel_nuclei: int = 1,
     axes: str = "ZYX",
-    min_size: int = 100,
+    min_size: int = 10,
     max_size: int = 10000000,
     points_per_side: Optional[int] = 32,
     points_per_batch: int = 64,
@@ -4431,6 +4431,8 @@ def VollSam(
     crop_n_points_downscale_factor: int = 1,
     point_grids: Optional[List[np.ndarray]] = None,
     output_mode: str = "binary_mask",
+    save_dir: str = None,
+    Name: str = "Result",
 ):
     sam = sam_model_registry[model_type](
         checkpoint=os.path.join(ckpt_directory, ckpt_model_name)
@@ -4522,6 +4524,23 @@ def VollSam(
                     for _x in tqdm(image_membrane)
                 )
             )
+        )
+
+    if save_dir is not None:
+        print("Saving Results ...")
+        Path(save_dir).mkdir(exist_ok=True)
+
+        nuclei_results = os.path.join(save_dir, "NucleiSAM")
+        membrane_results = os.path.join(save_dir, "MembraneSAM")
+        Path(nuclei_results).mkdir(exist_ok=True)
+        Path(membrane_results).mkdir(exist_ok=True)
+        imwrite(
+            (nuclei_results + Name + ".tif"),
+            np.asarray(instance_labels_nuclei).astype("uint16"),
+        )
+        imwrite(
+            (membrane_results + Name + ".tif"),
+            np.asarray(instance_labels_membrane).astype("uint16"),
         )
 
     return instance_labels_nuclei, instance_labels_membrane
