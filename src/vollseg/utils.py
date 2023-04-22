@@ -15,6 +15,7 @@ import napari
 import gc
 import time as cputime
 from skimage.transform import resize
+from typing import Optional, List
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -4413,12 +4414,40 @@ def VollSam(
     axes: str = "ZYX",
     min_size: int = 100,
     max_size: int = 10000000,
+    points_per_side: Optional[int] = 32,
+    points_per_batch: int = 64,
+    pred_iou_thresh: float = 0.88,
+    stability_score_thresh: float = 0.95,
+    stability_score_offset: float = 1.0,
+    box_nms_thresh: float = 0.7,
+    crop_n_layers: int = 0,
+    crop_nms_thresh: float = 0.7,
+    crop_overlap_ratio: float = 512 / 1500,
+    crop_n_points_downscale_factor: int = 1,
+    point_grids: Optional[List[np.ndarray]] = None,
+    output_mode: str = "binary_mask",
 ):
     assert image_nuclei.shape == image_membrane.shape
     sam = sam_model_registry[model_type](
         checkpoint=os.path.join(ckpt_directory, ckpt_model_name)
     )
-    mask_generator = SamAutomaticMaskGenerator(sam)
+    min_mask_region_area = min_size * min_size
+    mask_generator = SamAutomaticMaskGenerator(
+        sam,
+        points_per_side=points_per_side,
+        points_per_batch=points_per_batch,
+        pred_iou_thresh=pred_iou_thresh,
+        stability_score_thresh=stability_score_thresh,
+        stability_score_offset=stability_score_offset,
+        box_nms_thresh=box_nms_thresh,
+        crop_n_layers=crop_n_layers,
+        crop_nms_thresh=crop_nms_thresh,
+        crop_overlap_ratio=crop_overlap_ratio,
+        crop_n_points_downscale_factor=crop_n_points_downscale_factor,
+        point_grids=point_grids,
+        min_mask_region_area=min_mask_region_area,
+        output_mode=output_mode,
+    )
     if len(image_nuclei.shape) == 2:
         instance_labels_nuclei = mask_generator.generate(image_nuclei)
         instance_labels_membrane = mask_generator.generate(image_membrane)
