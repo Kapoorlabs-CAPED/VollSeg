@@ -4410,11 +4410,12 @@ def VollSeg3D(
 
 
 def VollSam(
-    image_nuclei: np.ndarray,
-    image_membrane: np.ndarray,
+    image: np.ndarray,
     ckpt_directory: str,
     ckpt_model_name: str,
     model_type: str = "vit_h",
+    channel_membrane: int = 0,
+    channel_nuclei: int = 1,
     axes: str = "ZYX",
     min_size: int = 100,
     max_size: int = 10000000,
@@ -4431,7 +4432,6 @@ def VollSam(
     point_grids: Optional[List[np.ndarray]] = None,
     output_mode: str = "binary_mask",
 ):
-    assert image_nuclei.shape == image_membrane.shape
     sam = sam_model_registry[model_type](
         checkpoint=os.path.join(ckpt_directory, ckpt_model_name)
     )
@@ -4452,9 +4452,8 @@ def VollSam(
         min_mask_region_area=min_mask_region_area,
         output_mode=output_mode,
     )
-    if len(image_nuclei.shape) == 2:
-        instance_labels_nuclei = mask_generator.generate(image_nuclei)
-        instance_labels_membrane = mask_generator.generate(image_membrane)
+    if len(image.shape) == 2:
+        instance_labels_nuclei = mask_generator.generate(image)
 
         instance_labels_nuclei = remove_small_objects(
             instance_labels_nuclei.astype("uint16"), min_size=min_size
@@ -4463,22 +4462,31 @@ def VollSam(
             instance_labels_nuclei.astype("uint16"), max_size=max_size
         )
 
-        instance_labels_membrane = remove_small_objects(
-            instance_labels_membrane.astype("uint16"), min_size=min_size
-        )
-        instance_labels_membrane = remove_big_objects(
-            instance_labels_membrane.astype("uint16"), max_size=max_size
-        )
+        instance_labels_membrane = instance_labels_nuclei
 
-    if len(image_nuclei.shape) == 3 and "T" not in axes:
+    if len(image.shape) == 3 and "T" not in axes:
+        instance_labels_nuclei = VollSam3D(
+            image, mask_generator, min_size, max_size
+        )
+        instance_labels_membrane = instance_labels_nuclei
+
+    if len(image.shape) == 3 and "T" not in axes:
+        image_membrane = image[:, channel_membrane, :, :]
+        image_nuclei = image[:, channel_nuclei, :, :]
+
         instance_labels_nuclei = VollSam3D(
             image_nuclei, mask_generator, min_size, max_size
         )
+
         instance_labels_membrane = VollSam3D(
             image_membrane, mask_generator, min_size, max_size
         )
 
-    if len(image_nuclei.shape) == 3 and "T" in axes:
+    if len(image.shape) > 4 and "T" in axes:
+
+        image_membrane = image[:, :, channel_membrane, :, :]
+        image_nuclei = image[:, :, channel_nuclei, :, :]
+
         instance_labels_nuclei = tuple(
             zip(
                 *tuple(
