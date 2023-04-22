@@ -174,67 +174,6 @@ def BinaryLabel(BinaryImageOriginal, max_size=15000):
 
 
 def expand_labels(label_image, distance=1):
-    """Expand labels in label image by ``distance`` pixels without overlapping.
-    Given a label image, ``expand_labels`` grows label regions (connected components)
-    outwards by up to ``distance`` pixels without overflowing into neighboring regions.
-    More specifically, each background pixel that is within Euclidean distance
-    of <= ``distance`` pixels of a connected component is assigned the label of that
-    connected component.
-    Where multiple connected components are within ``distance`` pixels of a background
-    pixel, the label value of the closest connected component will be assigned (see
-    Notes for the case of multiple labels at equal distance).
-    Parameters
-    ----------
-    label_image : ndarray of dtype int
-        label image
-    distance : float
-        Euclidean distance in pixels by which to grow the labels. Default is one.
-    Returns
-    -------
-    enlarged_labels : ndarray of dtype int
-        Labeled array, where all connected regions have been enlarged
-    Notes
-    -----
-    Where labels are spaced more than ``distance`` pixels are apart, this is
-    equivalent to a morphological dilation with a disc or hyperball of radius ``distance``.
-    However, in contrast to a morphological dilation, ``expand_labels`` will
-    not expand a label region into a neighboring region.
-    This implementation of ``expand_labels`` is derived from CellProfiler [1]_, where
-    it is known as module "IdentifySecondaryObjects (Distance-N)" [2]_.
-    There is an important edge case when a pixel has the same distance to
-    multiple regions, as it is not defined which region expands into that
-    space. Here, the exact behavior depends on the upstream implementation
-    of ``scipy.model_dimage.distance_transform_edt``.
-    See Also
-    --------
-    :func:`skimage.measure.label`, :func:`skimage.segmentation.watershed`, :func:`skimage.morphology.dilation`
-    References
-    ----------
-    .. [1] https://cellprofiler.org
-    .. [2] https://github.com/CellProfiler/CellProfiler/blob/082930ea95add7b72243a4fa3d39ae5145995e9c/cellprofiler/modules/identifysecondaryobjects.py#L559
-    Examples
-    --------
-    >>> labels = np.array([0, 1, 0, 0, 0, 0, 2])
-    >>> expand_labels(labels, distance=1)
-    array([1, 1, 1, 0, 0, 2, 2])
-    Labels will not overwrite each other:
-    >>> expand_labels(labels, distance=3)
-    array([1, 1, 1, 1, 2, 2, 2])
-    In case of ties, behavior is undefined, but currently resolves to the
-    label closest to ``(0,) * model_dim`` in lexicographical order.
-    >>> labels_tied = np.array([0, 1, 0, 2, 0])
-    >>> expand_labels(labels_tied, 1)
-    array([1, 1, 1, 2, 2])
-    >>> labels2d = np.array(
-    ...     [[0, 1, 0, 0],
-    ...      [2, 0, 0, 0],
-    ...      [0, 3, 0, 0]]
-    ... )
-    >>> expand_labels(labels2d, 1)
-    array([[2, 1, 1, 0],
-           [2, 2, 0, 0],
-           [2, 3, 3, 0]])
-    """
 
     distances, nearest_label_coords = distance_transform_edt(
         label_image == 0, return_indices=True
@@ -259,7 +198,6 @@ def SimplePrediction(
     StarModel,
     n_tiles=(2, 2),
     UseProbability=True,
-    min_size=20,
     axes="ZYX",
     ExpandLabels=True,
 ):
@@ -320,23 +258,7 @@ def dilate_label_holes(lbl_img, iterations):
 
 
 def match_labels(ys, iou_threshold=0.5):
-    """
-    Matches object ids in a list of label images based on a matching criterion.
-    For i=0..len(ys)-1 consecutively matches ys[i+1] with ys[i],
-    matching objects retain their id, non matched objects will be assigned a new id
-    Example
-    -------
-    import numpy as np
-    from stardist.data import test_image_nuclei_2d
-    from stardist.matching import match_labels
-    _y = test_image_nuclei_2d(return_mask=True)[1]
-    labels = np.stack([_y, 2*np.roll(_y,10)], axis=0)
-    labels_new = match_labels(labels)
-    Parameters
-    ----------
-    ys : np.ndarray, tuple of np.ndarray
-          list/array of integer labels (2D or 3D)
-    """
+
     ys = np.asarray(ys)
     if ys.model_dim not in (3, 4):
         raise ValueError("label image y should be 3 or 4 dimensional!")
@@ -545,7 +467,6 @@ def VollSeg2D(
     max_size=10000000,
     dounet=True,
     n_tiles=(2, 2),
-    ExpandLabels=True,
     donormalize=True,
     lower_perc=1,
     upper_perc=99.8,
@@ -2666,21 +2587,21 @@ def VollCellSeg(
     flow_threshold: float = 0.4,
     cellprob_threshold: float = 0.0,
     anisotropy=None,
-    star_model=None,
-    unet_model=None,
-    unet_model_membrane=None,
-    roi_model=None,
+    unet_model_nuclei=None,
+    star_model_nuclei=None,
     noise_model=None,
+    roi_model_nuclei=None,
+    unet_model_membrane=None,
+    star_model_membrane=None,
     cellpose_model=None,
     custom_cellpose_model: bool = False,
     pretrained_cellpose_model_path: str = None,
     cellpose_model_name="cyto2",
-    star_model_membrane=None,
     gpu: bool = False,
     axes: str = "ZYX",
-    prob_thresh: float = None,
+    prob_thresh_nuclei: float = None,
     ExpandLabels: bool = False,
-    nms_thresh: float = None,
+    nms_thresh_nuclei: float = None,
     prob_thresh_membrane: float = None,
     nms_thresh_membrane: float = None,
     min_size_mask: int = 10,
@@ -2701,9 +2622,9 @@ def VollCellSeg(
     z_thresh: int = 2,
 ):
 
-    if prob_thresh is None and nms_thresh is None:
-        prob_thresh = star_model.thresholds.prob
-        nms_thresh = star_model.thresholds.nms
+    if prob_thresh_nuclei is None and nms_thresh_nuclei is None:
+        prob_thresh_nuclei = star_model_nuclei.thresholds.prob
+        nms_thresh_nuclei = star_model_nuclei.thresholds.nms
 
     if prob_thresh_membrane is None and nms_thresh_membrane is None:
         prob_thresh_membrane = star_model_membrane.thresholds.prob
@@ -2727,16 +2648,16 @@ def VollCellSeg(
             anisotropy,
             pretrained_cellpose_model_path,
             gpu,
-            unet_model,
+            unet_model_nuclei,
+            star_model_nuclei,
+            roi_model_nuclei,
             unet_model_membrane,
-            star_model,
             star_model_membrane,
-            roi_model,
             ExpandLabels,
             axes,
             noise_model,
-            prob_thresh,
-            nms_thresh,
+            prob_thresh_nuclei,
+            nms_thresh_nuclei,
             prob_thresh_membrane,
             nms_thresh_membrane,
             donormalize,
@@ -2770,14 +2691,18 @@ def VollCellSeg(
             anisotropy,
             pretrained_cellpose_model_path,
             gpu,
-            unet_model,
-            star_model,
-            roi_model,
+            unet_model_nuclei,
+            star_model_nuclei,
+            roi_model_nuclei,
+            unet_model_membrane,
+            star_model_membrane,
             ExpandLabels,
             axes,
             noise_model,
-            prob_thresh,
-            nms_thresh,
+            prob_thresh_nuclei,
+            nms_thresh_nuclei,
+            prob_thresh_membrane,
+            nms_thresh_membrane,
             donormalize,
             n_tiles,
             UseProbability,
@@ -2812,14 +2737,18 @@ def VollCellSeg(
             anisotropy,
             pretrained_cellpose_model_path,
             gpu,
-            unet_model,
-            star_model,
-            roi_model,
+            unet_model_nuclei,
+            star_model_nuclei,
+            roi_model_nuclei,
+            unet_model_membrane,
+            star_model_membrane,
             ExpandLabels,
             axes,
             noise_model,
-            prob_thresh,
-            nms_thresh,
+            prob_thresh_nuclei,
+            nms_thresh_nuclei,
+            prob_thresh_membrane,
+            nms_thresh_membrane,
             donormalize,
             n_tiles,
             UseProbability,
@@ -2844,7 +2773,9 @@ def VollCellSeg(
 
     cellpose_labels = np.asarray(cellpose_labels)
     cellpose_labels = CleanCellPose(
-        cellpose_mask=cellpose_labels, nms_thresh=nms_thresh, z_thresh=z_thresh
+        cellpose_mask=cellpose_labels,
+        nms_thresh=nms_thresh_membrane,
+        z_thresh=z_thresh,
     )
     if "T" in axes:
         for i in range(cellpose_labels.shape[0]):
@@ -2870,8 +2801,8 @@ def VollCellSeg(
     cellpose_labels_copy = cellpose_labels.copy()
     if (
         noise_model is None
-        and star_model is not None
-        and roi_model is not None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is not None
         and cellpose_model is None
     ):
         (
@@ -2886,8 +2817,8 @@ def VollCellSeg(
 
     if (
         noise_model is None
-        and star_model is not None
-        and roi_model is not None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is not None
         and cellpose_model is not None
     ):
         (
@@ -2911,14 +2842,14 @@ def VollCellSeg(
             sized_smart_seeds,
             flows,
             cellpose_labels_copy,
-            nms_thresh,
+            nms_thresh_membrane,
             z_thresh=z_thresh,
         )
 
     if (
         noise_model is None
-        and star_model is not None
-        and roi_model is None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is None
         and cellpose_model is None
     ):
         (
@@ -2932,8 +2863,8 @@ def VollCellSeg(
 
     if (
         noise_model is None
-        and star_model is not None
-        and roi_model is None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is None
         and cellpose_model is not None
     ):
         (
@@ -2955,14 +2886,14 @@ def VollCellSeg(
             sized_smart_seeds,
             flows,
             cellpose_labels_copy,
-            nms_thresh,
+            nms_thresh_membrane,
             z_thresh=z_thresh,
         )
 
     if (
         noise_model is not None
-        and star_model is not None
-        and roi_model is not None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is not None
         and cellpose_model is None
     ):
         (
@@ -2978,8 +2909,8 @@ def VollCellSeg(
 
     if (
         noise_model is not None
-        and star_model is not None
-        and roi_model is not None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is not None
         and cellpose_model is not None
     ):
         (
@@ -3005,14 +2936,14 @@ def VollCellSeg(
             sized_smart_seeds,
             flows,
             cellpose_labels_copy,
-            nms_thresh,
+            nms_thresh_membrane,
             z_thresh=z_thresh,
         )
 
     if (
         noise_model is not None
-        and star_model is not None
-        and roi_model is None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is None
         and cellpose_model is not None
     ):
         (
@@ -3045,14 +2976,14 @@ def VollCellSeg(
             sized_smart_seeds,
             flows,
             cellpose_labels_copy,
-            nms_thresh,
+            nms_thresh_membrane,
             z_thresh=z_thresh,
         )
 
     if (
         noise_model is None
-        and star_model is not None
-        and roi_model is not None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is not None
         and cellpose_model is not None
     ):
 
@@ -3077,24 +3008,24 @@ def VollCellSeg(
             sized_smart_seeds,
             flows,
             cellpose_labels_copy,
-            nms_thresh,
+            nms_thresh_membrane,
             z_thresh=z_thresh,
         )
 
     elif (
         noise_model is not None
-        and star_model is None
-        and roi_model is None
-        and unet_model is None
+        and star_model_nuclei is None
+        and roi_model_nuclei is None
+        and unet_model_nuclei is None
         and cellpose_model is not None
     ):
 
         instance_labels, skeleton, image = res
 
     elif (
-        star_model is None
-        and roi_model is None
-        and unet_model is not None
+        star_model_nuclei is None
+        and roi_model_nuclei is None
+        and unet_model_nuclei is not None
         and noise_model is not None
         and cellpose_model is not None
     ):
@@ -3102,9 +3033,9 @@ def VollCellSeg(
         instance_labels, skeleton, image = res
 
     elif (
-        star_model is None
-        and roi_model is not None
-        and unet_model is not None
+        star_model_nuclei is None
+        and roi_model_nuclei is not None
+        and unet_model_nuclei is not None
         and noise_model is not None
         and cellpose_model is not None
     ):
@@ -3112,9 +3043,9 @@ def VollCellSeg(
         instance_labels, skeleton, image = res
 
     elif (
-        star_model is None
-        and roi_model is None
-        and unet_model is not None
+        star_model_nuclei is None
+        and roi_model_nuclei is None
+        and unet_model_nuclei is not None
         and noise_model is None
         and cellpose_model is not None
     ):
@@ -3122,9 +3053,9 @@ def VollCellSeg(
         instance_labels, skeleton, image = res
 
     elif (
-        star_model is None
-        and roi_model is not None
-        and unet_model is None
+        star_model_nuclei is None
+        and roi_model_nuclei is not None
+        and unet_model_nuclei is None
         and noise_model is None
         and cellpose_model is not None
     ):
@@ -3133,9 +3064,9 @@ def VollCellSeg(
         instance_labels = roi_image
 
     elif (
-        star_model is None
-        and roi_model is not None
-        and unet_model is None
+        star_model_nuclei is None
+        and roi_model_nuclei is not None
+        and unet_model_nuclei is None
         and noise_model is not None
         and cellpose_model is not None
     ):
@@ -3144,9 +3075,9 @@ def VollCellSeg(
         instance_labels = roi_image
 
     elif (
-        star_model is None
-        and roi_model is not None
-        and unet_model is not None
+        star_model_nuclei is None
+        and roi_model_nuclei is not None
+        and unet_model_nuclei is not None
         and noise_model is None
         and cellpose_model is not None
     ):
@@ -3172,7 +3103,7 @@ def VollCellSeg(
                 (vollcellpose_results + Name + ".tif"),
                 np.asarray(voll_cell_seg).astype("uint16"),
             )
-            if star_model is not None:
+            if star_model_nuclei is not None:
                 probability_membrane_results = (
                     save_dir + "Probability_membrane_cellpose/"
                 )
@@ -3182,7 +3113,7 @@ def VollCellSeg(
                     np.asarray(voll_cell_prob).astype("float32"),
                 )
 
-        if roi_model is not None:
+        if roi_model_nuclei is not None:
             roi_results = save_dir + "Roi/"
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
@@ -3190,7 +3121,7 @@ def VollCellSeg(
                 np.asarray(roi_image).astype("uint16"),
             )
 
-        if unet_model is not None:
+        if unet_model_nuclei is not None:
             unet_results = save_dir + "BinaryMask/"
             skel_unet_results = save_dir + "skeleton/"
             Path(unet_results).mkdir(exist_ok=True)
@@ -3204,7 +3135,7 @@ def VollCellSeg(
                 (skel_unet_results + Name + ".tif"),
                 np.asarray(skeleton).astype("uint16"),
             )
-        if star_model is not None:
+        if star_model_nuclei is not None:
             vollseg_results = save_dir + "VollSeg/"
             stardist_results = save_dir + "StarDist/"
             probability_results = save_dir + "Probability/"
@@ -3243,8 +3174,8 @@ def VollCellSeg(
     # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
     if (
         noise_model is None
-        and star_model is not None
-        and roi_model is not None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is not None
         and cellpose_model is None
     ):
 
@@ -3260,8 +3191,8 @@ def VollCellSeg(
 
     if (
         noise_model is None
-        and star_model is not None
-        and roi_model is not None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is not None
         and cellpose_model is not None
     ):
 
@@ -3279,8 +3210,8 @@ def VollCellSeg(
 
     elif (
         noise_model is None
-        and star_model is not None
-        and roi_model is None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is None
         and cellpose_model is None
     ):
 
@@ -3295,8 +3226,8 @@ def VollCellSeg(
 
     elif (
         noise_model is None
-        and star_model is not None
-        and roi_model is None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is None
         and cellpose_model is not None
     ):
 
@@ -3314,8 +3245,8 @@ def VollCellSeg(
     # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
     elif (
         noise_model is not None
-        and star_model is not None
-        and roi_model is not None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is not None
         and cellpose_model is None
     ):
 
@@ -3332,8 +3263,8 @@ def VollCellSeg(
 
     elif (
         noise_model is not None
-        and star_model is not None
-        and roi_model is not None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is not None
         and cellpose_model is not None
     ):
 
@@ -3352,8 +3283,8 @@ def VollCellSeg(
 
     elif (
         noise_model is not None
-        and star_model is not None
-        and roi_model is None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is None
         and cellpose_model is None
     ):
 
@@ -3369,8 +3300,8 @@ def VollCellSeg(
 
     elif (
         noise_model is not None
-        and star_model is not None
-        and roi_model is None
+        and star_model_nuclei is not None
+        and roi_model_nuclei is None
         and cellpose_model is not None
     ):
 
@@ -3388,8 +3319,8 @@ def VollCellSeg(
 
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
     elif (
-        star_model is None
-        and roi_model is not None
+        star_model_nuclei is None
+        and roi_model_nuclei is not None
         and noise_model is not None
         and cellpose_model is None
     ):
@@ -3397,8 +3328,8 @@ def VollCellSeg(
         return instance_labels, skeleton, image
 
     elif (
-        star_model is None
-        and roi_model is not None
+        star_model_nuclei is None
+        and roi_model_nuclei is not None
         and noise_model is None
         and cellpose_model is None
     ):
@@ -3406,8 +3337,8 @@ def VollCellSeg(
         return roi_image.astype("uint16"), skeleton, image
 
     elif (
-        star_model is None
-        and roi_model is not None
+        star_model_nuclei is None
+        and roi_model_nuclei is not None
         and noise_model is not None
         and cellpose_model is None
     ):
@@ -3416,19 +3347,19 @@ def VollCellSeg(
 
     elif (
         noise_model is not None
-        and star_model is None
-        and roi_model is None
-        and unet_model is None
+        and star_model_nuclei is None
+        and roi_model_nuclei is None
+        and unet_model_nuclei is None
         and cellpose_model is None
     ):
 
         return instance_labels, skeleton, image
 
     elif (
-        star_model is None
-        and roi_model is None
+        star_model_nuclei is None
+        and roi_model_nuclei is None
         and noise_model is None
-        and unet_model is not None
+        and unet_model_nuclei is not None
         and cellpose_model is None
     ):
 
@@ -4582,7 +4513,6 @@ def SuperVollSeg3D(
     lower_perc: float = 1,
     upper_perc: float = 99.8,
     slice_merge: bool = False,
-    iou_threshold: float = 0.3,
 ):
 
     print("Generating VollSeg results")
@@ -4749,7 +4679,7 @@ def SuperVollSeg3D(
                 unet_model_nuclei,
                 n_tiles,
                 axes,
-                iou_threshold=iou_threshold,
+                iou_threshold=nms_thresh_nuclei,
                 slice_merge=slice_merge,
                 ExpandLabels=ExpandLabels,
             )
@@ -4766,7 +4696,8 @@ def SuperVollSeg3D(
             )
             if slice_merge:
                 Mask_nuclei = match_labels(
-                    Mask_nuclei.astype("uint16"), iou_threshold=iou_threshold
+                    Mask_nuclei.astype("uint16"),
+                    iou_threshold=nms_thresh_nuclei,
                 )
             else:
                 Mask_nuclei = label(Mask_nuclei > 0)
@@ -4783,7 +4714,7 @@ def SuperVollSeg3D(
                 unet_model_membrane,
                 n_tiles,
                 axes,
-                iou_threshold=iou_threshold,
+                iou_threshold=nms_thresh_membrane,
                 slice_merge=slice_merge,
                 ExpandLabels=ExpandLabels,
             )
@@ -4800,7 +4731,8 @@ def SuperVollSeg3D(
             )
             if slice_merge:
                 Mask_membrane = match_labels(
-                    Mask_membrane.astype("uint16"), iou_threshold=iou_threshold
+                    Mask_membrane.astype("uint16"),
+                    iou_threshold=nms_thresh_membrane,
                 )
             else:
                 Mask_membrane = label(Mask_membrane > 0)
@@ -4834,7 +4766,7 @@ def SuperVollSeg3D(
             )
         if slice_merge:
             Mask_nuclei = match_labels(
-                Mask_nuclei, iou_threshold=iou_threshold
+                Mask_nuclei, iou_threshold=nms_thresh_nuclei
             )
         else:
             Mask_nuclei = label(Mask_nuclei > 0)
@@ -4872,7 +4804,7 @@ def SuperVollSeg3D(
             )
         if slice_merge:
             Mask_membrane = match_labels(
-                Mask_membrane, iou_threshold=iou_threshold
+                Mask_membrane, iou_threshold=nms_thresh_membrane
             )
         else:
             Mask_membrane = label(Mask_membrane > 0)
