@@ -41,7 +41,12 @@ from skimage.morphology import (
     skeletonize,
     square,
 )
-from skimage.segmentation import find_boundaries, relabel_sequential, watershed
+from skimage.segmentation import (
+    find_boundaries,
+    relabel_sequential,
+    watershed,
+    join_segmentations,
+)
 from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
 from tqdm import tqdm
@@ -4454,7 +4459,9 @@ def VollSam(
         output_mode=output_mode,
     )
     if len(image.shape) == 2:
-        instance_labels_nuclei = mask_generator.generate(image)
+        instance_labels_nuclei = VollSam2D(
+            mask_generator.generate(image), mask_generator, min_size, max_size
+        )
 
         instance_labels_nuclei = remove_small_objects(
             instance_labels_nuclei.astype("uint16"), min_size=min_size
@@ -4558,16 +4565,45 @@ def VollSamZ(
     return merged_instance_labels
 
 
+def VollSam2D(
+    image: np.ndarray,
+    mask_generator: SamAutomaticMaskGenerator,
+    min_size: int,
+    max_size: int,
+):
+
+    channel_image = image
+    channel_image = normalizeFloatZeroOne(channel_image)
+    channel_image = cv2.cvtColor(channel_image, cv2.COLOR_GRAY2RGB)
+    channel_image = channel_image * 255
+
+    instance_labels_currentz = return_masks(
+        mask_generator.generate(channel_image.astype(np.uint8))
+    )
+    instance_labels_currentz = remove_small_objects(
+        instance_labels_currentz.astype("uint16"), min_size=min_size
+    )
+    instance_labels_currentz = remove_big_objects(
+        instance_labels_currentz.astype("uint16"), max_size=max_size
+    )
+
+    return instance_labels_currentz
+
+
 def return_masks(instance_labels):
 
-    for ann in instance_labels:
-        m = ann["segmentation"]
-        img = np.ones((m.shape[0], m.shape[1], 3))
-        color_mask = np.random.random((1, 3)).tolist()[0]
-        for i in range(3):
-            img[:, :, i] = color_mask[i]
+    segmentation_image = instance_labels[0]["segmentation"].astype("uint16")
+    segmentation_image[np.where(segmentation_image > 0)] = 2
+    for i in range(1, len(instance_labels)):
+        m = instance_labels[i]["segmentation"].astype("uint16")
+        m[np.where(m > 0)] = 2 + i
 
-    return img[:, :, 0]
+        segmentation_image = join_segmentations(segmentation_image, m)
+        segmentation_image, _, _ = relabel_sequential(
+            segmentation_image, offset=segmentation_image.max()
+        )
+
+    return segmentation_image
 
 
 def SuperVollSeg3D(
