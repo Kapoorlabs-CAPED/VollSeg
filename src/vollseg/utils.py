@@ -4465,7 +4465,7 @@ def VollSam(
         instance_labels_membrane = instance_labels_nuclei
 
     if len(image.shape) == 3 and "T" not in axes:
-        instance_labels_nuclei = VollSamSpace(
+        instance_labels_nuclei = VollSamZ(
             image, mask_generator, min_size, max_size
         )
         instance_labels_membrane = instance_labels_nuclei
@@ -4474,11 +4474,11 @@ def VollSam(
         image_membrane = image[:, channel_membrane, :, :]
         image_nuclei = image[:, channel_nuclei, :, :]
 
-        instance_labels_nuclei = VollSamSpace(
+        instance_labels_nuclei = VollSamZ(
             image_nuclei, mask_generator, min_size, max_size
         )
 
-        instance_labels_membrane = VollSamSpace(
+        instance_labels_membrane = VollSamZ(
             image_membrane, mask_generator, min_size, max_size
         )
 
@@ -4490,7 +4490,7 @@ def VollSam(
         instance_labels_nuclei = tuple(
             zip(
                 *tuple(
-                    VollSamTime(_x, mask_generator, min_size, max_size)
+                    VollSamZ(_x, mask_generator, min_size, max_size)
                     for _x in tqdm(image_nuclei)
                 )
             )
@@ -4499,7 +4499,7 @@ def VollSam(
         instance_labels_membrane = tuple(
             zip(
                 *tuple(
-                    VollSamTime(_x, mask_generator, min_size, max_size)
+                    VollSamZ(_x, mask_generator, min_size, max_size)
                     for _x in tqdm(image_membrane)
                 )
             )
@@ -4525,7 +4525,7 @@ def VollSam(
     return instance_labels_nuclei, instance_labels_membrane
 
 
-def VollSamTime(
+def VollSamZ(
     image: np.ndarray,
     mask_generator: SamAutomaticMaskGenerator,
     min_size: int,
@@ -4533,7 +4533,10 @@ def VollSamTime(
 ):
 
     for i in range(image.shape[0]):
-        instance_labels_currentz = mask_generator.generate(image[i, ...])
+        channel_image = image[i, ...]
+        instance_labels_currentz = mask_generator.generate(
+            channel_image[..., np.newaxis]
+        )
         instance_labels_currentz = remove_small_objects(
             instance_labels_currentz.astype("uint16"), min_size=min_size
         )
@@ -4546,24 +4549,6 @@ def VollSamTime(
     )
 
     return merged_instance_labels
-
-
-def VollSamSpace(
-    image: np.ndarray,
-    mask_generator: SamAutomaticMaskGenerator,
-    min_size: int,
-    max_size: int,
-):
-
-    instance_labels = mask_generator.generate(image)
-    instance_labels = remove_small_objects(
-        instance_labels.astype("uint16"), min_size=min_size
-    )
-    instance_labels = remove_big_objects(
-        instance_labels.astype("uint16"), max_size=max_size
-    )
-
-    return instance_labels
 
 
 def SuperVollSeg3D(
