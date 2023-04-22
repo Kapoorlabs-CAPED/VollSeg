@@ -10,7 +10,9 @@ _dir = path.dirname(__file__)
 
 with open("README.md") as f:
     long_description = f.read()
-with open(path.join(_dir, "src/vollseg", "_version.py"), encoding="utf-8") as f:
+with open(
+    path.join(_dir, "src/vollseg", "_version.py"), encoding="utf-8"
+) as f:
     exec(f.read())
 
 setup(
@@ -18,8 +20,9 @@ setup(
     version=__version__,
     author="Varun Kapoor,Claudia Carabana Garcia,Mari Tolonen",
     author_email="randomaccessiblekapoor@gmail.com",
-    url="https://github.com/kapoorlab/vollseg/",
-    description="Segmentation tool for biological cells of irregular size and shape in 3D and 2D.",
+    url="https://github.com/Kapoorlabs-CAPED/VollSeg/",
+    description="Segmentation tool for biological cells of irregular size and shape in 3D and 2D, using \
+    StarDist, U-NET, CARE, CellPose and SAM",
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=[
@@ -33,6 +36,7 @@ setup(
         "torch",
         "test_tube",
         "lightning",
+        "transformers@git+https://github.com/huggingface/transformers.git",
     ],
     packages=find_packages(),
     classifiers=[

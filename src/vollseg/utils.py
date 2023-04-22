@@ -4948,6 +4948,7 @@ def SuperVollSeg3D(
             instance_labels_nuclei.astype("uint16"),
             skeleton_nuclei,
             image_nuclei,
+            roi_image.astype("uint16"),
         )
 
     if (
@@ -4956,6 +4957,7 @@ def SuperVollSeg3D(
         and star_model_nuclei is None
         and unet_model_nuclei is None
         and star_model_membrane is None
+        and unet_model_membrane is None
     ):
         return (
             instance_labels_nuclei.astype("uint16"),
@@ -4969,11 +4971,187 @@ def SuperVollSeg3D(
         and star_model_nuclei is None
         and unet_model_nuclei is not None
         and star_model_membrane is None
+        and unet_model_membrane is None
     ):
         return (
             instance_labels_nuclei.astype("uint16"),
             skeleton_nuclei,
             image_nuclei,
+        )
+
+    if (
+        noise_model is None
+        and roi_image is not None
+        and star_model_membrane is not None
+        and star_model_nuclei is None
+    ):
+        return (
+            sized_smart_seeds_membrane.astype("uint16"),
+            instance_labels_membrane.astype("uint16"),
+            star_labels_membrane.astype("uint16"),
+            sized_probability_map_membrane,
+            markers_membrane.astype("uint16"),
+            skeleton_membrane.astype("uint16"),
+            roi_image.astype("uint16"),
+        )
+    if (
+        noise_model is None
+        and roi_image is None
+        and star_model_membrane is not None
+        and star_model_nuclei is None
+    ):
+        return (
+            sized_smart_seeds_membrane.astype("uint16"),
+            instance_labels_membrane.astype("uint16"),
+            star_labels_membrane.astype("uint16"),
+            sized_probability_map_membrane,
+            markers_membrane.astype("uint16"),
+            skeleton_membrane.astype("uint16"),
+        )
+    if (
+        noise_model is not None
+        and roi_image is None
+        and star_model_membrane is not None
+        and star_model_nuclei is None
+    ):
+        return (
+            sized_smart_seeds_membrane.astype("uint16"),
+            instance_labels_membrane.astype("uint16"),
+            star_labels_membrane.astype("uint16"),
+            sized_probability_map_membrane,
+            markers_membrane.astype("uint16"),
+            skeleton_membrane.astype("uint16"),
+            image_membrane,
+        )
+    if (
+        noise_model is not None
+        and roi_image is not None
+        and star_model_membrane is not None
+        and star_model_nuclei is None
+    ):
+        return (
+            sized_smart_seeds_membrane.astype("uint16"),
+            instance_labels_membrane.astype("uint16"),
+            star_labels_membrane.astype("uint16"),
+            sized_probability_map_membrane,
+            markers_membrane.astype("uint16"),
+            skeleton_membrane.astype("uint16"),
+            image_membrane,
+            roi_image.astype("uint16"),
+        )
+
+    if (
+        noise_model is None
+        and roi_image is None
+        and star_model_membrane is None
+        and unet_model_nuclei is None
+        and unet_model_membrane is not None
+        and star_model_nuclei is None
+    ):
+        return (
+            instance_labels_membrane.astype("uint16"),
+            skeleton_membrane,
+            image_membrane,
+        )
+
+    if (
+        noise_model is None
+        and roi_image is not None
+        and star_model_membrane is not None
+        and star_model_nuclei is not None
+    ):
+        return (
+            sized_smart_seeds_nuclei.astype("uint16"),
+            instance_labels_nuclei.astype("uint16"),
+            star_labels_nuclei.astype("uint16"),
+            sized_probability_map_nuclei,
+            markers_nuclei.astype("uint16"),
+            skeleton_nuclei.astype("uint16"),
+            sized_smart_seeds_membrane.astype("uint16"),
+            instance_labels_membrane.astype("uint16"),
+            star_labels_membrane.astype("uint16"),
+            sized_probability_map_membrane,
+            markers_membrane.astype("uint16"),
+            skeleton_membrane.astype("uint16"),
+            roi_image.astype("uint16"),
+        )
+    if (
+        noise_model is None
+        and roi_image is None
+        and star_model_membrane is not None
+        and star_model_nuclei is not None
+    ):
+        return (
+            sized_smart_seeds_nuclei.astype("uint16"),
+            instance_labels_nuclei.astype("uint16"),
+            star_labels_nuclei.astype("uint16"),
+            sized_probability_map_nuclei,
+            markers_nuclei.astype("uint16"),
+            skeleton_nuclei.astype("uint16"),
+            sized_smart_seeds_membrane.astype("uint16"),
+            instance_labels_membrane.astype("uint16"),
+            star_labels_membrane.astype("uint16"),
+            sized_probability_map_membrane,
+            markers_membrane.astype("uint16"),
+            skeleton_membrane.astype("uint16"),
+        )
+    if (
+        noise_model is not None
+        and roi_image is None
+        and star_model_membrane is not None
+        and star_model_nuclei is not None
+    ):
+        return (
+            sized_smart_seeds_nuclei.astype("uint16"),
+            instance_labels_nuclei.astype("uint16"),
+            star_labels_nuclei.astype("uint16"),
+            sized_probability_map_nuclei,
+            markers_nuclei.astype("uint16"),
+            skeleton_nuclei.astype("uint16"),
+            image_nuclei,
+            sized_smart_seeds_membrane.astype("uint16"),
+            instance_labels_membrane.astype("uint16"),
+            star_labels_membrane.astype("uint16"),
+            sized_probability_map_membrane,
+            markers_membrane.astype("uint16"),
+            skeleton_membrane.astype("uint16"),
+        )
+    if (
+        noise_model is not None
+        and roi_image is not None
+        and star_model_membrane is not None
+        and star_model_nuclei is not None
+    ):
+        return (
+            sized_smart_seeds_nuclei.astype("uint16"),
+            instance_labels_nuclei.astype("uint16"),
+            star_labels_nuclei.astype("uint16"),
+            sized_probability_map_nuclei,
+            markers_nuclei.astype("uint16"),
+            skeleton_nuclei.astype("uint16"),
+            image_nuclei,
+            sized_smart_seeds_membrane.astype("uint16"),
+            instance_labels_membrane.astype("uint16"),
+            star_labels_membrane.astype("uint16"),
+            sized_probability_map_membrane,
+            markers_membrane.astype("uint16"),
+            skeleton_membrane.astype("uint16"),
+            roi_image.astype("uint16"),
+        )
+
+    if (
+        noise_model is None
+        and roi_image is None
+        and star_model_membrane is None
+        and unet_model_membrane is not None
+        and unet_model_nuclei is not None
+        and star_model_nuclei is None
+    ):
+        return (
+            instance_labels_nuclei.astype("uint16"),
+            skeleton_nuclei,
+            instance_labels_membrane.astype("uint16"),
+            skeleton_membrane,
         )
 
 
