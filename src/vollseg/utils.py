@@ -257,8 +257,10 @@ def dilate_label_holes(lbl_img, iterations):
     return lbl_img_filled
 
 
-def match_labels(ys, iou_threshold=0.5):
+def match_labels(ys, nms_thresh=0.5):
 
+    if nms_thresh is None:
+        nms_thresh = 0.3
     ys = np.asarray(ys)
     if ys.model_dim not in (3, 4):
         raise ValueError("label image y should be 3 or 4 dimensional!")
@@ -269,7 +271,7 @@ def match_labels(ys, iou_threshold=0.5):
         pairs = tuple(
             p
             for p, s in zip(res.matched_pairs, res.matched_scores)
-            if s >= iou_threshold
+            if s >= nms_thresh
         )
         map_dict = {i2: i1 for i1, i2 in pairs}
 
@@ -768,7 +770,7 @@ def VollSeg_unet(
     min_size_mask=100,
     max_size=10000000,
     RGB=False,
-    iou_threshold=0.3,
+    nms_thresh=0.3,
     slice_merge=False,
     dounet=True,
     erosion_iterations=15,
@@ -843,7 +845,7 @@ def VollSeg_unet(
             for i in range(image.shape[0]):
                 Binary[i] = label(Binary[i])
 
-            Binary = match_labels(Binary, iou_threshold=iou_threshold)
+            Binary = match_labels(Binary, nms_thresh=nms_thresh)
             Binary = fill_label_holes(Binary)
 
         if model_dim == 3:
@@ -939,7 +941,7 @@ def VollSeg_unet(
                 for i in range(image.shape[0]):
                     Binary[i] = label(Binary[i])
 
-                Binary = match_labels(Binary, iou_threshold=iou_threshold)
+                Binary = match_labels(Binary, nms_thresh=nms_thresh)
                 Binary = fill_label_holes(Binary)
                 for i in range(image.shape[0]):
                     Binary[i] = remove_small_objects(
@@ -1104,6 +1106,81 @@ def _cellpose_time_block(
     return cellres
 
 
+def _super_star_time_block(
+    image_nuclei,
+    image_membrane,
+    unet_model_nuclei,
+    unet_model_membrane,
+    star_model_nuclei,
+    star_model_membrane,
+    axes,
+    noise_model,
+    roi_model_nuclei,
+    prob_thresh_nuclei,
+    nms_thresh_nuclei,
+    prob_thresh_membrane,
+    nms_thresh_membrane,
+    min_size_mask,
+    min_size,
+    max_size,
+    n_tiles,
+    UseProbability,
+    ExpandLabels,
+    dounet,
+    seedpool,
+    donormalize,
+    lower_perc,
+    upper_perc,
+    slice_merge,
+):
+
+    if star_model_nuclei is not None or star_model_membrane is not None:
+        if "T" in axes:
+            axes = axes.replace("T", "")
+        if prob_thresh_nuclei is None and nms_thresh_nuclei is None:
+            prob_thresh_nuclei = star_model_nuclei.thresholds.prob
+            nms_thresh_nuclei = star_model_nuclei.thresholds.nms
+        if prob_thresh_membrane is None and nms_thresh_membrane is None:
+            prob_thresh_membrane = star_model_membrane.thresholds.prob
+            nms_thresh_membrane = star_model_membrane.thresholds.nms
+        res = tuple(
+            zip(
+                *tuple(
+                    SuperVollSeg3D(
+                        image_nuclei[i, ...],
+                        image_membrane[i, ...],
+                        unet_model_nuclei,
+                        unet_model_membrane,
+                        star_model_nuclei,
+                        star_model_membrane,
+                        axes=axes,
+                        noise_model=noise_model,
+                        roi_model_nuclei=roi_model_nuclei,
+                        prob_thresh_nuclei=prob_thresh_nuclei,
+                        nms_thresh_nuclei=nms_thresh_nuclei,
+                        prob_thresh_membrane=prob_thresh_membrane,
+                        nms_thresh_membrane=nms_thresh_membrane,
+                        min_size_mask=min_size_mask,
+                        min_size=min_size,
+                        max_size=max_size,
+                        n_tiles=n_tiles,
+                        UseProbability=UseProbability,
+                        ExpandLabels=ExpandLabels,
+                        dounet=dounet,
+                        seedpool=seedpool,
+                        donormalize=donormalize,
+                        lower_perc=lower_perc,
+                        upper_perc=upper_perc,
+                        slice_merge=slice_merge,
+                    )
+                    for i in tqdm(range(image_nuclei.shape[0]))
+                )
+            )
+        )
+
+    return res
+
+
 def _star_time_block(
     image_nuclei,
     unet_model,
@@ -1120,7 +1197,6 @@ def _star_time_block(
     dounet,
     seedpool,
     slice_merge,
-    iou_threshold,
     lower_perc,
     upper_perc,
     min_size_mask,
@@ -1158,7 +1234,6 @@ def _star_time_block(
                         dounet=dounet,
                         seedpool=seedpool,
                         slice_merge=slice_merge,
-                        iou_threshold=iou_threshold,
                     )
                     for i in tqdm(range(image_nuclei.shape[0]))
                 )
@@ -1185,20 +1260,23 @@ def _cellpose_3D_star_time_block(
     num_levels,
     overlap,
     crop,
-    unet_model,
-    star_model,
-    roi_model,
+    unet_model_nuclei,
+    star_model_nuclei,
+    roi_model_nuclei,
+    unet_model_membrane,
+    star_model_membrane,
     ExpandLabels,
     axes,
     noise_model,
-    prob_thresh,
-    nms_thresh,
+    prob_thresh_nuclei,
+    nms_thresh_nuclei,
+    prob_thresh_membrane,
+    nms_thresh_membrane,
     donormalize,
     n_tiles,
     UseProbability,
     dounet,
     seedpool,
-    iou_threshold,
     lower_perc,
     upper_perc,
     min_size_mask,
@@ -1214,27 +1292,27 @@ def _cellpose_3D_star_time_block(
 
         futures.append(
             executor.submit(
-                _star_time_block,
-                image_nuclei,
-                unet_model,
-                star_model,
-                roi_model,
-                ExpandLabels,
-                axes,
-                noise_model,
-                prob_thresh,
-                nms_thresh,
-                donormalize,
-                n_tiles,
-                UseProbability,
-                dounet,
-                seedpool,
-                iou_threshold,
-                lower_perc,
-                upper_perc,
-                min_size_mask,
-                min_size,
-                max_size,
+                _star_time_block(
+                    image_nuclei,
+                    unet_model_nuclei,
+                    star_model_nuclei,
+                    roi_model_nuclei,
+                    ExpandLabels,
+                    axes,
+                    noise_model,
+                    prob_thresh_nuclei,
+                    nms_thresh_nuclei,
+                    donormalize,
+                    n_tiles,
+                    UseProbability,
+                    dounet,
+                    seedpool,
+                    lower_perc,
+                    upper_perc,
+                    min_size_mask,
+                    min_size,
+                    max_size,
+                )
             )
         )
 
@@ -1279,21 +1357,24 @@ def _cellpose_star_time_block(
     anisotropy,
     pretrained_cellpose_model_path,
     gpu,
-    unet_model,
-    star_model,
-    roi_model,
+    unet_model_nuclei,
+    star_model_nuclei,
+    roi_model_nuclei,
+    unet_model_membrane,
+    star_model_membrane,
     ExpandLabels,
     axes,
     noise_model,
-    prob_thresh,
-    nms_thresh,
+    prob_thresh_nuclei,
+    nms_thresh_nuclei,
+    prob_thresh_membrane,
+    nms_thresh_membrane,
     donormalize,
     n_tiles,
     UseProbability,
     dounet,
     seedpool,
     slice_merge,
-    iou_threshold,
     lower_perc,
     upper_perc,
     min_size_mask,
@@ -1310,28 +1391,33 @@ def _cellpose_star_time_block(
 
         futures.append(
             executor.submit(
-                _star_time_block,
-                image_nuclei,
-                unet_model,
-                star_model,
-                roi_model,
-                ExpandLabels,
-                axes,
-                noise_model,
-                prob_thresh,
-                nms_thresh,
-                donormalize,
-                n_tiles,
-                UseProbability,
-                dounet,
-                seedpool,
-                slice_merge,
-                iou_threshold,
-                lower_perc,
-                upper_perc,
-                min_size_mask,
-                min_size,
-                max_size,
+                _super_star_time_block(
+                    image_nuclei,
+                    image_membrane,
+                    unet_model_nuclei,
+                    unet_model_membrane,
+                    star_model_nuclei,
+                    star_model_membrane,
+                    axes,
+                    noise_model,
+                    roi_model_nuclei,
+                    prob_thresh_nuclei,
+                    nms_thresh_nuclei,
+                    prob_thresh_membrane,
+                    nms_thresh_membrane,
+                    min_size_mask,
+                    min_size,
+                    max_size,
+                    n_tiles,
+                    UseProbability,
+                    ExpandLabels,
+                    dounet,
+                    seedpool,
+                    donormalize,
+                    lower_perc,
+                    upper_perc,
+                    slice_merge,
+                )
             )
         )
 
@@ -1544,7 +1630,6 @@ def VollCellPose3D(
     seedpool: bool = True,
     save_dir: str = None,
     Name: str = "Result",
-    iou_threshold: float = 0.3,
     z_thresh: int = 2,
 ):
 
@@ -1587,7 +1672,6 @@ def VollCellPose3D(
             UseProbability,
             dounet,
             seedpool,
-            iou_threshold,
             lower_perc,
             upper_perc,
             min_size_mask,
@@ -1629,7 +1713,6 @@ def VollCellPose3D(
             UseProbability,
             dounet,
             seedpool,
-            iou_threshold,
             lower_perc,
             upper_perc,
             min_size_mask,
@@ -1673,7 +1756,6 @@ def VollCellPose3D(
             UseProbability,
             dounet,
             seedpool,
-            iou_threshold,
             lower_perc,
             upper_perc,
             min_size_mask,
@@ -2394,7 +2476,6 @@ def _cellpose_3D_star_block(
     UseProbability,
     dounet,
     seedpool,
-    iou_threshold,
     lower_perc,
     upper_perc,
     min_size_mask,
@@ -2428,7 +2509,6 @@ def _cellpose_3D_star_block(
             dounet=dounet,
             seedpool=seedpool,
             slice_merge=False,
-            iou_threshold=iou_threshold,
         )
 
     if cellpose_model_3D_pretrained_file is not None:
@@ -2621,7 +2701,6 @@ def VollCellSeg(
     save_dir: str = None,
     Name: str = "Result",
     slice_merge: bool = False,
-    iou_threshold: float = 0.3,
     do_3D: bool = False,
     z_thresh: int = 2,
 ):
@@ -2713,7 +2792,6 @@ def VollCellSeg(
             dounet,
             seedpool,
             slice_merge,
-            iou_threshold,
             lower_perc,
             upper_perc,
             min_size_mask,
@@ -2759,7 +2837,6 @@ def VollCellSeg(
             dounet,
             seedpool,
             slice_merge,
-            iou_threshold,
             lower_perc,
             upper_perc,
             min_size_mask,
@@ -3463,7 +3540,6 @@ def VollSeg(
     save_dir=None,
     Name="Result",
     slice_merge=False,
-    iou_threshold=0.3,
     RGB=False,
 ):
 
@@ -3512,7 +3588,6 @@ def VollSeg(
                 max_size=max_size,
                 noise_model=noise_model,
                 RGB=RGB,
-                iou_threshold=iou_threshold,
                 slice_merge=slice_merge,
                 dounet=dounet,
             )
@@ -3540,7 +3615,6 @@ def VollSeg(
                 dounet=dounet,
                 seedpool=seedpool,
                 slice_merge=slice_merge,
-                iou_threshold=iou_threshold,
             )
 
         # If there is no stardist model we use unet model with or without denoising model
@@ -3557,7 +3631,6 @@ def VollSeg(
                 max_size=max_size,
                 noise_model=noise_model,
                 RGB=RGB,
-                iou_threshold=iou_threshold,
                 slice_merge=slice_merge,
                 dounet=dounet,
             )
@@ -3599,7 +3672,6 @@ def VollSeg(
                 max_size=max_size,
                 noise_model=noise_model,
                 RGB=RGB,
-                iou_threshold=iou_threshold,
                 slice_merge=slice_merge,
                 dounet=dounet,
             )
@@ -3650,7 +3722,6 @@ def VollSeg(
                             axes=axes,
                             noise_model=noise_model,
                             RGB=RGB,
-                            iou_threshold=iou_threshold,
                             slice_merge=slice_merge,
                             dounet=dounet,
                         )
@@ -3686,7 +3757,6 @@ def VollSeg(
                         dounet=dounet,
                         seedpool=seedpool,
                         slice_merge=slice_merge,
-                        iou_threshold=iou_threshold,
                     )
                     for _x in tqdm(image)
                 )
@@ -4000,7 +4070,6 @@ def VollSeg3D(
     lower_perc=1,
     upper_perc=99.8,
     slice_merge=False,
-    iou_threshold=0.3,
 ):
 
     print("Generating VollSeg results")
@@ -4152,7 +4221,7 @@ def VollSeg3D(
                 unet_model,
                 n_tiles,
                 axes,
-                iou_threshold=iou_threshold,
+                nms_thresh=nms_thresh,
                 slice_merge=slice_merge,
                 ExpandLabels=ExpandLabels,
             )
@@ -4167,7 +4236,7 @@ def VollSeg3D(
             Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.uint8)
             if slice_merge:
                 Mask = match_labels(
-                    Mask.astype("uint16"), iou_threshold=iou_threshold
+                    Mask.astype("uint16"), nms_thresh=nms_thresh
                 )
             else:
                 Mask = label(Mask > 0)
@@ -4198,7 +4267,7 @@ def VollSeg3D(
                 Mask[i].astype("uint16"), max_size=max_size
             )
         if slice_merge:
-            Mask = match_labels(Mask, iou_threshold=iou_threshold)
+            Mask = match_labels(Mask, nms_thresh=nms_thresh)
         else:
             Mask = label(Mask > 0)
         Mask_patch = Mask.copy()
@@ -4683,7 +4752,7 @@ def SuperVollSeg3D(
                 unet_model_nuclei,
                 n_tiles,
                 axes,
-                iou_threshold=nms_thresh_nuclei,
+                nms_thresh=nms_thresh_nuclei,
                 slice_merge=slice_merge,
                 ExpandLabels=ExpandLabels,
             )
@@ -4701,7 +4770,7 @@ def SuperVollSeg3D(
             if slice_merge:
                 Mask_nuclei = match_labels(
                     Mask_nuclei.astype("uint16"),
-                    iou_threshold=nms_thresh_nuclei,
+                    nms_thresh=nms_thresh_nuclei,
                 )
             else:
                 Mask_nuclei = label(Mask_nuclei > 0)
@@ -4718,7 +4787,7 @@ def SuperVollSeg3D(
                 unet_model_membrane,
                 n_tiles,
                 axes,
-                iou_threshold=nms_thresh_membrane,
+                nms_thresh=nms_thresh_membrane,
                 slice_merge=slice_merge,
                 ExpandLabels=ExpandLabels,
             )
@@ -4736,7 +4805,7 @@ def SuperVollSeg3D(
             if slice_merge:
                 Mask_membrane = match_labels(
                     Mask_membrane.astype("uint16"),
-                    iou_threshold=nms_thresh_membrane,
+                    nms_thresh=nms_thresh_membrane,
                 )
             else:
                 Mask_membrane = label(Mask_membrane > 0)
@@ -4770,7 +4839,7 @@ def SuperVollSeg3D(
             )
         if slice_merge:
             Mask_nuclei = match_labels(
-                Mask_nuclei, iou_threshold=nms_thresh_nuclei
+                Mask_nuclei, nms_thresh=nms_thresh_nuclei
             )
         else:
             Mask_nuclei = label(Mask_nuclei > 0)
@@ -4808,7 +4877,7 @@ def SuperVollSeg3D(
             )
         if slice_merge:
             Mask_membrane = match_labels(
-                Mask_membrane, iou_threshold=nms_thresh_membrane
+                Mask_membrane, nms_thresh=nms_thresh_membrane
             )
         else:
             Mask_membrane = label(Mask_membrane > 0)
@@ -5469,7 +5538,7 @@ def UNETPrediction3D(
     model,
     n_tiles,
     axis,
-    iou_threshold=0.3,
+    nms_thresh=0.3,
     min_size_mask=10,
     max_size=100000,
     slice_merge=False,
@@ -5478,7 +5547,8 @@ def UNETPrediction3D(
 ):
 
     model_dim = model.config.n_dim
-
+    if nms_thresh is None:
+        nms_thresh = 0.3
     if model_dim < len(image.shape):
         Segmented = np.zeros_like(image)
 
@@ -5532,7 +5602,7 @@ def UNETPrediction3D(
         for i in range(image.shape[0]):
             Binary[i] = label(Binary[i])
 
-        Binary = match_labels(Binary, iou_threshold=iou_threshold)
+        Binary = match_labels(Binary, nms_thresh=nms_thresh)
         Binary = fill_label_holes(Binary)
 
     if model_dim == 3:
