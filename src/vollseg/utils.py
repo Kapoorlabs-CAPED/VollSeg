@@ -4470,7 +4470,7 @@ def VollSam(
         )
         instance_labels_membrane = instance_labels_nuclei
 
-    if len(image.shape) == 3 and "T" not in axes:
+    if len(image.shape) == 4 and "T" not in axes:
         image_membrane = image[:, channel_membrane, :, :]
         image_nuclei = image[:, channel_nuclei, :, :]
 
