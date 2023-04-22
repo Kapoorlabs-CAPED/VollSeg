@@ -4540,8 +4540,8 @@ def VollSamZ(
         channel_image = cv2.cvtColor(channel_image, cv2.COLOR_GRAY2RGB)
         channel_image = channel_image * 255
 
-        instance_labels_currentz = mask_generator.generate(
-            channel_image.astype(np.uint8)
+        instance_labels_currentz = return_masks(
+            mask_generator.generate(channel_image.astype(np.uint8))
         )
         instance_labels_currentz = remove_small_objects(
             instance_labels_currentz.astype("uint16"), min_size=min_size
@@ -4556,6 +4556,18 @@ def VollSamZ(
     )
 
     return merged_instance_labels
+
+
+def return_masks(instance_labels):
+
+    for ann in instance_labels:
+        m = ann["segmentation"]
+        img = np.ones((m.shape[0], m.shape[1], 3))
+        color_mask = np.random.random((1, 3)).tolist()[0]
+        for i in range(3):
+            img[:, :, i] = color_mask[i]
+
+    return img[:, :, 0]
 
 
 def SuperVollSeg3D(
