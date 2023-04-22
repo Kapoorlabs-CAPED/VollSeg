@@ -15,7 +15,7 @@ import napari
 import gc
 import time as cputime
 from skimage.transform import resize
-from typing import Optional, List
+from typing import Optional
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -4429,7 +4429,6 @@ def VollSam(
     crop_nms_thresh: float = 0.7,
     crop_overlap_ratio: float = 512 / 1500,
     crop_n_points_downscale_factor: int = 1,
-    point_grids: Optional[List[np.ndarray]] = None,
     output_mode: str = "binary_mask",
     save_dir: str = None,
     Name: str = "Result",
@@ -4450,7 +4449,6 @@ def VollSam(
         crop_nms_thresh=crop_nms_thresh,
         crop_overlap_ratio=crop_overlap_ratio,
         crop_n_points_downscale_factor=crop_n_points_downscale_factor,
-        point_grids=point_grids,
         min_mask_region_area=min_mask_region_area,
         output_mode=output_mode,
     )
