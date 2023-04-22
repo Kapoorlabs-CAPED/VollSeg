@@ -16,6 +16,7 @@ import gc
 import time as cputime
 from skimage.transform import resize
 from typing import Optional
+import cv2
 
 # import matplotlib.pyplot as plt
 import numpy as np
@@ -4536,11 +4537,11 @@ def VollSamZ(
     for i in range(image.shape[0]):
         channel_image = image[i]
         channel_image = normalizeFloatZeroOne(channel_image)
-
+        channel_image = cv2.cvtColor(channel_image, cv2.COLOR_GRAY2RGB)
         channel_image = channel_image * 255
 
         instance_labels_currentz = mask_generator.generate(
-            channel_image[..., np.newaxis].astype(np.float32)
+            channel_image.astype(np.float32)
         )
         instance_labels_currentz = remove_small_objects(
             instance_labels_currentz.astype("uint16"), min_size=min_size
