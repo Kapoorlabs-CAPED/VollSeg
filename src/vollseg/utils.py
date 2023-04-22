@@ -4409,8 +4409,10 @@ def VollSam(
     image_membrane: np.ndarray,
     ckpt_directory: str,
     ckpt_model_name: str,
-    model_type: str,
-    axes="ZYX",
+    model_type: str = "vit_h",
+    axes: str = "ZYX",
+    min_size: int = 100,
+    max_size: int = 10000000,
 ):
     assert image_nuclei.shape == image_membrane.shape
     sam = sam_model_registry[model_type](
@@ -4421,15 +4423,34 @@ def VollSam(
         instance_labels_nuclei = mask_generator.generate(image_nuclei)
         instance_labels_membrane = mask_generator.generate(image_membrane)
 
+        instance_labels_nuclei = remove_small_objects(
+            instance_labels_nuclei.astype("uint16"), min_size=min_size
+        )
+        instance_labels_nuclei = remove_big_objects(
+            instance_labels_nuclei.astype("uint16"), max_size=max_size
+        )
+
+        instance_labels_membrane = remove_small_objects(
+            instance_labels_membrane.astype("uint16"), min_size=min_size
+        )
+        instance_labels_membrane = remove_big_objects(
+            instance_labels_membrane.astype("uint16"), max_size=max_size
+        )
+
     if len(image_nuclei.shape) == 3 and "T" not in axes:
-        instance_labels_nuclei = VollSam3D(image_nuclei, mask_generator)
-        instance_labels_membrane = VollSam3D(image_membrane, mask_generator)
+        instance_labels_nuclei = VollSam3D(
+            image_nuclei, mask_generator, min_size, max_size
+        )
+        instance_labels_membrane = VollSam3D(
+            image_membrane, mask_generator, min_size, max_size
+        )
 
     if len(image_nuclei.shape) == 3 and "T" in axes:
         instance_labels_nuclei = tuple(
             zip(
                 *tuple(
-                    VollSam2D(_x, mask_generator) for _x in tqdm(image_nuclei)
+                    VollSam2D(_x, mask_generator, min_size, max_size)
+                    for _x in tqdm(image_nuclei)
                 )
             )
         )
@@ -4437,7 +4458,7 @@ def VollSam(
         instance_labels_membrane = tuple(
             zip(
                 *tuple(
-                    VollSam2D(_x, mask_generator)
+                    VollSam2D(_x, mask_generator, min_size, max_size)
                     for _x in tqdm(image_membrane)
                 )
             )
@@ -4447,7 +4468,8 @@ def VollSam(
         instance_labels_nuclei = tuple(
             zip(
                 *tuple(
-                    VollSam3D(_x, mask_generator) for _x in tqdm(image_nuclei)
+                    VollSam3D(_x, mask_generator, min_size, max_size)
+                    for _x in tqdm(image_nuclei)
                 )
             )
         )
@@ -4455,7 +4477,7 @@ def VollSam(
         instance_labels_membrane = tuple(
             zip(
                 *tuple(
-                    VollSam3D(_x, mask_generator)
+                    VollSam3D(_x, mask_generator, min_size, max_size)
                     for _x in tqdm(image_membrane)
                 )
             )
@@ -4464,10 +4486,21 @@ def VollSam(
     return instance_labels_nuclei, instance_labels_membrane
 
 
-def VollSam3D(image: np.ndarray, mask_generator: SamAutomaticMaskGenerator):
+def VollSam3D(
+    image: np.ndarray,
+    mask_generator: SamAutomaticMaskGenerator,
+    min_size: int,
+    max_size: int,
+):
 
     for i in range(image.shape[0]):
         instance_labels_currentz = mask_generator.generate(image[i, ...])
+        instance_labels_currentz = remove_small_objects(
+            instance_labels_currentz.astype("uint16"), min_size=min_size
+        )
+        instance_labels_currentz = remove_big_objects(
+            instance_labels_currentz.astype("uint16"), max_size=max_size
+        )
 
     merged_instance_labels = merge_labels_across_volume(
         instance_labels_currentz
@@ -4476,9 +4509,20 @@ def VollSam3D(image: np.ndarray, mask_generator: SamAutomaticMaskGenerator):
     return merged_instance_labels
 
 
-def VollSam2D(image: np.ndarray, mask_generator: SamAutomaticMaskGenerator):
+def VollSam2D(
+    image: np.ndarray,
+    mask_generator: SamAutomaticMaskGenerator,
+    min_size: int,
+    max_size: int,
+):
 
     instance_labels = mask_generator.generate(image)
+    instance_labels = remove_small_objects(
+        instance_labels.astype("uint16"), min_size=min_size
+    )
+    instance_labels = remove_big_objects(
+        instance_labels.astype("uint16"), max_size=max_size
+    )
 
     return instance_labels
 
