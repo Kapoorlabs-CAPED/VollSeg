@@ -17,9 +17,12 @@ import time as cputime
 from skimage.transform import resize
 from typing import Optional
 import cv2
+import numpy as np
+from numba import jit
+from scipy.optimize import linear_sum_assignment
+from scipy.ndimage import convolve, mean
 
 # import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 from cellpose_vollseg import models
 from csbdeep.utils import normalize
@@ -64,6 +67,7 @@ from vollseg.unetstarmask import UnetStarMask
 from .Tiles_3D import VolumeSlicer
 from torch.utils.data import DataLoader
 from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
+from numba import njit
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -4425,6 +4429,7 @@ def VollSam(
     axes: str = "ZYX",
     min_size: int = 10,
     max_size: int = 10000000,
+    stitch_threshold: float = 0.25,
     points_per_side: Optional[int] = 32,
     points_per_batch: int = 64,
     pred_iou_thresh: float = 0.88,
@@ -4474,7 +4479,7 @@ def VollSam(
 
     if len(image.shape) == 3 and "T" not in axes:
         instance_labels_nuclei = VollSamZ(
-            image, mask_generator, min_size, max_size
+            image, mask_generator, min_size, max_size, stitch_threshold
         )
         instance_labels_membrane = instance_labels_nuclei
 
@@ -4483,11 +4488,15 @@ def VollSam(
         image_nuclei = image[:, channel_nuclei, :, :]
 
         instance_labels_nuclei = VollSamZ(
-            image_nuclei, mask_generator, min_size, max_size
+            image_nuclei, mask_generator, min_size, max_size, stitch_threshold
         )
 
         instance_labels_membrane = VollSamZ(
-            image_membrane, mask_generator, min_size, max_size
+            image_membrane,
+            mask_generator,
+            min_size,
+            max_size,
+            stitch_threshold,
         )
 
     if len(image.shape) > 4 and "T" in axes:
@@ -4498,7 +4507,13 @@ def VollSam(
         instance_labels_nuclei = tuple(
             zip(
                 *tuple(
-                    VollSamZ(_x, mask_generator, min_size, max_size)
+                    VollSamZ(
+                        _x,
+                        mask_generator,
+                        min_size,
+                        max_size,
+                        stitch_threshold,
+                    )
                     for _x in tqdm(image_nuclei)
                 )
             )
@@ -4507,7 +4522,13 @@ def VollSam(
         instance_labels_membrane = tuple(
             zip(
                 *tuple(
-                    VollSamZ(_x, mask_generator, min_size, max_size)
+                    VollSamZ(
+                        _x,
+                        mask_generator,
+                        min_size,
+                        max_size,
+                        stitch_threshold,
+                    )
                     for _x in tqdm(image_membrane)
                 )
             )
@@ -4538,6 +4559,7 @@ def VollSamZ(
     mask_generator: SamAutomaticMaskGenerator,
     min_size: int,
     max_size: int,
+    stitch_threshold: float,
 ):
 
     instance_labels_across = []
@@ -4559,8 +4581,8 @@ def VollSamZ(
         )
         instance_labels_across.append(instance_labels_currentz)
     instance_labels_across = np.asarray(instance_labels_across)
-    merged_instance_labels = merge_labels_across_volume(
-        instance_labels_currentz
+    merged_instance_labels = stitch3D(
+        instance_labels_currentz, stitch_threshold=stitch_threshold
     )
 
     return merged_instance_labels
@@ -5517,6 +5539,560 @@ def SuperUNETPrediction(image, model, n_tiles, axis):
     Finalimage = relabel_sequential(Finalimage)[0]
 
     return Finalimage
+
+
+def stitch3D(masks, stitch_threshold=0.25):
+    """stitch 2D masks into 3D volume with stitch_threshold on IOU"""
+    mmax = masks[0].max()
+    empty = 0
+
+    for i in range(len(masks) - 1):
+        iou = _intersection_over_union(masks[i + 1], masks[i])[1:, 1:]
+        if not iou.size and empty == 0:
+            masks[i + 1] = masks[i + 1]
+            mmax = masks[i + 1].max()
+        elif not iou.size and not empty == 0:
+            icount = masks[i + 1].max()
+            istitch = np.arange(mmax + 1, mmax + icount + 1, 1, int)
+            mmax += icount
+            istitch = np.append(np.array(0), istitch)
+            masks[i + 1] = istitch[masks[i + 1]]
+        else:
+            iou[iou < stitch_threshold] = 0.0
+            iou[iou < iou.max(axis=0)] = 0.0
+            istitch = iou.argmax(axis=1) + 1
+            ino = np.nonzero(iou.max(axis=1) == 0.0)[0]
+            istitch[ino] = np.arange(mmax + 1, mmax + len(ino) + 1, 1, int)
+            mmax += len(ino)
+            istitch = np.append(np.array(0), istitch)
+            masks[i + 1] = istitch[masks[i + 1]]
+            empty = 1
+
+    return masks
+
+
+def mask_ious(masks_true, masks_pred):
+    """return best-matched masks"""
+    iou = _intersection_over_union(masks_true, masks_pred)[1:, 1:]
+    n_min = min(iou.shape[0], iou.shape[1])
+    costs = -(iou >= 0.5).astype(float) - iou / (2 * n_min)
+    true_ind, pred_ind = linear_sum_assignment(costs)
+    iout = np.zeros(masks_true.max())
+    iout[true_ind] = iou[true_ind, pred_ind]
+    preds = np.zeros(masks_true.max(), "int")
+    preds[true_ind] = pred_ind + 1
+    return iout, preds
+
+
+def boundary_scores(masks_true, masks_pred, scales):
+    """boundary precision / recall / Fscore"""
+    diams = [diameters(lbl)[0] for lbl in masks_true]
+    precision = np.zeros((len(scales), len(masks_true)))
+    recall = np.zeros((len(scales), len(masks_true)))
+    fscore = np.zeros((len(scales), len(masks_true)))
+    for j, scale in enumerate(scales):
+        for n in range(len(masks_true)):
+            diam = max(1, scale * diams[n])
+            rs, ys, xs = circleMask([int(np.ceil(diam)), int(np.ceil(diam))])
+            filt = (rs <= diam).astype(np.float32)
+            otrue = masks_to_outlines(masks_true[n])
+            otrue = convolve(otrue, filt)
+            opred = masks_to_outlines(masks_pred[n])
+            opred = convolve(opred, filt)
+            tp = np.logical_and(otrue == 1, opred == 1).sum()
+            fp = np.logical_and(otrue == 0, opred == 1).sum()
+            fn = np.logical_and(otrue == 1, opred == 0).sum()
+            precision[j, n] = tp / (tp + fp)
+            recall[j, n] = tp / (tp + fn)
+        fscore[j] = 2 * precision[j] * recall[j] / (precision[j] + recall[j])
+    return precision, recall, fscore
+
+
+def masks_to_outlines(masks):
+    """get outlines of masks as a 0-1 array
+
+    Parameters
+    ----------------
+
+    masks: int, 2D or 3D array
+        size [Ly x Lx] or [Lz x Ly x Lx], 0=NO masks; 1,2,...=mask labels
+
+    Returns
+    ----------------
+
+    outlines: 2D or 3D array
+        size [Ly x Lx] or [Lz x Ly x Lx], True pixels are outlines
+
+    """
+    if masks.ndim > 3 or masks.ndim < 2:
+        raise ValueError(
+            "masks_to_outlines takes 2D or 3D array, not %dD array"
+            % masks.ndim
+        )
+    outlines = np.zeros(masks.shape, bool)
+
+    if masks.ndim == 3:
+        for i in range(masks.shape[0]):
+            outlines[i] = masks_to_outlines(masks[i])
+        return outlines
+    else:
+        slices = find_objects(masks.astype(int))
+        for i, si in enumerate(slices):
+            if si is not None:
+                sr, sc = si
+                mask = (masks[sr, sc] == (i + 1)).astype(np.uint8)
+                contours = cv2.findContours(
+                    mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE
+                )
+                pvc, pvr = np.concatenate(contours[-2], axis=0).squeeze().T
+                vr, vc = pvr + sr.start, pvc + sc.start
+                outlines[vr, vc] = 1
+        return outlines
+
+
+def diameters(masks):
+    _, counts = np.unique(np.int32(masks), return_counts=True)
+    counts = counts[1:]
+    md = np.median(counts**0.5)
+    if np.isnan(md):
+        md = 0
+    md /= (np.pi**0.5) / 2
+    return md, counts**0.5
+
+
+def circleMask(d0):
+    """creates array with indices which are the radius of that x,y point
+    inputs:
+        d0 (patch of (-d0,d0+1) over which radius computed
+    outputs:
+        rs: array (2*d0+1,2*d0+1) of radii
+        dx,dy: indices of patch
+    """
+    dx = np.tile(np.arange(-d0[1], d0[1] + 1), (2 * d0[0] + 1, 1))
+    dy = np.tile(np.arange(-d0[0], d0[0] + 1), (2 * d0[1] + 1, 1))
+    dy = dy.transpose()
+
+    rs = (dy**2 + dx**2) ** 0.5
+    return rs, dx, dy
+
+
+def aggregated_jaccard_index(masks_true, masks_pred):
+    """AJI = intersection of all matched masks / union of all masks
+
+    Parameters
+    ------------
+
+    masks_true: list of ND-arrays (int) or ND-array (int)
+        where 0=NO masks; 1,2... are mask labels
+    masks_pred: list of ND-arrays (int) or ND-array (int)
+        ND-array (int) where 0=NO masks; 1,2... are mask labels
+
+    Returns
+    ------------
+
+    aji : aggregated jaccard index for each set of masks
+
+    """
+
+    aji = np.zeros(len(masks_true))
+    for n in range(len(masks_true)):
+        iout, preds = mask_ious(masks_true[n], masks_pred[n])
+        inds = np.arange(0, masks_true[n].max(), 1, int)
+        overlap = _label_overlap(masks_true[n], masks_pred[n])
+        union = np.logical_or(masks_true[n] > 0, masks_pred[n] > 0).sum()
+        overlap = overlap[inds[preds > 0] + 1, preds[preds > 0].astype(int)]
+        aji[n] = overlap.sum() / union
+    return aji
+
+
+def average_precision(masks_true, masks_pred, threshold=[0.5, 0.75, 0.9]):
+    """average precision estimation: AP = TP / (TP + FP + FN)
+
+    This function is based heavily on the *fast* stardist matching functions
+    (https://github.com/mpicbg-csbd/stardist/blob/master/stardist/matching.py)
+
+    Parameters
+    ------------
+
+    masks_true: list of ND-arrays (int) or ND-array (int)
+        where 0=NO masks; 1,2... are mask labels
+    masks_pred: list of ND-arrays (int) or ND-array (int)
+        ND-array (int) where 0=NO masks; 1,2... are mask labels
+
+    Returns
+    ------------
+
+    ap: array [len(masks_true) x len(threshold)]
+        average precision at thresholds
+    tp: array [len(masks_true) x len(threshold)]
+        number of true positives at thresholds
+    fp: array [len(masks_true) x len(threshold)]
+        number of false positives at thresholds
+    fn: array [len(masks_true) x len(threshold)]
+        number of false negatives at thresholds
+
+    """
+    not_list = False
+    if not isinstance(masks_true, list):
+        masks_true = [masks_true]
+        masks_pred = [masks_pred]
+        not_list = True
+    if not isinstance(threshold, list) and not isinstance(
+        threshold, np.ndarray
+    ):
+        threshold = [threshold]
+
+    if len(masks_true) != len(masks_pred):
+        raise ValueError(
+            "metrics.average_precision requires len(masks_true)==len(masks_pred)"
+        )
+
+    ap = np.zeros((len(masks_true), len(threshold)), np.float32)
+    tp = np.zeros((len(masks_true), len(threshold)), np.float32)
+    fp = np.zeros((len(masks_true), len(threshold)), np.float32)
+    fn = np.zeros((len(masks_true), len(threshold)), np.float32)
+    n_true = np.array(list(map(np.max, masks_true)))
+    n_pred = np.array(list(map(np.max, masks_pred)))
+
+    for n in range(len(masks_true)):
+        # _,mt = np.reshape(np.unique(masks_true[n], return_index=True), masks_pred[n].shape)
+        if n_pred[n] > 0:
+            iou = _intersection_over_union(masks_true[n], masks_pred[n])[
+                1:, 1:
+            ]
+            for k, th in enumerate(threshold):
+                tp[n, k] = _true_positive(iou, th)
+        fp[n] = n_pred[n] - tp[n]
+        fn[n] = n_true[n] - tp[n]
+        ap[n] = tp[n] / (tp[n] + fp[n] + fn[n])
+
+    if not_list:
+        ap, tp, fp, fn = ap[0], tp[0], fp[0], fn[0]
+    return ap, tp, fp, fn
+
+
+@jit(nopython=True)
+def _label_overlap(x, y):
+    """fast function to get pixel overlaps between masks in x and y
+
+    Parameters
+    ------------
+
+    x: ND-array, int
+        where 0=NO masks; 1,2... are mask labels
+    y: ND-array, int
+        where 0=NO masks; 1,2... are mask labels
+
+    Returns
+    ------------
+
+    overlap: ND-array, int
+        matrix of pixel overlaps of size [x.max()+1, y.max()+1]
+
+    """
+    # put label arrays into standard form then flatten them
+    #     x = (utils.format_labels(x)).ravel()
+    #     y = (utils.format_labels(y)).ravel()
+    x = x.ravel()
+    y = y.ravel()
+
+    # preallocate a 'contact map' matrix
+    overlap = np.zeros((1 + x.max(), 1 + y.max()), dtype=np.uint)
+
+    # loop over the labels in x and add to the corresponding
+    # overlap entry. If label A in x and label B in y share P
+    # pixels, then the resulting overlap is P
+    # len(x)=len(y), the number of pixels in the whole image
+    for i in range(len(x)):
+        overlap[x[i], y[i]] += 1
+    return overlap
+
+
+def _intersection_over_union(masks_true, masks_pred):
+    """intersection over union of all mask pairs
+
+    Parameters
+    ------------
+
+    masks_true: ND-array, int
+        ground truth masks, where 0=NO masks; 1,2... are mask labels
+    masks_pred: ND-array, int
+        predicted masks, where 0=NO masks; 1,2... are mask labels
+
+    Returns
+    ------------
+
+    iou: ND-array, float
+        matrix of IOU pairs of size [x.max()+1, y.max()+1]
+
+    ------------
+    How it works:
+        The overlap matrix is a lookup table of the area of intersection
+        between each set of labels (true and predicted). The true labels
+        are taken to be along axis 0, and the predicted labels are taken
+        to be along axis 1. The sum of the overlaps along axis 0 is thus
+        an array giving the total overlap of the true labels with each of
+        the predicted labels, and likewise the sum over axis 1 is the
+        total overlap of the predicted labels with each of the true labels.
+        Because the label 0 (background) is included, this sum is guaranteed
+        to reconstruct the total area of each label. Adding this row and
+        column vectors gives a 2D array with the areas of every label pair
+        added together. This is equivalent to the union of the label areas
+        except for the duplicated overlap area, so the overlap matrix is
+        subtracted to find the union matrix.
+
+    """
+    overlap = _label_overlap(masks_true, masks_pred)
+    n_pixels_pred = np.sum(overlap, axis=0, keepdims=True)
+    n_pixels_true = np.sum(overlap, axis=1, keepdims=True)
+    iou = overlap / (n_pixels_pred + n_pixels_true - overlap)
+    iou[np.isnan(iou)] = 0.0
+    return iou
+
+
+def _true_positive(iou, th):
+    """true positive at threshold th
+
+    Parameters
+    ------------
+
+    iou: float, ND-array
+        array of IOU pairs
+    th: float
+        threshold on IOU for positive label
+
+    Returns
+    ------------
+
+    tp: float
+        number of true positives at threshold
+
+    ------------
+    How it works:
+        (1) Find minimum number of masks
+        (2) Define cost matrix; for a given threshold, each element is negative
+            the higher the IoU is (perfect IoU is 1, worst is 0). The second term
+            gets more negative with higher IoU, but less negative with greater
+            n_min (but that's a constant...)
+        (3) Solve the linear sum assignment problem. The costs array defines the cost
+            of matching a true label with a predicted label, so the problem is to
+            find the set of pairings that minimizes this cost. The scipy.optimize
+            function gives the ordered lists of corresponding true and predicted labels.
+        (4) Extract the IoUs fro these parings and then threshold to get a boolean array
+            whose sum is the number of true positives that is returned.
+
+    """
+    n_min = min(iou.shape[0], iou.shape[1])
+    costs = -(iou >= th).astype(float) - iou / (2 * n_min)
+    true_ind, pred_ind = linear_sum_assignment(costs)
+    match_ok = iou[true_ind, pred_ind] >= th
+    tp = match_ok.sum()
+    return tp
+
+
+def flow_error(maski, dP_net, use_gpu=False):
+    """error in flows from predicted masks vs flows predicted by network run on image
+
+    This function serves to benchmark the quality of masks, it works as follows
+    1. The predicted masks are used to create a flow diagram
+    2. The mask-flows are compared to the flows that the network predicted
+
+    If there is a discrepancy between the flows, it suggests that the mask is incorrect.
+    Masks with flow_errors greater than 0.4 are discarded by default. Setting can be
+    changed in Cellpose.eval or CellposeModel.eval.
+
+    Parameters
+    ------------
+
+    maski: ND-array (int)
+        masks produced from running dynamics on dP_net,
+        where 0=NO masks; 1,2... are mask labels
+    dP_net: ND-array (float)
+        ND flows where dP_net.shape[1:] = maski.shape
+
+    Returns
+    ------------
+
+    flow_errors: float array with length maski.max()
+        mean squared error between predicted flows and flows from masks
+    dP_masks: ND-array (float)
+        ND flows produced from the predicted masks
+
+    """
+    if dP_net.shape[1:] != maski.shape:
+        print("ERROR: net flow is not same size as predicted masks")
+        return
+
+    # flows predicted from estimated masks
+    dP_masks = masks_to_flows(maski, use_gpu=use_gpu)
+    # difference between predicted flows vs mask flows
+    flow_errors = np.zeros(maski.max())
+    for i in range(dP_masks.shape[0]):
+        flow_errors += mean(
+            (dP_masks[i] - dP_net[i] / 5.0) ** 2,
+            maski,
+            index=np.arange(1, maski.max() + 1),
+        )
+
+    return flow_errors, dP_masks
+
+
+def masks_to_flows_cpu(masks):
+    """convert masks to flows using diffusion from center pixel
+    Center of masks where diffusion starts is defined to be the
+    closest pixel to the median of all pixels that is inside the
+    mask. Result of diffusion is converted into flows by computing
+    the gradients of the diffusion density map.
+    Parameters
+    -------------
+    masks: int, 2D array
+        labelled masks 0=NO masks; 1,2,...=mask labels
+    Returns
+    -------------
+    mu: float, 3D array
+        flows in Y = mu[-2], flows in X = mu[-1].
+        if masks are 3D, flows in Z = mu[0].
+    mu_c: float, 2D array
+        for each pixel, the distance to the center of the mask
+        in which it resides
+    """
+
+    Ly, Lx = masks.shape
+    mu = np.zeros((2, Ly, Lx), np.float64)
+    mu_c = np.zeros((Ly, Lx), np.float64)
+
+    slices = find_objects(masks)
+    dia = diameters(masks)[0]
+    s2 = (0.15 * dia) ** 2
+    for i, si in enumerate(slices):
+        if si is not None:
+            sr, sc = si
+            ly, lx = sr.stop - sr.start + 1, sc.stop - sc.start + 1
+            y, x = np.nonzero(masks[sr, sc] == (i + 1))
+            y = y.astype(np.int32) + 1
+            x = x.astype(np.int32) + 1
+            ymed = np.median(y)
+            xmed = np.median(x)
+            imin = np.argmin((x - xmed) ** 2 + (y - ymed) ** 2)
+            xmed = x[imin]
+            ymed = y[imin]
+
+            d2 = (x - xmed) ** 2 + (y - ymed) ** 2
+            mu_c[sr.start + y - 1, sc.start + x - 1] = np.exp(-d2 / s2)
+
+            niter = 2 * np.int32(np.ptp(x) + np.ptp(y))
+            T = np.zeros((ly + 2) * (lx + 2), np.float64)
+            T = _extend_centers(
+                T, y, x, ymed, xmed, np.int32(lx), np.int32(niter)
+            )
+            T[(y + 1) * lx + x + 1] = np.log(1.0 + T[(y + 1) * lx + x + 1])
+
+            dy = T[(y + 1) * lx + x] - T[(y - 1) * lx + x]
+            dx = T[y * lx + x + 1] - T[y * lx + x - 1]
+            mu[:, sr.start + y - 1, sc.start + x - 1] = np.stack((dy, dx))
+
+    mu /= 1e-20 + (mu**2).sum(axis=0) ** 0.5
+
+    return mu, mu_c
+
+
+@njit(
+    "(float64[:], int32[:], int32[:], int32, int32, int32, int32)", nogil=True
+)
+def _extend_centers(T, y, x, ymed, xmed, Lx, niter):
+    """run diffusion from center of mask (ymed, xmed) on mask pixels (y, x)
+    Parameters
+    --------------
+    T: float64, array
+        _ x Lx array that diffusion is run in
+    y: int32, array
+        pixels in y inside mask
+    x: int32, array
+        pixels in x inside mask
+    ymed: int32
+        center of mask in y
+    xmed: int32
+        center of mask in x
+    Lx: int32
+        size of x-dimension of masks
+    niter: int32
+        number of iterations to run diffusion
+    Returns
+    ---------------
+    T: float64, array
+        amount of diffused particles at each pixel
+    """
+
+    for t in range(niter):
+        T[ymed * Lx + xmed] += 1
+        T[y * Lx + x] = (
+            1
+            / 9.0
+            * (
+                T[y * Lx + x]
+                + T[(y - 1) * Lx + x]
+                + T[(y + 1) * Lx + x]
+                + T[y * Lx + x - 1]
+                + T[y * Lx + x + 1]
+                + T[(y - 1) * Lx + x - 1]
+                + T[(y - 1) * Lx + x + 1]
+                + T[(y + 1) * Lx + x - 1]
+                + T[(y + 1) * Lx + x + 1]
+            )
+        )
+    return T
+
+
+def masks_to_flows(masks):
+    """convert masks to flows using diffusion from center pixel
+
+    Center of masks where diffusion starts is defined to be the
+    closest pixel to the median of all pixels that is inside the
+    mask. Result of diffusion is converted into flows by computing
+    the gradients of the diffusion density map.
+
+    Parameters
+    -------------
+
+    masks: int, 2D or 3D array
+        labelled masks 0=NO masks; 1,2,...=mask labels
+
+    Returns
+    -------------
+
+    mu: float, 3D or 4D array
+        flows in Y = mu[-2], flows in X = mu[-1].
+        if masks are 3D, flows in Z = mu[0].
+
+    mu_c: float, 2D or 3D array
+        for each pixel, the distance to the center of the mask
+        in which it resides
+
+    """
+    if masks.max() == 0:
+        return np.zeros((2, *masks.shape), "float32")
+
+    masks_to_flows_device = masks_to_flows_cpu
+
+    if masks.ndim == 3:
+        Lz, Ly, Lx = masks.shape
+        mu = np.zeros((3, Lz, Ly, Lx), np.float32)
+        for z in range(Lz):
+            mu0 = masks_to_flows_device(masks[z], device=device)[0]
+            mu[[1, 2], z] += mu0
+        for y in range(Ly):
+            mu0 = masks_to_flows_device(masks[:, y], device=device)[0]
+            mu[[0, 2], :, y] += mu0
+        for x in range(Lx):
+            mu0 = masks_to_flows_device(masks[:, :, x], device=device)[0]
+            mu[[0, 1], :, :, x] += mu0
+        return mu
+    elif masks.ndim == 2:
+        mu, mu_c = masks_to_flows_device(masks, device=device)
+        return mu
+
+    else:
+        raise ValueError("masks_to_flows only takes 2D or 3D arrays")
 
 
 def merge_labels_across_volume(labelvol, relabelfunc, threshold=3):
