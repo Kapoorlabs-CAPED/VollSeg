@@ -4548,7 +4548,8 @@ def VollSamZ(
         channel_image = channel_image * 255
 
         instance_labels_currentz = return_masks(
-            mask_generator.generate(channel_image.astype(np.uint8))
+            mask_generator.generate(channel_image.astype(np.uint8)),
+            channel_image,
         )
         instance_labels_currentz = remove_small_objects(
             instance_labels_currentz.astype("uint16"), min_size=min_size
