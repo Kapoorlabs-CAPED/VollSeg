@@ -4543,11 +4543,11 @@ def VollSam(
         Path(nuclei_results).mkdir(exist_ok=True)
         Path(membrane_results).mkdir(exist_ok=True)
         imwrite(
-            (nuclei_results + Name + ".tif"),
+            (os.path.join(nuclei_results, Name + ".tif")),
             np.asarray(instance_labels_nuclei).astype("uint16"),
         )
         imwrite(
-            (membrane_results + Name + ".tif"),
+            (os.path.join(membrane_results, Name + ".tif")),
             np.asarray(instance_labels_membrane).astype("uint16"),
         )
 
@@ -4572,13 +4572,10 @@ def VollSamZ(
         instance_labels_currentz = return_masks(
             mask_generator.generate(channel_image.astype(np.uint8)),
             channel_image,
+            min_size,
+            max_size,
         )
-        instance_labels_currentz = remove_small_objects(
-            instance_labels_currentz.astype("uint16"), min_size=min_size
-        )
-        instance_labels_currentz = remove_big_objects(
-            instance_labels_currentz.astype("uint16"), max_size=max_size
-        )
+
         instance_labels_across.append(instance_labels_currentz)
     instance_labels_across = np.asarray(instance_labels_across)
     merged_instance_labels = stitch3D(
@@ -4601,19 +4598,16 @@ def VollSam2D(
     channel_image = channel_image * 255
 
     instance_labels_currentz = return_masks(
-        mask_generator.generate(channel_image.astype(np.uint8)), channel_image
-    )
-    instance_labels_currentz = remove_small_objects(
-        instance_labels_currentz.astype("uint16"), min_size=min_size
-    )
-    instance_labels_currentz = remove_big_objects(
-        instance_labels_currentz.astype("uint16"), max_size=max_size
+        mask_generator.generate(channel_image.astype(np.uint8)),
+        channel_image,
+        min_size,
+        max_size,
     )
 
     return instance_labels_currentz
 
 
-def return_masks(instance_labels, image):
+def return_masks(instance_labels, image, min_size, max_size):
 
     if len(instance_labels) > 0:
         segmentation_image = instance_labels[0]["segmentation"].astype(
@@ -4628,11 +4622,17 @@ def return_masks(instance_labels, image):
             segmentation_image, _, _ = relabel_sequential(
                 segmentation_image, offset=segmentation_image.max()
             )
+        segmentation_image = remove_small_objects(
+            segmentation_image.astype("uint16"), min_size=min_size
+        )
+        segmentation_image = remove_big_objects(
+            segmentation_image.astype("uint16"), max_size=max_size
+        )
 
         return segmentation_image
     else:
 
-        return np.zeros_like(image)
+        return np.zeros_like(image[..., 0])
 
 
 def SuperVollSeg3D(
