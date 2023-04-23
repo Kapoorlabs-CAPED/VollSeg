@@ -10,8 +10,8 @@
     <title>Segmentation analysis with VollSeg  &#8212; VollSeg  29.9.0 documentation</title>
 
   <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
-<link href="_static/styles/pydata-sphinx-theme.css?digest=1999514e3f237ded88cf" rel="stylesheet">
+  <link href="https://github.com/Kapoorlabs-CAPED/VollSeg/blob/main/css/style_0.css" rel="stylesheet">
+<link href="https://github.com/Kapoorlabs-CAPED/VollSeg/blob/main/css/style_1.css" rel="stylesheet">
 
 
   <link rel="stylesheet"

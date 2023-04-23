@@ -3327,6 +3327,7 @@ def VollCellSeg(
             Path(stardist_results).mkdir(exist_ok=True)
             Path(probability_results).mkdir(exist_ok=True)
             Path(marker_results).mkdir(exist_ok=True)
+            Path(skel_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(stardist_results, Name + ".tif")),
                 np.asarray(star_labels_membrane).astype("uint16"),
