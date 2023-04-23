@@ -4685,7 +4685,7 @@ def VollSamZ(
         channel_image = image[i]
         channel_image = channel_image - channel_image.min()
         channel_image = channel_image / channel_image.max()
-        channel_image = channel_image * 255
+        channel_image = channel_image.astype("uint8") * 255
         channel_image = cv2.cvtColor(channel_image, cv2.COLOR_GRAY2RGB)
 
         instance_labels_currentz = return_masks(
