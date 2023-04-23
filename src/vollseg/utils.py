@@ -2812,6 +2812,23 @@ def VollCellSeg(
 
     if (
         noise_model is None
+        and star_model_membrane is not None
+        and star_model_nuclei is None
+        and roi_model_nuclei is not None
+        and cellpose_model_path is None
+    ):
+        (
+            sized_smart_seeds_membrane,
+            instance_labels_membrane,
+            star_labels_membrane,
+            probability_map_membrane,
+            markers_membrane,
+            skeleton_membrane,
+            roi_image_nuclei,
+        ) = res
+
+    if (
+        noise_model is None
         and star_model_nuclei is not None
         and star_model_membrane is not None
         and roi_model_nuclei is not None
@@ -2858,6 +2875,40 @@ def VollCellSeg(
 
     if (
         noise_model is None
+        and star_model_nuclei is None
+        and star_model_membrane is not None
+        and roi_model_nuclei is not None
+        and cellpose_model_path is not None
+    ):
+
+        (
+            sized_smart_seeds_membrane,
+            instance_labels_membrane,
+            star_labels_membrane,
+            probability_map_membrane,
+            markers_membrane,
+            skeleton_membrane,
+            roi_image_nuclei,
+        ) = res
+
+        roi_image_nuclei = np.asarray(roi_image_nuclei)
+        sized_smart_seeds_membrane = np.asarray(sized_smart_seeds_membrane)
+        instance_labels_membrane = np.asarray(instance_labels_membrane)
+        star_labels_membrane = np.asarray(star_labels_membrane)
+        probability_map_membrane = np.asarray(probability_map_membrane)
+        markers_membrane = np.asarray(markers_membrane)
+        skeleton_membrane = np.asarray(skeleton_membrane)
+
+        voll_cell_seg, voll_cell_prob = _cellpose_block(
+            axes,
+            sized_smart_seeds_membrane,
+            cellpose_labels_copy,
+            nms_thresh_membrane,
+            z_thresh=z_thresh,
+        )
+
+    if (
+        noise_model is None
         and star_model_nuclei is not None
         and star_model_membrane is None
         and roi_model_nuclei is None
@@ -2870,6 +2921,22 @@ def VollCellSeg(
             probability_map_nuclei,
             markers_nuclei,
             skeleton_nuclei,
+        ) = res
+
+    if (
+        noise_model is None
+        and star_model_membrane is not None
+        and star_model_nuclei is None
+        and roi_model_nuclei is None
+        and cellpose_model_path is None
+    ):
+        (
+            sized_smart_seeds_membrane,
+            instance_labels_membrane,
+            star_labels_membrane,
+            probability_map_membrane,
+            markers_membrane,
+            skeleton_membrane,
         ) = res
 
     if (
@@ -2931,7 +2998,25 @@ def VollCellSeg(
             probability_map_nuclei,
             markers_nuclei,
             skeleton_nuclei,
-            image,
+            image_nuclei,
+            roi_image_nuclei,
+        ) = res
+
+    if (
+        noise_model is not None
+        and star_model_membrane is not None
+        and star_model_nuclei is None
+        and roi_model_nuclei is not None
+        and cellpose_model_path is None
+    ):
+        (
+            sized_smart_seeds_membrane,
+            instance_labels_membrane,
+            star_labels_membrane,
+            probability_map_membrane,
+            markers_membrane,
+            skeleton_membrane,
+            image_nuclei,
             roi_image_nuclei,
         ) = res
 
@@ -2949,7 +3034,7 @@ def VollCellSeg(
             probability_map_nuclei,
             markers_nuclei,
             skeleton_nuclei,
-            image,
+            image_nuclei,
             sized_smart_seeds_membrane,
             instance_labels_membrane,
             star_labels_membrane,
@@ -2994,7 +3079,7 @@ def VollCellSeg(
             probability_map_nuclei,
             markers_nuclei,
             skeleton_nuclei,
-            image,
+            image_nuclei,
             sized_smart_seeds_membrane,
             instance_labels_membrane,
             star_labels_membrane,
@@ -5240,7 +5325,6 @@ def SuperVollSeg(
         return (
             instance_labels_nuclei.astype("uint16"),
             skeleton_nuclei,
-            image_nuclei,
         )
 
     if (
@@ -5285,7 +5369,7 @@ def SuperVollSeg(
             sized_probability_map_membrane,
             markers_membrane.astype("uint16"),
             skeleton_membrane.astype("uint16"),
-            image_membrane,
+            image_nuclei,
         )
     if (
         noise_model is not None
@@ -5300,7 +5384,7 @@ def SuperVollSeg(
             sized_probability_map_membrane,
             markers_membrane.astype("uint16"),
             skeleton_membrane.astype("uint16"),
-            image_membrane,
+            image_nuclei,
             roi_image.astype("uint16"),
         )
 
@@ -5315,7 +5399,6 @@ def SuperVollSeg(
         return (
             instance_labels_membrane.astype("uint16"),
             skeleton_membrane,
-            image_membrane,
         )
 
     if (
