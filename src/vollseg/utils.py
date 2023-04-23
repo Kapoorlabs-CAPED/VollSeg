@@ -2764,7 +2764,6 @@ def VollCellSeg(
 
     if cellpose_model_path is not None:
         cellpose_labels = cellres[0]
-        flows = cellres[1]
 
     cellpose_labels = np.asarray(cellpose_labels)
     cellpose_labels = CleanCellPose(
@@ -2835,7 +2834,6 @@ def VollCellSeg(
         voll_cell_seg, voll_cell_prob = _cellpose_block(
             axes,
             sized_smart_seeds,
-            flows,
             cellpose_labels_copy,
             nms_thresh_membrane,
             z_thresh=z_thresh,
@@ -2879,7 +2877,6 @@ def VollCellSeg(
         voll_cell_seg, voll_cell_prob = _cellpose_block(
             axes,
             sized_smart_seeds,
-            flows,
             cellpose_labels_copy,
             nms_thresh_membrane,
             z_thresh=z_thresh,
@@ -2929,7 +2926,6 @@ def VollCellSeg(
         voll_cell_seg, voll_cell_prob = _cellpose_block(
             axes,
             sized_smart_seeds,
-            flows,
             cellpose_labels_copy,
             nms_thresh_membrane,
             z_thresh=z_thresh,
@@ -2969,7 +2965,6 @@ def VollCellSeg(
         voll_cell_seg, voll_cell_prob = _cellpose_block(
             axes,
             sized_smart_seeds,
-            flows,
             cellpose_labels_copy,
             nms_thresh_membrane,
             z_thresh=z_thresh,
@@ -3001,7 +2996,6 @@ def VollCellSeg(
         voll_cell_seg, voll_cell_prob = _cellpose_block(
             axes,
             sized_smart_seeds,
-            flows,
             cellpose_labels_copy,
             nms_thresh_membrane,
             z_thresh=z_thresh,
@@ -3396,16 +3390,14 @@ def _cellpose_3D_block(
 
 
 def _cellpose_block(
-    axes, sized_smart_seeds, flows, cellpose_labels, nms_thresh, z_thresh=1
+    axes, sized_smart_seeds, cellpose_labels, nms_thresh, z_thresh=1
 ):
 
     if "T" not in axes:
 
-        cellpose_base = np.max(flows[0], axis=-1)
         voll_cell_seg = CellPoseWater(
             cellpose_labels,
             sized_smart_seeds,
-            cellpose_base,
             nms_thresh,
             z_thresh=z_thresh,
         )
@@ -3414,13 +3406,11 @@ def _cellpose_block(
         cellpose_base = []
         voll_cell_seg = []
         for time in range(cellpose_labels.shape[0]):
-
             cellpose_labels_time = cellpose_labels[time]
-            cellpose_base_time = np.max(flows[0], axis=-1)[time]
+            sized_smart_seeds_time = sized_smart_seeds[time]
             voll_cell_seg_time = CellPoseWater(
                 cellpose_labels_time,
-                sized_smart_seeds[time],
-                cellpose_base_time,
+                sized_smart_seeds_time,
                 nms_thresh,
                 z_thresh=z_thresh,
             )
@@ -6508,55 +6498,13 @@ def CellPose3DWater(
     return relabeled
 
 
-def CellPoseWater(
-    cellpose_mask, sized_smart_seeds, cellpose_base, nms_thresh, z_thresh=1
-):
+def CellPoseWater(cellpose_mask, sized_smart_seeds, nms_thresh, z_thresh=1):
 
-    Copycellpose_base = cellpose_base.copy()
-    CopyMasks = sized_smart_seeds.copy()
-    starproperties = measure.regionprops(CopyMasks)
-    Coordinates = [prop.centroid for prop in starproperties]
-
-    properties = measure.regionprops(cellpose_mask)
-    bbox = [prop.bbox for prop in properties]
-    KeepCoordinates = []
-    if len(bbox) > 0:
-        for i in range(0, len(Coordinates)):
-
-            star = Coordinates[i]
-            include = [UnetStarMask(box, star).semi_masking() for box in bbox]
-            if False not in include:
-                KeepCoordinates.append(Coordinates[i])
-
-    KeepCoordinates.append((0, 0, 0))
-    KeepCoordinates = np.asarray(KeepCoordinates)
-
-    coordinates_int = np.round(KeepCoordinates).astype(int)
-    markers_raw = np.zeros_like(Copycellpose_base)
-    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
-
-    thresholds = threshold_multiotsu(Copycellpose_base, classes=2)
-    regions = np.digitize(Copycellpose_base, bins=thresholds)
-    probability_mask = regions > 0
-    probability_mask = binary_erosion(probability_mask, iterations=1)
-
-    probability_mask = binary_fill_holes(probability_mask)
-
-    markers = morphology.dilation(
-        markers_raw.astype("uint16"), morphology.ball(2)
-    )
-    watershed_image_nuclei = watershed(
-        Copycellpose_base, markers, mask=probability_mask
-    )
-    watershed_image_nuclei = fill_label_holes(watershed_image_nuclei)
-    watershed_image_nuclei = dilate_label_holes(
-        watershed_image_nuclei, iterations=1
-    )
     cellpose_mask_copy = cellpose_mask.copy()
 
     empy_region_indices = zip(*np.where(cellpose_mask_copy == 0))
     for index in empy_region_indices:
-        cellpose_mask_copy[index] = watershed_image_nuclei[index]
+        cellpose_mask_copy[index] = sized_smart_seeds[index]
 
     cellpose_mask_copy = label(cellpose_mask_copy)
     relabeled = NMSLabel(
