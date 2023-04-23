@@ -4579,7 +4579,7 @@ def VollSamZ(
         instance_labels_across.append(instance_labels_currentz)
     instance_labels_across = np.asarray(instance_labels_across)
     merged_instance_labels = stitch3D(
-        instance_labels_currentz, stitch_threshold=stitch_threshold
+        instance_labels_across, stitch_threshold=stitch_threshold
     )
 
     return merged_instance_labels
