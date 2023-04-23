@@ -3191,18 +3191,22 @@ def VollCellSeg(
 
         if unet_model_nuclei is not None:
             unet_results = os.path.join(save_dir, "NucleiBinaryMask")
-            skel_unet_results = os.path.join(save_dir, "Nucleiskeleton")
-            Path(unet_results).mkdir(exist_ok=True)
-            Path(skel_unet_results).mkdir(exist_ok=True)
 
+            Path(unet_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(unet_results, Name + ".tif")),
                 np.asarray(instance_labels_nuclei).astype("uint16"),
             )
+
+        if unet_model_membrane is not None:
+            unet_results = os.path.join(save_dir, "MembraneBinaryMask")
+
+            Path(unet_results).mkdir(exist_ok=True)
             imwrite(
-                (os.path.join(skel_unet_results, Name + ".tif")),
-                np.asarray(skeleton_nuclei).astype("uint16"),
+                (os.path.join(unet_results, Name + ".tif")),
+                np.asarray(instance_labels_membrane).astype("uint16"),
             )
+
         if star_model_nuclei is not None:
             vollseg_results = os.path.join(save_dir, "NucleiVollSeg")
             stardist_results = os.path.join(save_dir, "NucleiStarDist")
