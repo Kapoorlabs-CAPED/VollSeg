@@ -1016,102 +1016,57 @@ def _cellpose_3D_time_block(
 
 
 def _cellpose_time_block(
-    cellpose_model,
-    custom_cellpose_model,
-    cellpose_model_name,
     image_membrane,
     diameter_cellpose,
     flow_threshold,
     cellprob_threshold,
     stitch_threshold,
     anisotropy,
-    pretrained_cellpose_model_path,
+    cellpose_model_path,
     gpu,
     do_3D,
 ):
 
-    if cellpose_model is not None:
+    if cellpose_model_path is not None:
 
-        if custom_cellpose_model:
-            cellpose_model = models.Cellpose(
-                gpu=gpu, model_type=cellpose_model_name
+        cellpose_model = models.CellposeModel(
+            gpu=gpu, pretrained_model=cellpose_model_path
+        )
+        if anisotropy is not None:
+            cellres = tuple(
+                zip(
+                    *tuple(
+                        cellpose_model.eval(
+                            _x,
+                            diameter=diameter_cellpose,
+                            flow_threshold=flow_threshold,
+                            cellprob_threshold=cellprob_threshold,
+                            stitch_threshold=stitch_threshold,
+                            anisotropy=anisotropy,
+                            tile=True,
+                            do_3D=do_3D,
+                        )
+                        for _x in tqdm(image_membrane)
+                    )
+                )
             )
-            if anisotropy is not None:
-                cellres = tuple(
-                    zip(
-                        *tuple(
-                            cellpose_model.eval(
-                                _x,
-                                diameter=diameter_cellpose,
-                                flow_threshold=flow_threshold,
-                                cellprob_threshold=cellprob_threshold,
-                                stitch_threshold=stitch_threshold,
-                                anisotropy=anisotropy,
-                                tile=True,
-                                do_3D=do_3D,
-                            )
-                            for _x in tqdm(image_membrane)
-                        )
-                    )
-                )
-            else:
-
-                cellres = tuple(
-                    zip(
-                        *tuple(
-                            cellpose_model.eval(
-                                _x,
-                                diameter=diameter_cellpose,
-                                flow_threshold=flow_threshold,
-                                cellprob_threshold=cellprob_threshold,
-                                stitch_threshold=stitch_threshold,
-                                tile=True,
-                                do_3D=do_3D,
-                            )
-                            for _x in tqdm(image_membrane)
-                        )
-                    )
-                )
-
         else:
-            cellpose_model = models.CellposeModel(
-                gpu=gpu, pretrained_model=pretrained_cellpose_model_path
+            cellres = tuple(
+                zip(
+                    *tuple(
+                        cellpose_model.eval(
+                            _x,
+                            diameter=diameter_cellpose,
+                            flow_threshold=flow_threshold,
+                            cellprob_threshold=cellprob_threshold,
+                            stitch_threshold=stitch_threshold,
+                            tile=True,
+                            do_3D=do_3D,
+                        )
+                        for _x in tqdm(image_membrane)
+                    )
+                )
             )
-            if anisotropy is not None:
-                cellres = tuple(
-                    zip(
-                        *tuple(
-                            cellpose_model.eval(
-                                _x,
-                                diameter=diameter_cellpose,
-                                flow_threshold=flow_threshold,
-                                cellprob_threshold=cellprob_threshold,
-                                stitch_threshold=stitch_threshold,
-                                anisotropy=anisotropy,
-                                tile=True,
-                                do_3D=do_3D,
-                            )
-                            for _x in tqdm(image_membrane)
-                        )
-                    )
-                )
-            else:
-                cellres = tuple(
-                    zip(
-                        *tuple(
-                            cellpose_model.eval(
-                                _x,
-                                diameter=diameter_cellpose,
-                                flow_threshold=flow_threshold,
-                                cellprob_threshold=cellprob_threshold,
-                                stitch_threshold=stitch_threshold,
-                                tile=True,
-                                do_3D=do_3D,
-                            )
-                            for _x in tqdm(image_membrane)
-                        )
-                    )
-                )
 
     return cellres
 
@@ -1355,9 +1310,6 @@ def _cellpose_3D_star_time_block(
 
 
 def _cellpose_star_time_block(
-    cellpose_model,
-    custom_cellpose_model,
-    cellpose_model_name,
     image_membrane,
     image_nuclei,
     diameter_cellpose,
@@ -1365,7 +1317,7 @@ def _cellpose_star_time_block(
     cellprob_threshold,
     stitch_threshold,
     anisotropy,
-    pretrained_cellpose_model_path,
+    cellpose_model_path,
     gpu,
     unet_model_nuclei,
     star_model_nuclei,
@@ -1434,16 +1386,13 @@ def _cellpose_star_time_block(
         futures.append(
             executor.submit(
                 _cellpose_time_block,
-                cellpose_model,
-                custom_cellpose_model,
-                cellpose_model_name,
                 image_membrane,
                 diameter_cellpose,
                 flow_threshold,
                 cellprob_threshold,
                 stitch_threshold,
                 anisotropy,
-                pretrained_cellpose_model_path,
+                cellpose_model_path,
                 gpu,
                 do_3D,
             )
@@ -2544,9 +2493,6 @@ def _cellpose_3D_star_block(
 
 
 def _cellpose_star_block(
-    cellpose_model,
-    custom_cellpose_model,
-    cellpose_model_name,
     image_membrane,
     image_nuclei,
     diameter_cellpose,
@@ -2554,7 +2500,7 @@ def _cellpose_star_block(
     cellprob_threshold,
     stitch_threshold,
     anisotropy,
-    pretrained_cellpose_model_path,
+    cellpose_model_path,
     gpu,
     unet_model_nuclei,
     star_model_nuclei,
@@ -2615,59 +2561,32 @@ def _cellpose_star_block(
             slice_merge=slice_merge,
         )
 
-    if cellpose_model is not None:
+    if cellpose_model_path is not None:
 
-        if custom_cellpose_model:
-            cellpose_model = models.Cellpose(
-                gpu=gpu, model_type=cellpose_model_name
+        cellpose_model = models.CellposeModel(
+            gpu=gpu, pretrained_model=cellpose_model_path
+        )
+        if anisotropy is not None:
+            cellres = cellpose_model.eval(
+                image_membrane,
+                diameter=diameter_cellpose,
+                flow_threshold=flow_threshold,
+                cellprob_threshold=cellprob_threshold,
+                stitch_threshold=stitch_threshold,
+                anisotropy=anisotropy,
+                tile=True,
+                do_3D=do_3D,
             )
-            if anisotropy is not None:
-                cellres = cellpose_model.eval(
-                    image_membrane,
-                    diameter=diameter_cellpose,
-                    flow_threshold=flow_threshold,
-                    cellprob_threshold=cellprob_threshold,
-                    stitch_threshold=stitch_threshold,
-                    anisotropy=anisotropy,
-                    tile=True,
-                    do_3D=do_3D,
-                )
-            else:
-                cellres = cellpose_model.eval(
-                    image_membrane,
-                    diameter=diameter_cellpose,
-                    flow_threshold=flow_threshold,
-                    cellprob_threshold=cellprob_threshold,
-                    stitch_threshold=stitch_threshold,
-                    tile=True,
-                    do_3D=do_3D,
-                )
-
         else:
-            cellpose_model = models.CellposeModel(
-                gpu=gpu, pretrained_model=pretrained_cellpose_model_path
+            cellres = cellpose_model.eval(
+                image_membrane,
+                diameter=diameter_cellpose,
+                flow_threshold=flow_threshold,
+                cellprob_threshold=cellprob_threshold,
+                stitch_threshold=stitch_threshold,
+                tile=True,
+                do_3D=do_3D,
             )
-            if anisotropy is not None:
-                cellres = cellpose_model.eval(
-                    image_membrane,
-                    diameter=diameter_cellpose,
-                    flow_threshold=flow_threshold,
-                    cellprob_threshold=cellprob_threshold,
-                    stitch_threshold=stitch_threshold,
-                    anisotropy=anisotropy,
-                    tile=True,
-                    do_3D=do_3D,
-                )
-            else:
-                cellres = cellpose_model.eval(
-                    image_membrane,
-                    diameter=diameter_cellpose,
-                    flow_threshold=flow_threshold,
-                    cellprob_threshold=cellprob_threshold,
-                    stitch_threshold=stitch_threshold,
-                    tile=True,
-                    do_3D=do_3D,
-                )
 
     return cellres, res
 
@@ -2687,10 +2606,7 @@ def VollCellSeg(
     roi_model_nuclei=None,
     unet_model_membrane=None,
     star_model_membrane=None,
-    cellpose_model=None,
-    custom_cellpose_model: bool = False,
-    pretrained_cellpose_model_path: str = None,
-    cellpose_model_name="cyto2",
+    cellpose_model_path: str = None,
     gpu: bool = False,
     axes: str = "ZYX",
     prob_thresh_nuclei: float = None,
@@ -2729,9 +2645,6 @@ def VollCellSeg(
         image_nuclei = image
 
         cellres, res = _cellpose_star_block(
-            cellpose_model,
-            custom_cellpose_model,
-            cellpose_model_name,
             image_membrane,
             image_nuclei,
             diameter_cellpose,
@@ -2739,7 +2652,7 @@ def VollCellSeg(
             cellprob_threshold,
             stitch_threshold,
             anisotropy,
-            pretrained_cellpose_model_path,
+            cellpose_model_path,
             gpu,
             unet_model_nuclei,
             star_model_nuclei,
@@ -2772,9 +2685,6 @@ def VollCellSeg(
         image_nuclei = image[:, channel_nuclei, :, :]
 
         cellres, res = _cellpose_star_block(
-            cellpose_model,
-            custom_cellpose_model,
-            cellpose_model_name,
             image_membrane,
             image_nuclei,
             diameter_cellpose,
@@ -2782,7 +2692,7 @@ def VollCellSeg(
             cellprob_threshold,
             stitch_threshold,
             anisotropy,
-            pretrained_cellpose_model_path,
+            cellpose_model_path,
             gpu,
             unet_model_nuclei,
             star_model_nuclei,
@@ -2817,9 +2727,6 @@ def VollCellSeg(
         image_membrane = image[:, :, channel_membrane, :, :]
         image_nuclei = image[:, :, channel_nuclei, :, :]
         cellres, res = _cellpose_star_time_block(
-            cellpose_model,
-            custom_cellpose_model,
-            cellpose_model_name,
             image_membrane,
             image_nuclei,
             diameter_cellpose,
@@ -2827,7 +2734,7 @@ def VollCellSeg(
             cellprob_threshold,
             stitch_threshold,
             anisotropy,
-            pretrained_cellpose_model_path,
+            cellpose_model_path,
             gpu,
             unet_model_nuclei,
             star_model_nuclei,
@@ -2855,10 +2762,7 @@ def VollCellSeg(
             do_3D,
         )
 
-    if cellpose_model is not None and custom_cellpose_model:
-        cellpose_labels = cellres[0]
-        flows = cellres[1]
-    if cellpose_model is not None and not custom_cellpose_model:
+    if cellpose_model_path is not None:
         cellpose_labels = cellres[0]
         flows = cellres[1]
 
@@ -2894,7 +2798,7 @@ def VollCellSeg(
         noise_model is None
         and star_model_nuclei is not None
         and roi_model_nuclei is not None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
         (
             sized_smart_seeds,
@@ -2910,7 +2814,7 @@ def VollCellSeg(
         noise_model is None
         and star_model_nuclei is not None
         and roi_model_nuclei is not None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
         (
             sized_smart_seeds,
@@ -2941,7 +2845,7 @@ def VollCellSeg(
         noise_model is None
         and star_model_nuclei is not None
         and roi_model_nuclei is None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
         (
             sized_smart_seeds,
@@ -2956,7 +2860,7 @@ def VollCellSeg(
         noise_model is None
         and star_model_nuclei is not None
         and roi_model_nuclei is None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
         (
             sized_smart_seeds,
@@ -2985,7 +2889,7 @@ def VollCellSeg(
         noise_model is not None
         and star_model_nuclei is not None
         and roi_model_nuclei is not None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
         (
             sized_smart_seeds,
@@ -3002,7 +2906,7 @@ def VollCellSeg(
         noise_model is not None
         and star_model_nuclei is not None
         and roi_model_nuclei is not None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
         (
             sized_smart_seeds,
@@ -3035,7 +2939,7 @@ def VollCellSeg(
         noise_model is not None
         and star_model_nuclei is not None
         and roi_model_nuclei is None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
         (
             sized_smart_seeds,
@@ -3075,7 +2979,7 @@ def VollCellSeg(
         noise_model is None
         and star_model_nuclei is not None
         and roi_model_nuclei is not None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         (
@@ -3108,7 +3012,7 @@ def VollCellSeg(
         and star_model_nuclei is None
         and roi_model_nuclei is None
         and unet_model_nuclei is None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         instance_labels, skeleton, image = res
@@ -3118,7 +3022,7 @@ def VollCellSeg(
         and roi_model_nuclei is None
         and unet_model_nuclei is not None
         and noise_model is not None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         instance_labels, skeleton, image = res
@@ -3128,7 +3032,7 @@ def VollCellSeg(
         and roi_model_nuclei is not None
         and unet_model_nuclei is not None
         and noise_model is not None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         instance_labels, skeleton, image = res
@@ -3138,7 +3042,7 @@ def VollCellSeg(
         and roi_model_nuclei is None
         and unet_model_nuclei is not None
         and noise_model is None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         instance_labels, skeleton, image = res
@@ -3148,7 +3052,7 @@ def VollCellSeg(
         and roi_model_nuclei is not None
         and unet_model_nuclei is None
         and noise_model is None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         roi_image, skeleton, image = res
@@ -3159,7 +3063,7 @@ def VollCellSeg(
         and roi_model_nuclei is not None
         and unet_model_nuclei is None
         and noise_model is not None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         roi_image, skeleton, image = res
@@ -3170,7 +3074,7 @@ def VollCellSeg(
         and roi_model_nuclei is not None
         and unet_model_nuclei is not None
         and noise_model is None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         roi_image, skeleton, image = res
@@ -3180,7 +3084,7 @@ def VollCellSeg(
         print("Saving Results ...")
         Path(save_dir).mkdir(exist_ok=True)
 
-        if cellpose_model is not None:
+        if cellpose_model_path is not None:
             cellpose_results = save_dir + "CellPose/"
             Path(cellpose_results).mkdir(exist_ok=True)
             imwrite(
@@ -3267,7 +3171,7 @@ def VollCellSeg(
         noise_model is None
         and star_model_nuclei is not None
         and roi_model_nuclei is not None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
 
         return (
@@ -3284,7 +3188,7 @@ def VollCellSeg(
         noise_model is None
         and star_model_nuclei is not None
         and roi_model_nuclei is not None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         return (
@@ -3303,7 +3207,7 @@ def VollCellSeg(
         noise_model is None
         and star_model_nuclei is not None
         and roi_model_nuclei is None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
 
         return (
@@ -3319,7 +3223,7 @@ def VollCellSeg(
         noise_model is None
         and star_model_nuclei is not None
         and roi_model_nuclei is None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         return (
@@ -3338,7 +3242,7 @@ def VollCellSeg(
         noise_model is not None
         and star_model_nuclei is not None
         and roi_model_nuclei is not None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
 
         return (
@@ -3356,7 +3260,7 @@ def VollCellSeg(
         noise_model is not None
         and star_model_nuclei is not None
         and roi_model_nuclei is not None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         return (
@@ -3376,7 +3280,7 @@ def VollCellSeg(
         noise_model is not None
         and star_model_nuclei is not None
         and roi_model_nuclei is None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
 
         return (
@@ -3393,7 +3297,7 @@ def VollCellSeg(
         noise_model is not None
         and star_model_nuclei is not None
         and roi_model_nuclei is None
-        and cellpose_model is not None
+        and cellpose_model_path is not None
     ):
 
         return (
@@ -3413,7 +3317,7 @@ def VollCellSeg(
         star_model_nuclei is None
         and roi_model_nuclei is not None
         and noise_model is not None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
 
         return instance_labels, skeleton, image
@@ -3422,7 +3326,7 @@ def VollCellSeg(
         star_model_nuclei is None
         and roi_model_nuclei is not None
         and noise_model is None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
 
         return roi_image.astype("uint16"), skeleton, image
@@ -3431,7 +3335,7 @@ def VollCellSeg(
         star_model_nuclei is None
         and roi_model_nuclei is not None
         and noise_model is not None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
 
         return roi_image.astype("uint16"), skeleton, image
@@ -3441,7 +3345,7 @@ def VollCellSeg(
         and star_model_nuclei is None
         and roi_model_nuclei is None
         and unet_model_nuclei is None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
 
         return instance_labels, skeleton, image
@@ -3451,7 +3355,7 @@ def VollCellSeg(
         and roi_model_nuclei is None
         and noise_model is None
         and unet_model_nuclei is not None
-        and cellpose_model is None
+        and cellpose_model_path is None
     ):
 
         return instance_labels, skeleton, image
