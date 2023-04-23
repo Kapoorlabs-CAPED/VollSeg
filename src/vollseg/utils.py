@@ -2865,7 +2865,7 @@ def VollCellSeg(
         markers_membrane = np.asarray(markers_membrane)
         skeleton_membrane = np.asarray(skeleton_membrane)
 
-        voll_cell_seg, voll_cell_prob = _cellpose_block(
+        voll_cell_seg = _cellpose_block(
             axes,
             sized_smart_seeds_membrane,
             cellpose_labels_copy,
@@ -2899,7 +2899,7 @@ def VollCellSeg(
         markers_membrane = np.asarray(markers_membrane)
         skeleton_membrane = np.asarray(skeleton_membrane)
 
-        voll_cell_seg, voll_cell_prob = _cellpose_block(
+        voll_cell_seg = _cellpose_block(
             axes,
             sized_smart_seeds_membrane,
             cellpose_labels_copy,
@@ -2976,7 +2976,7 @@ def VollCellSeg(
         markers_membrane = np.asarray(markers_membrane)
         skeleton_membrane = np.asarray(skeleton_membrane)
 
-        voll_cell_seg, voll_cell_prob = _cellpose_block(
+        voll_cell_seg = _cellpose_block(
             axes,
             sized_smart_seeds_membrane,
             cellpose_labels_copy,
@@ -3057,7 +3057,7 @@ def VollCellSeg(
         probability_map_membrane = np.asarray(probability_map_membrane)
         markers_membrane = np.asarray(markers_membrane)
         skeleton_membrane = np.asarray(skeleton_membrane)
-        voll_cell_seg, voll_cell_prob = _cellpose_block(
+        voll_cell_seg = _cellpose_block(
             axes,
             sized_smart_seeds_membrane,
             cellpose_labels_copy,
@@ -3101,7 +3101,7 @@ def VollCellSeg(
         probability_map_membrane = np.asarray(probability_map_membrane)
         markers_membrane = np.asarray(markers_membrane)
         skeleton_membrane = np.asarray(skeleton_membrane)
-        voll_cell_seg, voll_cell_prob = _cellpose_block(
+        voll_cell_seg = _cellpose_block(
             axes,
             sized_smart_seeds_membrane,
             cellpose_labels_copy,
@@ -3145,7 +3145,7 @@ def VollCellSeg(
         probability_map_membrane = np.asarray(probability_map_membrane)
         markers_membrane = np.asarray(markers_membrane)
         skeleton_membrane = np.asarray(skeleton_membrane)
-        voll_cell_seg, voll_cell_prob = _cellpose_block(
+        voll_cell_seg = _cellpose_block(
             axes,
             sized_smart_seeds_membrane,
             cellpose_labels_copy,
@@ -3257,13 +3257,6 @@ def VollCellSeg(
             imwrite(
                 (os.path.join(vollcellpose_results, Name + ".tif")),
                 np.asarray(voll_cell_seg).astype("uint16"),
-            )
-
-            vollcellprob_results = os.path.join(save_dir, "VollCellProb")
-            Path(vollcellprob_results).mkdir(exist_ok=True)
-            imwrite(
-                (os.path.join(vollcellprob_results, Name + ".tif")),
-                np.asarray(voll_cell_prob).astype("uint16"),
             )
 
         if roi_model_nuclei is not None:
@@ -3627,7 +3620,6 @@ def _cellpose_block(
         )
     if "T" in axes:
 
-        cellpose_base = []
         voll_cell_seg = []
         for time in range(cellpose_labels.shape[0]):
             cellpose_labels_time = cellpose_labels[time]
@@ -3639,10 +3631,9 @@ def _cellpose_block(
                 z_thresh=z_thresh,
             )
             voll_cell_seg.append(voll_cell_seg_time)
-        cellpose_base = np.asarray(cellpose_base)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
 
-    return voll_cell_seg, cellpose_base
+    return voll_cell_seg
 
 
 def VollSeg(
