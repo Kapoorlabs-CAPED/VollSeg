@@ -267,12 +267,12 @@ def dilate_label_holes(lbl_img, iterations):
     return lbl_img_filled
 
 
-def match_labels(ys, nms_thresh=0.5):
+def match_labels(ys: np.ndarray, nms_thresh=0.5):
 
     if nms_thresh is None:
         nms_thresh = 0.3
     ys = np.asarray(ys)
-    if ys.model_dim not in (3, 4):
+    if len(ys.shape) not in (3, 4):
         raise ValueError("label image y should be 3 or 4 dimensional!")
 
     def _match_single(x, y):
