@@ -4269,7 +4269,7 @@ def VollSeg3D(
                 roi_bbox = [colstart, rowstart, endcol, endrow]
         elif model_dim == len(image.shape):
             Segmented = roi_model.predict(
-                maximage.astype("float32"), "YX", n_tiles=n_tiles
+                image.astype("float32"), "ZYX", n_tiles=n_tiles
             )
             try:
                 thresholds = threshold_multiotsu(Segmented, classes=2)
