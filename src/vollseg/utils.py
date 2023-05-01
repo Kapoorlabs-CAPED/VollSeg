@@ -170,7 +170,8 @@ class SegCorrect:
             ].data
             ModifiedArraySeg = ModifiedArraySeg.astype("uint16")
             imwrite(
-                (self.segmentationdir + imagename + ".tif"), ModifiedArraySeg
+                (os.path.join(self.segmentationdir, imagename + ".tif")),
+                ModifiedArraySeg,
             )
 
 
