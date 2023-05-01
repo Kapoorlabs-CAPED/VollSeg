@@ -165,7 +165,9 @@ class SegCorrect:
 
         if save:
 
-            ModifiedArraySeg = self.viewer.layers[imagename].data
+            ModifiedArraySeg = self.viewer.layers[
+                "Image" + "Integer_Labels" + imagename
+            ].data
             ModifiedArraySeg = ModifiedArraySeg.astype("uint16")
             imwrite(
                 (self.segmentationdir + imagename + ".tif"), ModifiedArraySeg
