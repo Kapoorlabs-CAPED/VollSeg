@@ -144,6 +144,8 @@ class SegCorrect:
             savebutton, name="Save Segmentations", area="bottom"
         )
 
+        napari.run()
+
     def image_add(self, image_toread, seg_image_toread, imagename, save=False):
 
         if not save:

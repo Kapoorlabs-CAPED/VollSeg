@@ -16,7 +16,7 @@ class SmartPatches:
         real_mask_dir,
         raw_save_dir,
         real_mask_patch_dir,
-        binary_mask_dir,
+        binary_mask_patch_dir,
         patch_size,
         erosion_iterations=2,
         max_patch_per_image=50,
@@ -29,7 +29,9 @@ class SmartPatches:
         self.raw_dir = os.path.join(base_dir, raw_dir)
         self.real_mask_dir = os.path.join(base_dir, real_mask_dir)
         self.raw_save_dir = os.path.join(base_dir, raw_save_dir)
-        self.binary_mask_dir = os.path.join(base_dir, binary_mask_dir)
+        self.binary_mask_patch_dir = os.path.join(
+            base_dir, binary_mask_patch_dir
+        )
         self.real_mask_patch_dir = os.path.join(base_dir, real_mask_patch_dir)
         self.patch_size = patch_size
         self.max_patch_per_image = max_patch_per_image
@@ -43,15 +45,15 @@ class SmartPatches:
     def _create_smart_patches(self):
 
         Path(self.raw_save_dir).mkdir(exist_ok=True)
-        Path(self.binary_mask_dir).mkdir(exist_ok=True)
+        Path(self.binary_mask_patch_dir).mkdir(exist_ok=True)
         Path(self.real_mask_patch_dir).mkdir(exist_ok=True)
         files = os.listdir(self.real_mask_dir)
         for fname in files:
             if any(fname.endswith(f) for f in self.acceptable_formats):
 
-                labelimage = imread(os.path.join(self.real_mask_dir, fname)).astype(
-                    np.uint16
-                )
+                labelimage = imread(
+                    os.path.join(self.real_mask_dir, fname)
+                ).astype(np.uint16)
                 self.main_count = 0
                 self.ndim = len(labelimage.shape)
                 properties = regionprops(labelimage)
@@ -126,23 +128,34 @@ class SmartPatches:
             self.main_count += 1
             if self.erosion_iterations > 0:
                 eroded_crop_labelimage = erode_labels(
-                    self.crop_labelimage.astype("uint16"), self.erosion_iterations
+                    self.crop_labelimage.astype("uint16"),
+                    self.erosion_iterations,
                 )
             else:
                 eroded_crop_labelimage = self.crop_labelimage
             eroded_binary_image = eroded_crop_labelimage > 0
             imwrite(
-                self.binary_mask_dir + "/" + name + str(count) + self.pattern,
+                self.binary_mask_patch_dir
+                + "/"
+                + name
+                + str(count)
+                + self.pattern,
                 eroded_binary_image.astype("uint16"),
             )
 
-            self.raw_image = imread(Path(self.raw_dir + name + self.pattern))[region]
+            self.raw_image = imread(Path(self.raw_dir + name + self.pattern))[
+                region
+            ]
             imwrite(
                 self.raw_save_dir + "/" + name + str(count) + self.pattern,
                 self.raw_image,
             )
             imwrite(
-                self.real_mask_patch_dir + "/" + name + str(count) + self.pattern,
+                self.real_mask_patch_dir
+                + "/"
+                + name
+                + str(count)
+                + self.pattern,
                 self.crop_labelimage.astype("uint16"),
             )
 
@@ -179,7 +192,9 @@ def erode_labels(segmentation, erosion_iterations=2):
     def erode_mask(segmentation_labels, label_id, erosion_iterations):
 
         only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
-        eroded = binary_erosion(only_current_label_id, iterations=erosion_iterations)
+        eroded = binary_erosion(
+            only_current_label_id, iterations=erosion_iterations
+        )
         relabeled_eroded = np.where(eroded == 1, label_id, 0)
         return relabeled_eroded
 
