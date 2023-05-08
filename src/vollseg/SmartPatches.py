@@ -14,7 +14,7 @@ class SmartPatches:
         base_membrane_dir,
         raw_membrane_dir,
         base_nuclei_dir,
-        dual_channel_split_directory,
+        raw_nuclei_dir,
         nuclei_channel_results_directory,
         membrane_channel_results_directory,
         nuclei_raw_save_dir,
@@ -28,15 +28,15 @@ class SmartPatches:
         pattern=".tif",
         lower_ratio_fore_to_back=0.5,
         upper_ratio_fore_to_back=0.9,
-        channel_membrane: int = 0,
-        channel_nuclei: int = 1,
     ):
 
-        self.dual_channel_split_directory = dual_channel_split_directory
         self.base_membrane_dir = base_membrane_dir
         self.base_nuclei_dir = base_nuclei_dir
         self.raw_membrane_dir = os.path.join(
-            base_membrane_dir, raw_membrane_dir
+            self.base_membrane_dir, raw_membrane_dir
+        )
+        self.raw_nuclei_dir = os.path.join(
+            self.base_nuclei_dir, raw_nuclei_dir
         )
         self.membrane_channel_results_directory = (
             membrane_channel_results_directory
@@ -70,8 +70,6 @@ class SmartPatches:
         self.lower_ratio_fore_to_back = lower_ratio_fore_to_back
         self.upper_ratio_fore_to_back = upper_ratio_fore_to_back
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
-        self.channel_membrane = channel_membrane
-        self.channel_nuclei = channel_nuclei
         self._create_smart_patches()
 
     def _create_smart_patches(self):
@@ -82,17 +80,22 @@ class SmartPatches:
         Path(self.membrane_binary_mask_patch_dir).mkdir(exist_ok=True)
         Path(self.nuclei_real_mask_patch_dir).mkdir(exist_ok=True)
         Path(self.membrane_real_mask_patch_dir).mkdir(exist_ok=True)
-        files = os.listdir(self.dual_channel_split_directory)
+        files = os.listdir(self.raw_membrane_dir)
         for fname in files:
             if any(fname.endswith(f) for f in self.acceptable_formats):
 
-                rawimage = imread(
-                    os.path.join(self.dual_channel_split_directory, fname)
+                raw_membrane_image = imread(
+                    os.path.join(self.raw_membrane_dir, fname)
                 ).astype(np.uint16)
+
+                raw_nuclei_image = imread(
+                    os.path.join(self.raw_nuclei_dir, fname)
+                ).astype(np.uint16)
+
                 self.main_count = 0
-                self.ndim = len(rawimage.shape) - 1
-                image_membrane = rawimage[:, self.channel_membrane, :, :]
-                image_nuclei = rawimage[:, self.channel_nuclei, :, :]
+                self.ndim = len(raw_membrane_image.shape)
+                image_membrane = raw_membrane_image
+                image_nuclei = raw_nuclei_image
 
                 label_image_membrane = imread(
                     os.path.join(
