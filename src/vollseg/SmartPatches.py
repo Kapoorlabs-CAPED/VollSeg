@@ -11,9 +11,12 @@ from tqdm import tqdm
 class SmartPatches:
     def __init__(
         self,
-        base_dir,
-        raw_dir,
-        dual_real_mask_dir,
+        base_membrane_dir,
+        raw_membrane_dir,
+        base_nuclei_dir,
+        dual_channel_split_directory,
+        nuclei_channel_results_directory,
+        membrane_channel_results_directory,
         nuclei_raw_save_dir,
         membrane_raw_save_dir,
         nuclei_real_mask_patch_dir,
@@ -29,26 +32,37 @@ class SmartPatches:
         channel_nuclei: int = 1,
     ):
 
-        self.base_dir = base_dir
-        self.raw_dir = os.path.join(base_dir, raw_dir)
-        self.dual_real_mask_dir = os.path.join(base_dir, dual_real_mask_dir)
-        self.nuclei_raw_save_dir = os.path.join(base_dir, nuclei_raw_save_dir)
+        self.dual_channel_split_directory = dual_channel_split_directory
+        self.base_membrane_dir = base_membrane_dir
+        self.base_nuclei_dir = base_nuclei_dir
+        self.raw_membrane_dir = os.path.join(
+            base_membrane_dir, raw_membrane_dir
+        )
+        self.membrane_channel_results_directory = (
+            membrane_channel_results_directory
+        )
+        self.nuclei_channel_results_directory = (
+            nuclei_channel_results_directory
+        )
+        self.nuclei_raw_save_dir = os.path.join(
+            base_nuclei_dir, nuclei_raw_save_dir
+        )
         self.membrane_raw_save_dir = os.path.join(
-            base_dir, membrane_raw_save_dir
+            base_membrane_dir, membrane_raw_save_dir
         )
         self.nuclei_binary_mask_patch_dir = os.path.join(
-            base_dir, nuclei_binary_mask_patch_dir
+            self.base_nuclei_dir, nuclei_binary_mask_patch_dir
         )
 
         self.membrane_binary_mask_patch_dir = os.path.join(
-            base_dir, membrane_binary_mask_patch_dir
+            self.base_membrane_dir, membrane_binary_mask_patch_dir
         )
 
         self.nuclei_real_mask_patch_dir = os.path.join(
-            base_dir, nuclei_real_mask_patch_dir
+            self.base_nuclei_dir, nuclei_real_mask_patch_dir
         )
         self.membrane_real_mask_patch_dir = os.path.join(
-            base_dir, membrane_real_mask_patch_dir
+            self.base_membrane_dir, membrane_real_mask_patch_dir
         )
         self.patch_size = patch_size
         self.erosion_iterations = erosion_iterations
@@ -68,23 +82,34 @@ class SmartPatches:
         Path(self.membrane_binary_mask_patch_dir).mkdir(exist_ok=True)
         Path(self.nuclei_real_mask_patch_dir).mkdir(exist_ok=True)
         Path(self.membrane_real_mask_patch_dir).mkdir(exist_ok=True)
-        files = os.listdir(self.dual_real_mask_dir)
+        files = os.listdir(self.dual_channel_split_directory)
         for fname in files:
             if any(fname.endswith(f) for f in self.acceptable_formats):
 
-                labelimage = imread(
-                    os.path.join(self.dual_real_mask_dir, fname)
+                rawimage = imread(
+                    os.path.join(self.dual_channel_split_directory, fname)
                 ).astype(np.uint16)
                 self.main_count = 0
-                self.ndim = len(labelimage.shape)
-                image_membrane = labelimage[:, self.channel_membrane, :, :]
-                image_nuclei = labelimage[:, self.channel_nuclei, :, :]
-                properties_membrane = regionprops(image_membrane)
-                properties_nuclei = regionprops(image_nuclei)
+                self.ndim = len(rawimage.shape) - 1
+                image_membrane = rawimage[:, self.channel_membrane, :, :]
+                image_nuclei = rawimage[:, self.channel_nuclei, :, :]
+
+                label_image_membrane = imread(
+                    os.path.join(
+                        self.membrane_channel_results_directory, fname
+                    )
+                ).astype(np.uint16)
+                label_image_nuclei = imread(
+                    os.path.join(self.nuclei_channel_results_directory, fname)
+                ).astype(np.uint16)
+
+                properties_membrane = regionprops(label_image_membrane)
+                properties_nuclei = regionprops(label_image_nuclei)
                 for count, prop in tqdm(enumerate(properties_nuclei)):
                     self._label_maker(
                         fname,
                         image_nuclei,
+                        label_image_nuclei,
                         count,
                         prop,
                         self.nuclei_raw_save_dir,
@@ -96,6 +121,7 @@ class SmartPatches:
                     self._label_maker(
                         fname,
                         image_membrane,
+                        label_image_membrane,
                         count,
                         prop,
                         self.membrane_raw_save_dir,
@@ -106,6 +132,7 @@ class SmartPatches:
     def _label_maker(
         self,
         fname: str,
+        rawimage: np.ndarray,
         labelimage: np.ndarray,
         count: int,
         prop: regionprops,
@@ -154,6 +181,7 @@ class SmartPatches:
             )
         if all(crop for crop in crop_minus) > 0:
             self.crop_labelimage = labelimage[region]
+            self.crop_image = rawimage[region]
             self.crop_labelimage = remove_small_objects(
                 self.crop_labelimage.astype("uint16"), min_size=10
             )
@@ -162,7 +190,13 @@ class SmartPatches:
                 and self.crop_labelimage.shape[1] == self.patch_size[1]
                 and self.ndim == 2
             ):
-                self._crop_maker(region, name, count)
+                self._crop_maker(
+                    name,
+                    count,
+                    raw_save_dir,
+                    binary_mask_patch_dir,
+                    real_mask_patch_dir,
+                )
             if (
                 self.crop_labelimage.shape[0] == self.patch_size[0]
                 and self.crop_labelimage.shape[1] == self.patch_size[1]
@@ -170,7 +204,6 @@ class SmartPatches:
                 and self.ndim == 3
             ):
                 self._crop_maker(
-                    region,
                     name,
                     count,
                     raw_save_dir,
@@ -180,7 +213,6 @@ class SmartPatches:
 
     def _crop_maker(
         self,
-        region,
         name,
         count,
         raw_save_dir,
@@ -200,19 +232,19 @@ class SmartPatches:
                 eroded_crop_labelimage = self.crop_labelimage
             eroded_binary_image = eroded_crop_labelimage > 0
             imwrite(
-                binary_mask_patch_dir + "/" + name + str(count) + self.pattern,
+                os.path.join(
+                    binary_mask_patch_dir, name + str(count) + self.pattern
+                ),
                 eroded_binary_image.astype("uint16"),
             )
-
-            self.raw_image = imread(Path(self.raw_dir + name + self.pattern))[
-                region
-            ]
             imwrite(
-                raw_save_dir + "/" + name + str(count) + self.pattern,
-                self.raw_image,
+                os.path.join(raw_save_dir, name + str(count) + self.pattern),
+                self.crop_image.astype("float32"),
             )
             imwrite(
-                real_mask_patch_dir + "/" + name + str(count) + self.pattern,
+                os.path.join(
+                    real_mask_patch_dir, name + str(count) + self.pattern
+                ),
                 self.crop_labelimage.astype("uint16"),
             )
 
