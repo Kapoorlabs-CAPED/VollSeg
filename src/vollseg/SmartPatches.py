@@ -38,11 +38,11 @@ class SmartPatches:
         self.raw_nuclei_dir = os.path.join(
             self.base_nuclei_dir, raw_nuclei_dir
         )
-        self.membrane_channel_results_directory = (
-            membrane_channel_results_directory
+        self.membrane_channel_results_directory = os.path.join(
+            self.base_membrane_dir, membrane_channel_results_directory
         )
-        self.nuclei_channel_results_directory = (
-            nuclei_channel_results_directory
+        self.nuclei_channel_results_directory = os.path.join(
+            self.base_nuclei_dir, nuclei_channel_results_directory
         )
         self.nuclei_raw_save_dir = os.path.join(
             base_nuclei_dir, nuclei_raw_save_dir
