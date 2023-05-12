@@ -26,6 +26,7 @@ class SmartPatches:
         patch_size,
         erosion_iterations=2,
         pattern=".tif",
+        create_for_channel="both",
         lower_ratio_fore_to_back=0.5,
         upper_ratio_fore_to_back=0.9,
     ):
@@ -67,6 +68,7 @@ class SmartPatches:
         self.patch_size = patch_size
         self.erosion_iterations = erosion_iterations
         self.pattern = pattern
+        self.create_for_channel = create_for_channel
         self.lower_ratio_fore_to_back = lower_ratio_fore_to_back
         self.upper_ratio_fore_to_back = upper_ratio_fore_to_back
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
@@ -108,29 +110,38 @@ class SmartPatches:
 
                 properties_membrane = regionprops(label_image_membrane)
                 properties_nuclei = regionprops(label_image_nuclei)
-                for count, prop in tqdm(enumerate(properties_nuclei)):
-                    self._label_maker(
-                        fname,
-                        image_nuclei,
-                        label_image_nuclei,
-                        count,
-                        prop,
-                        self.nuclei_raw_save_dir,
-                        self.nuclei_binary_mask_patch_dir,
-                        self.nuclei_real_mask_patch_dir,
-                    )
 
-                for count, prop in tqdm(enumerate(properties_membrane)):
-                    self._label_maker(
-                        fname,
-                        image_membrane,
-                        label_image_membrane,
-                        count,
-                        prop,
-                        self.membrane_raw_save_dir,
-                        self.membrane_binary_mask_patch_dir,
-                        self.membrane_real_mask_patch_dir,
-                    )
+                if (
+                    self.create_for_channel == "nuclei"
+                    or self.create_for_channel == "both"
+                ):
+                    for count, prop in tqdm(enumerate(properties_nuclei)):
+                        self._label_maker(
+                            fname,
+                            image_nuclei,
+                            label_image_nuclei,
+                            count,
+                            prop,
+                            self.nuclei_raw_save_dir,
+                            self.nuclei_binary_mask_patch_dir,
+                            self.nuclei_real_mask_patch_dir,
+                        )
+                if (
+                    self.create_for_channel == "membrane"
+                    or self.create_for_channel == "both"
+                ):
+
+                    for count, prop in tqdm(enumerate(properties_membrane)):
+                        self._label_maker(
+                            fname,
+                            image_membrane,
+                            label_image_membrane,
+                            count,
+                            prop,
+                            self.membrane_raw_save_dir,
+                            self.membrane_binary_mask_patch_dir,
+                            self.membrane_real_mask_patch_dir,
+                        )
 
     def _label_maker(
         self,
