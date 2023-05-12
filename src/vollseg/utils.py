@@ -132,7 +132,7 @@ class SegCorrect:
 
         napari.run()
 
-    def image_add(self, image_toread, seg_image_toread, imagename, save=False):
+    def image_add(self, imagename, image_toread, seg_image_toread, save=False):
 
         if not save:
             for layer in list(self.viewer.layers):
