@@ -81,20 +81,21 @@ class SegCorrect:
 
         self.imagedir = imagedir
         self.segmentationdir = segmentationdir
+        self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
 
     def showNapari(self):
 
         self.viewer = napari.Viewer()
-        Raw_path = os.path.join(self.imagedir, "*tif")
-        X = os.listdir(Raw_path)
+        X = os.listdir(self.imagedir)
         Imageids = []
-        Seg_path = os.path.join(self.segmentationdir, "*tif")
-        Y = os.listdir(Seg_path)
+        Y = os.listdir(self.segmentationdir)
         SegImageids = []
         for imagename in X:
-            Imageids.append(imagename)
+            if any(imagename.endswith(f) for f in self.acceptable_formats):
+                Imageids.append(imagename)
         for imagename in Y:
-            SegImageids.append(imagename)
+            if any(imagename.endswith(f) for f in self.acceptable_formats):
+                SegImageids.append(imagename)
 
         imageidbox = QComboBox()
         imageidbox.addItem(Boxname)
