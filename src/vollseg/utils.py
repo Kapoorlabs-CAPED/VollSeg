@@ -6,7 +6,6 @@ Created on Fri Sep 27 13:08:41 2019
 
 
 import concurrent
-import glob
 import math
 import os
 from pathlib import Path
@@ -87,10 +86,10 @@ class SegCorrect:
 
         self.viewer = napari.Viewer()
         Raw_path = os.path.join(self.imagedir, "*tif")
-        X = glob.glob(Raw_path)
+        X = os.listdir(Raw_path)
         Imageids = []
         Seg_path = os.path.join(self.segmentationdir, "*tif")
-        Y = glob.glob(Seg_path)
+        Y = os.listdir(Seg_path)
         SegImageids = []
         for imagename in X:
             Imageids.append(imagename)
@@ -108,15 +107,8 @@ class SegCorrect:
         imageidbox.currentIndexChanged.connect(
             lambda trackid=imageidbox: self.image_add(
                 imageidbox.currentText(),
-                self.segmentationdir
-                + "/"
-                + os.path.basename(
-                    os.path.splitext(imageidbox.currentText())[0]
-                )
-                + ".tif",
-                os.path.basename(
-                    os.path.splitext(imageidbox.currentText())[0]
-                ),
+                os.path.join(self.imagedir, imageidbox.currentText()),
+                os.path.join(self.segmentationdir, imageidbox.currentText()),
                 False,
             )
         )
@@ -124,15 +116,8 @@ class SegCorrect:
         savebutton.clicked.connect(
             lambda trackid=imageidbox: self.image_add(
                 imageidbox.currentText(),
-                self.segmentationdir
-                + "/"
-                + os.path.basename(
-                    os.path.splitext(imageidbox.currentText())[0]
-                )
-                + ".tif",
-                os.path.basename(
-                    os.path.splitext(imageidbox.currentText())[0]
-                ),
+                os.path.join(self.imagedir, imageidbox.currentText()),
+                os.path.join(self.segmentationdir, imageidbox.currentText()),
                 True,
             )
         )
