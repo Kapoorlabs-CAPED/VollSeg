@@ -108,8 +108,12 @@ class SegCorrect:
         imageidbox.currentIndexChanged.connect(
             lambda trackid=imageidbox: self.image_add(
                 imageidbox.currentText(),
-                os.path.join(self.imagedir, imageidbox.currentText()),
-                os.path.join(self.segmentationdir, imageidbox.currentText()),
+                Path(os.path.join(self.imagedir, imageidbox.currentText())),
+                Path(
+                    os.path.join(
+                        self.segmentationdir, imageidbox.currentText()
+                    )
+                ),
                 False,
             )
         )
@@ -117,8 +121,12 @@ class SegCorrect:
         savebutton.clicked.connect(
             lambda trackid=imageidbox: self.image_add(
                 imageidbox.currentText(),
-                os.path.join(self.imagedir, imageidbox.currentText()),
-                os.path.join(self.segmentationdir, imageidbox.currentText()),
+                Path(os.path.join(self.imagedir, imageidbox.currentText())),
+                Path(
+                    os.path.join(
+                        self.segmentationdir, imageidbox.currentText()
+                    )
+                ),
                 True,
             )
         )
