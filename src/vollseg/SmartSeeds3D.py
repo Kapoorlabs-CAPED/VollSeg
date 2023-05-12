@@ -42,18 +42,23 @@ def fill_label_holes(lbl_img, **kwargs):
     # TODO: refactor 'fill_label_holes' and 'edt_prob' to share code
     def grow(sl, interior):
         return tuple(
-            slice(s.start - int(w[0]), s.stop + int(w[1])) for s, w in zip(sl, interior)
+            slice(s.start - int(w[0]), s.stop + int(w[1]))
+            for s, w in zip(sl, interior)
         )
 
     def shrink(interior):
-        return tuple(slice(int(w[0]), (-1 if w[1] else None)) for w in interior)
+        return tuple(
+            slice(int(w[0]), (-1 if w[1] else None)) for w in interior
+        )
 
     objects = find_objects(lbl_img)
     lbl_img_filled = np.zeros_like(lbl_img)
     for i, sl in enumerate(objects, 1):
         if sl is None:
             continue
-        interior = [(s.start > 0, s.stop < sz) for s, sz in zip(sl, lbl_img.shape)]
+        interior = [
+            (s.start > 0, s.stop < sz) for s, sz in zip(sl, lbl_img.shape)
+        ]
         shrink_slice = shrink(interior)
         grown_mask = lbl_img[grow(sl, interior)] == i
         mask_filled = binary_fill_holes(grown_mask, **kwargs)[shrink_slice]
@@ -96,7 +101,8 @@ class SmartSeeds3D:
     def __init__(
         self,
         base_dir,
-        model_name,
+        unet_model_name,
+        star_model_name,
         model_dir,
         npz_filename=None,
         n_patches_per_image=1,
@@ -116,9 +122,7 @@ class SmartSeeds3D:
         generate_npz=True,
         validation_split=0.01,
         erosion_iterations=2,
-        patch_x=256,
-        patch_y=256,
-        patch_z=16,
+        patch_size=(16, 256, 256),
         grid_x=1,
         grid_y=1,
         annisotropy=(1, 1, 1),
@@ -146,7 +150,8 @@ class SmartSeeds3D:
         self.annisotropy = annisotropy
         self.train_unet = train_unet
         self.train_star = train_star
-        self.model_name = model_name
+        self.unet_model_name = unet_model_name
+        self.star_model_name = star_model_name
         self.epochs = epochs
         self.learning_rate = learning_rate
         self.depth = depth
@@ -156,9 +161,7 @@ class SmartSeeds3D:
         self.train_loss = train_loss
         self.erosion_iterations = erosion_iterations
         self.kern_size = kern_size
-        self.patch_x = patch_x
-        self.patch_y = patch_y
-        self.patch_z = patch_z
+        self.patch_size = patch_size
         self.grid_x = grid_x
         self.grid_y = grid_y
         self.validation_split = validation_split
@@ -213,7 +216,9 @@ class SmartSeeds3D:
         Path(Real_Mask_path).mkdir(exist_ok=True)
         RealMask = os.listdir(Real_Mask_path)
 
-        Val_Real_Mask_path = os.path.join(self.base_dir, self.val_real_mask_dir)
+        Val_Real_Mask_path = os.path.join(
+            self.base_dir, self.val_real_mask_dir
+        )
         Path(Val_Real_Mask_path).mkdir(exist_ok=True)
         ValRealMask = os.listdir(Val_Real_Mask_path)
 
@@ -223,7 +228,9 @@ class SmartSeeds3D:
 
             print("Making labels")
             Mask = sorted(
-                glob.glob(self.base_dir + self.binary_mask_dir + "*" + self.pattern)
+                glob.glob(
+                    self.base_dir + self.binary_mask_dir + "*" + self.pattern
+                )
             )
 
             for fname in Mask:
@@ -236,14 +243,21 @@ class SmartSeeds3D:
                     Binaryimage = label(image)
 
                     imwrite(
-                        (self.base_dir + self.real_mask_dir + Name + self.pattern),
+                        (
+                            os.path.join(
+                                self.base_dir,
+                                self.real_mask_dir + Name + self.pattern,
+                            )
+                        ),
                         Binaryimage.astype("uint16"),
                     )
 
         if len(RealMask) > 0 and len(Mask) < len(RealMask):
             print("Generating Binary images")
 
-            RealfilesMask_path = os.path.join(self.base_dir, self.real_mask_dir)
+            RealfilesMask_path = os.path.join(
+                self.base_dir, self.real_mask_dir
+            )
             RealfilesMask = os.listdir(RealfilesMask_path)
 
             for fname in RealfilesMask:
@@ -258,7 +272,12 @@ class SmartSeeds3D:
                     Binaryimage = image > 0
 
                     imwrite(
-                        (self.base_dir + self.binary_mask_dir + Name + self.pattern),
+                        (
+                            os.path.join(
+                                self.base_dir,
+                                self.binary_mask_dir + Name + self.pattern,
+                            )
+                        ),
                         Binaryimage.astype("uint16"),
                     )
 
@@ -274,15 +293,17 @@ class SmartSeeds3D:
 
             X, Y, XY_axes = create_patches(
                 raw_data=raw_data,
-                patch_size=(self.patch_z, self.patch_y, self.patch_x),
+                patch_size=self.patch_size,
                 n_patches_per_image=self.n_patches_per_image,
-                save_file=self.base_dir + self.npz_filename + ".npz",
+                save_file=os.path.join(
+                    self.base_dir, self.npz_filename + ".npz"
+                ),
             )
 
         # Training UNET model
         if self.train_unet:
             print("Training UNET model")
-            load_path = self.base_dir + self.npz_filename + ".npz"
+            load_path = os.path.join(self.base_dir, self.npz_filename + ".npz")
 
             (X, Y), (X_val, Y_val), axes = load_training_data(
                 load_path, validation_split=self.validation_split, verbose=True
@@ -306,30 +327,50 @@ class SmartSeeds3D:
             print(config)
             vars(config)
 
-            model = CARE(config, name="unet_" + self.model_name, basedir=self.model_dir)
+            model = CARE(
+                config, name=self.unet_model_name, basedir=self.model_dir
+            )
 
             if os.path.exists(
-                self.model_dir + "unet_" + self.model_name + "/" + "weights_now.h5"
+                os.path.join(
+                    self.model_dir,
+                    os.path.join(self.unet_model_name, "weights_now.h5"),
+                )
             ):
                 print("Loading checkpoint model")
                 model.load_weights(
-                    self.model_dir + "unet_" + self.model_name + "/" + "weights_now.h5"
+                    os.path.join(
+                        self.model_dir,
+                        os.path.join(self.unet_model_name, "weights_now.h5"),
+                    )
                 )
 
             if os.path.exists(
-                self.model_dir + "unet_" + self.model_name + "/" + "weights_last.h5"
+                os.path.join(
+                    self.model_dir,
+                    os.path.join(self.unet_model_name, "weights_last.h5"),
+                )
             ):
                 print("Loading checkpoint model")
                 model.load_weights(
-                    self.model_dir + "unet_" + self.model_name + "/" + "weights_last.h5"
+                    os.path.join(
+                        self.model_dir,
+                        os.path.join(self.unet_model_name, "weights_last.h5"),
+                    )
                 )
 
             if os.path.exists(
-                self.model_dir + "unet_" + self.model_name + "/" + "weights_best.h5"
+                os.path.join(
+                    self.model_dir,
+                    os.path.join(self.unet_model_name, "weights_best.h5"),
+                )
             ):
                 print("Loading checkpoint model")
                 model.load_weights(
-                    self.model_dir + "unet_" + self.model_name + "/" + "weights_best.h5"
+                    os.path.join(
+                        self.model_dir,
+                        os.path.join(self.unet_model_name, "weights_best.h5"),
+                    )
                 )
 
             history = model.train(X, Y, validation_data=(X_val, Y_val))
@@ -337,11 +378,15 @@ class SmartSeeds3D:
             print(sorted(list(history.history.keys())))
             plt.figure(figsize=(16, 5))
             plot_history(
-                history, ["loss", "val_loss"], ["mse", "val_mse", "mae", "val_mae"]
+                history,
+                ["loss", "val_loss"],
+                ["mse", "val_mse", "mae", "val_mae"],
             )
 
         if self.train_star:
-            print("Training StarDistModel model with", self.backbone, "backbone")
+            print(
+                "Training StarDistModel model with", self.backbone, "backbone"
+            )
             self.axis_norm = (0, 1, 2)
             if self.load_data_sequence is False:
                 assert len(Raw) > 1, "not enough training data"
@@ -409,9 +454,15 @@ class SmartSeeds3D:
                     train_epochs=self.epochs,
                     train_learning_rate=self.learning_rate,
                     resnet_n_blocks=self.depth,
-                    train_checkpoint=self.model_dir + self.model_name + ".h5",
-                    resnet_kernel_size=(self.kern_size, self.kern_size, self.kern_size),
-                    train_patch_size=(self.patch_z, self.patch_x, self.patch_y),
+                    train_checkpoint=self.model_dir
+                    + self.star_model_name
+                    + ".h5",
+                    resnet_kernel_size=(
+                        self.kern_size,
+                        self.kern_size,
+                        self.kern_size,
+                    ),
+                    train_patch_size=self.patch_size,
                     train_batch_size=self.batch_size,
                     resnet_n_filter_base=self.startfilter,
                     train_dist_loss="mse",
@@ -429,9 +480,15 @@ class SmartSeeds3D:
                     train_epochs=self.epochs,
                     train_learning_rate=self.learning_rate,
                     unet_n_depth=self.depth,
-                    train_checkpoint=self.model_dir + self.model_name + ".h5",
-                    unet_kernel_size=(self.kern_size, self.kern_size, self.kern_size),
-                    train_patch_size=(self.patch_z, self.patch_x, self.patch_y),
+                    train_checkpoint=self.model_dir
+                    + self.star_model_name
+                    + ".h5",
+                    unet_kernel_size=(
+                        self.kern_size,
+                        self.kern_size,
+                        self.kern_size,
+                    ),
+                    train_patch_size=self.patch_size,
                     train_batch_size=self.batch_size,
                     unet_n_filter_base=self.startfilter,
                     train_dist_loss="mse",
@@ -444,36 +501,59 @@ class SmartSeeds3D:
             print(conf)
             vars(conf)
 
-            Starmodel = StarDist3D(conf, name=self.model_name, basedir=self.model_dir)
+            Starmodel = StarDist3D(
+                conf, name=self.star_model_name, basedir=self.model_dir
+            )
             print(
                 Starmodel._axes_tile_overlap("ZYX"),
                 os.path.exists(
-                    self.model_dir + self.model_name + "/" + "weights_now.h5"
+                    os.path.join(
+                        self.model_dir,
+                        os.path.join(self.star_model_name, "weights_now.h5"),
+                    )
                 ),
             )
 
             if os.path.exists(
-                self.model_dir + self.model_name + "/" + "weights_now.h5"
+                os.path.join(
+                    self.model_dir,
+                    os.path.join(self.star_model_name, "weights_now.h5"),
+                )
             ):
                 print("Loading checkpoint model")
                 Starmodel.load_weights(
-                    self.model_dir + self.model_name + "/" + "weights_now.h5"
+                    os.path.join(
+                        self.model_dir,
+                        os.path.join(self.star_model_name, "weights_now.h5"),
+                    )
                 )
 
             if os.path.exists(
-                self.model_dir + self.model_name + "/" + "weights_last.h5"
+                os.path.join(
+                    self.model_dir,
+                    os.path.join(self.star_model_name, "weights_last.h5"),
+                )
             ):
                 print("Loading checkpoint model")
                 Starmodel.load_weights(
-                    self.model_dir + self.model_name + "/" + "weights_last.h5"
+                    os.path.join(
+                        self.model_dir,
+                        os.path.join(self.star_model_name, "weights_last.h5"),
+                    )
                 )
 
             if os.path.exists(
-                self.model_dir + self.model_name + "/" + "weights_best.h5"
+                os.path.join(
+                    self.model_dir,
+                    os.path.join(self.star_model_name, "weights_best.h5"),
+                )
             ):
                 print("Loading checkpoint model")
                 Starmodel.load_weights(
-                    self.model_dir + self.model_name + "/" + "weights_best.h5"
+                    os.path.join(
+                        self.model_dir,
+                        os.path.join(self.star_model_name, "weights_best.h5"),
+                    )
                 )
 
             historyStar = Starmodel.train(

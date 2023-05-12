@@ -82,43 +82,34 @@ class SmartPatches:
         Path(self.membrane_binary_mask_patch_dir).mkdir(exist_ok=True)
         Path(self.nuclei_real_mask_patch_dir).mkdir(exist_ok=True)
         Path(self.membrane_real_mask_patch_dir).mkdir(exist_ok=True)
-        files = os.listdir(self.raw_membrane_dir)
+        if self.create_for_channel == "nuclei":
+            files = os.listdir(self.raw_nuclei_dir)
+        else:
+            files = os.listdir(self.raw_membrane_dir)
         for fname in files:
             if any(fname.endswith(f) for f in self.acceptable_formats):
-
-                raw_membrane_image = imread(
-                    os.path.join(self.raw_membrane_dir, fname)
-                ).astype(np.uint16)
-
-                raw_nuclei_image = imread(
-                    os.path.join(self.raw_nuclei_dir, fname)
-                ).astype(np.uint16)
-
-                self.main_count = 0
-                self.ndim = len(raw_membrane_image.shape)
-                image_membrane = raw_membrane_image
-                image_nuclei = raw_nuclei_image
-
-                label_image_membrane = imread(
-                    os.path.join(
-                        self.membrane_channel_results_directory, fname
-                    )
-                ).astype(np.uint16)
-                label_image_nuclei = imread(
-                    os.path.join(self.nuclei_channel_results_directory, fname)
-                ).astype(np.uint16)
-
-                properties_membrane = regionprops(label_image_membrane)
-                properties_nuclei = regionprops(label_image_nuclei)
 
                 if (
                     self.create_for_channel == "nuclei"
                     or self.create_for_channel == "both"
                 ):
+
+                    self.main_count = 0
+
+                    raw_nuclei_image = imread(
+                        os.path.join(self.raw_nuclei_dir, fname)
+                    ).astype(np.uint16)
+                    self.ndim = len(raw_nuclei_image.shape)
+                    label_image_nuclei = imread(
+                        os.path.join(
+                            self.nuclei_channel_results_directory, fname
+                        )
+                    ).astype(np.uint16)
+                    properties_nuclei = regionprops(label_image_nuclei)
                     for count, prop in tqdm(enumerate(properties_nuclei)):
                         self._label_maker(
                             fname,
-                            image_nuclei,
+                            raw_nuclei_image,
                             label_image_nuclei,
                             count,
                             prop,
@@ -131,10 +122,22 @@ class SmartPatches:
                     or self.create_for_channel == "both"
                 ):
 
+                    self.main_count = 0
+
+                    raw_membrane_image = imread(
+                        os.path.join(self.raw_membrane_dir, fname)
+                    ).astype(np.uint16)
+                    self.ndim = len(raw_membrane_image.shape)
+                    label_image_membrane = imread(
+                        os.path.join(
+                            self.membrane_channel_results_directory, fname
+                        )
+                    ).astype(np.uint16)
+                    properties_membrane = regionprops(label_image_membrane)
                     for count, prop in tqdm(enumerate(properties_membrane)):
                         self._label_maker(
                             fname,
-                            image_membrane,
+                            raw_membrane_image,
                             label_image_membrane,
                             count,
                             prop,
