@@ -132,33 +132,39 @@ class SegCorrect:
 
         napari.run()
 
-    def image_add(self, imagename, image_toread, seg_image_toread, save=False):
+    def image_add(
+        self,
+        imagename: str,
+        image_toread: Path,
+        seg_image_toread: Path,
+        save=False,
+    ):
+        if seg_image_toread.exists():
+            if not save:
+                for layer in list(self.viewer.layers):
 
-        if not save:
-            for layer in list(self.viewer.layers):
+                    if "Image" in layer.name or layer.name in "Image":
 
-                if "Image" in layer.name or layer.name in "Image":
+                        self.viewer.layers.remove(layer)
 
-                    self.viewer.layers.remove(layer)
+                self.image = imread(image_toread)
+                self.segimage = imread(seg_image_toread)
 
-            self.image = imread(image_toread)
-            self.segimage = imread(seg_image_toread)
+                self.viewer.add_image(self.image, name="Image" + imagename)
+                self.viewer.add_labels(
+                    self.segimage, name="Image" + "Integer_Labels" + imagename
+                )
 
-            self.viewer.add_image(self.image, name="Image" + imagename)
-            self.viewer.add_labels(
-                self.segimage, name="Image" + "Integer_Labels" + imagename
-            )
+            if save:
 
-        if save:
-
-            ModifiedArraySeg = self.viewer.layers[
-                "Image" + "Integer_Labels" + imagename
-            ].data
-            ModifiedArraySeg = ModifiedArraySeg.astype("uint16")
-            imwrite(
-                (os.path.join(self.segmentationdir, imagename + ".tif")),
-                ModifiedArraySeg,
-            )
+                ModifiedArraySeg = self.viewer.layers[
+                    "Image" + "Integer_Labels" + imagename
+                ].data
+                ModifiedArraySeg = ModifiedArraySeg.astype("uint16")
+                imwrite(
+                    (os.path.join(self.segmentationdir, imagename)),
+                    ModifiedArraySeg,
+                )
 
 
 def BinaryLabel(BinaryImageOriginal, max_size=15000):
