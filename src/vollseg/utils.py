@@ -16,11 +16,11 @@ import gc
 import time as cputime
 from skimage.transform import resize
 from typing import Optional
-import cv2
 import numpy as np
 from numba import jit
 from scipy.optimize import linear_sum_assignment
 from scipy.ndimage import convolve, mean
+import cv2
 
 # import matplotlib.pyplot as plt
 import pandas as pd

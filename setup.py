@@ -34,9 +34,12 @@ setup(
         "napari",
         "cellpose-vollseg",
         "torch",
+        "torchvision",
+        "torchaudio",
         "test_tube",
         "lightning",
         "segment-anything",
+        "opencv-contrib-python-headless",
     ],
     packages=find_packages(),
     classifiers=[
