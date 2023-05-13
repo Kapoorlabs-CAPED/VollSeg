@@ -17,11 +17,8 @@ class CellPose:
         test_real_mask_dir,
         n_epochs=400,
         learning_rate=0.0001,
-        nimg_per_epochs=10,
         weight_decay=1.0e-4,
         channels=1,
-        cellpose_model_name=None,
-        pretrained_cellpose_model_path=None,
         gpu=True,
         real_train_3D=False,
     ):
@@ -35,12 +32,12 @@ class CellPose:
         self.test_real_mask_dir = os.path.join(base_dir, test_real_mask_dir)
         self.n_epochs = n_epochs
         self.learning_rate = learning_rate
-        self.nimg_per_epochs = nimg_per_epochs
         self.weight_decay = weight_decay
-        self.cellpose_model_name = cellpose_model_name
         self.real_train_3D = real_train_3D
         self.channels = channels
-        self.pretrained_cellpose_model_path = pretrained_cellpose_model_path
+        self.pretrained_cellpose_model_path = os.path.join(
+            model_dir, model_name
+        )
         self.gpu = gpu
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
 
@@ -50,23 +47,20 @@ class CellPose:
     def train(self):
 
         files_labels = os.listdir(self.real_mask_dir)
-        self.train_images, self.train_labels, self.train_names = self.load_data(
-            files_labels
-        )
+        (
+            self.train_images,
+            self.train_labels,
+            self.train_names,
+        ) = self.load_data(files_labels)
 
         files_test_labels = os.listdir(self.test_real_mask_dir)
         self.test_images, self.test_labels, self.test_names = self.load_data(
             files_test_labels
         )
 
-        if self.cellpose_model_name is not None:
-            self.cellpose_model = models.Cellpose(
-                gpu=self.gpu, model_type=self.cellpose_model_name
-            )
-        else:
-            self.cellpose_model = models.CellposeModel(
-                gpu=self.gpu, pretrained_model=self.pretrained_cellpose_model_path
-            )
+        self.cellpose_model = models.CellposeModel(
+            gpu=self.gpu, pretrained_model=self.pretrained_cellpose_model_path
+        )
 
         self.new_cellpose_model_path = self.cellpose_model.train(
             self.train_images,
@@ -78,7 +72,6 @@ class CellPose:
             learning_rate=self.learning_rate,
             channels=self.channels,
             weight_decay=self.weight_decay,
-            nimg_per_epoch=self.nimg_per_epochs,
             model_name=self.model_name,
         )
         self.diam_labels = self.cellpose_model.diam_labels.copy()
@@ -90,7 +83,9 @@ class CellPose:
         )[0]
         ap = metrics.average_precision(self.test_labels, self.masks)[0]
         print("")
-        print(f">>> average precision at iou threshold 0.5 = {ap[:,0].mean():.3f}")
+        print(
+            f">>> average precision at iou threshold 0.5 = {ap[:,0].mean():.3f}"
+        )
 
     def load_data(self, files_labels):
 
@@ -100,9 +95,9 @@ class CellPose:
         for fname in files_labels:
             if any(fname.endswith(f) for f in self.acceptable_formats):
                 name = os.path.splitext(fname)[0]
-                labelimage = imread(os.path.join(self.real_mask_dir, fname)).astype(
-                    np.uint16
-                )
+                labelimage = imread(
+                    os.path.join(self.real_mask_dir, fname)
+                ).astype(np.uint16)
                 image = imread(os.path.join(self.raw_dir, fname))
                 if not self.real_train_3D:
                     with concurrent.futures.ThreadPoolExecutor(
@@ -118,11 +113,15 @@ class CellPose:
                         ]
                         current_labels = [
                             r.result()
-                            for r in concurrent.futures.as_completed(future_labels)
+                            for r in concurrent.futures.as_completed(
+                                future_labels
+                            )
                         ]
                         current_raw = [
                             r.result()
-                            for r in concurrent.futures.as_completed(future_raw)
+                            for r in concurrent.futures.as_completed(
+                                future_raw
+                            )
                         ]
                     for i in range(len(current_labels)):
                         labels.append(current_labels[i])
