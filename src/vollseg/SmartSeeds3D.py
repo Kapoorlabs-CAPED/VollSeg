@@ -103,7 +103,8 @@ class SmartSeeds3D:
         base_dir,
         unet_model_name,
         star_model_name,
-        model_dir,
+        unet_model_dir,
+        star_model_dir,
         npz_filename=None,
         n_patches_per_image=1,
         train_loss="mae",
@@ -139,7 +140,8 @@ class SmartSeeds3D:
         self.npz_filename = npz_filename
         self.base_dir = base_dir
         self.downsample_factor = downsample_factor
-        self.model_dir = model_dir
+        self.unet_model_dir = unet_model_dir
+        self.star_model_dir = star_model_dir
         self.backbone = backbone
         self.raw_dir = raw_dir
         self.real_mask_dir = real_mask_dir
@@ -328,47 +330,47 @@ class SmartSeeds3D:
             vars(config)
 
             model = CARE(
-                config, name=self.unet_model_name, basedir=self.model_dir
+                config, name=self.unet_model_name, basedir=self.unet_model_dir
             )
 
             if os.path.exists(
                 os.path.join(
-                    self.model_dir,
+                    self.unet_model_dir,
                     os.path.join(self.unet_model_name, "weights_now.h5"),
                 )
             ):
                 print("Loading checkpoint model")
                 model.load_weights(
                     os.path.join(
-                        self.model_dir,
+                        self.unet_model_dir,
                         os.path.join(self.unet_model_name, "weights_now.h5"),
                     )
                 )
 
             if os.path.exists(
                 os.path.join(
-                    self.model_dir,
+                    self.unet_model_dir,
                     os.path.join(self.unet_model_name, "weights_last.h5"),
                 )
             ):
                 print("Loading checkpoint model")
                 model.load_weights(
                     os.path.join(
-                        self.model_dir,
+                        self.unet_model_dir,
                         os.path.join(self.unet_model_name, "weights_last.h5"),
                     )
                 )
 
             if os.path.exists(
                 os.path.join(
-                    self.model_dir,
+                    self.unet_model_dir,
                     os.path.join(self.unet_model_name, "weights_best.h5"),
                 )
             ):
                 print("Loading checkpoint model")
                 model.load_weights(
                     os.path.join(
-                        self.model_dir,
+                        self.unet_model_dir,
                         os.path.join(self.unet_model_name, "weights_best.h5"),
                     )
                 )
@@ -454,7 +456,7 @@ class SmartSeeds3D:
                     train_epochs=self.epochs,
                     train_learning_rate=self.learning_rate,
                     resnet_n_blocks=self.depth,
-                    train_checkpoint=self.model_dir
+                    train_checkpoint=self.star_model_dir
                     + self.star_model_name
                     + ".h5",
                     resnet_kernel_size=(
@@ -480,7 +482,7 @@ class SmartSeeds3D:
                     train_epochs=self.epochs,
                     train_learning_rate=self.learning_rate,
                     unet_n_depth=self.depth,
-                    train_checkpoint=self.model_dir
+                    train_checkpoint=self.star_model_dir
                     + self.star_model_name
                     + ".h5",
                     unet_kernel_size=(
@@ -502,13 +504,13 @@ class SmartSeeds3D:
             vars(conf)
 
             Starmodel = StarDist3D(
-                conf, name=self.star_model_name, basedir=self.model_dir
+                conf, name=self.star_model_name, basedir=self.star_model_dir
             )
             print(
                 Starmodel._axes_tile_overlap("ZYX"),
                 os.path.exists(
                     os.path.join(
-                        self.model_dir,
+                        self.star_model_dir,
                         os.path.join(self.star_model_name, "weights_now.h5"),
                     )
                 ),
@@ -516,42 +518,42 @@ class SmartSeeds3D:
 
             if os.path.exists(
                 os.path.join(
-                    self.model_dir,
+                    self.star_model_dir,
                     os.path.join(self.star_model_name, "weights_now.h5"),
                 )
             ):
                 print("Loading checkpoint model")
                 Starmodel.load_weights(
                     os.path.join(
-                        self.model_dir,
+                        self.star_model_dir,
                         os.path.join(self.star_model_name, "weights_now.h5"),
                     )
                 )
 
             if os.path.exists(
                 os.path.join(
-                    self.model_dir,
+                    self.star_model_dir,
                     os.path.join(self.star_model_name, "weights_last.h5"),
                 )
             ):
                 print("Loading checkpoint model")
                 Starmodel.load_weights(
                     os.path.join(
-                        self.model_dir,
+                        self.star_model_dir,
                         os.path.join(self.star_model_name, "weights_last.h5"),
                     )
                 )
 
             if os.path.exists(
                 os.path.join(
-                    self.model_dir,
+                    self.star_model_dir,
                     os.path.join(self.star_model_name, "weights_best.h5"),
                 )
             ):
                 print("Loading checkpoint model")
                 Starmodel.load_weights(
                     os.path.join(
-                        self.model_dir,
+                        self.star_model_dir,
                         os.path.join(self.star_model_name, "weights_best.h5"),
                     )
                 )
