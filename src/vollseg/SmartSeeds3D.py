@@ -4,9 +4,6 @@ import os
 # from IPython.display import clear_output
 from stardist.models import Config3D, StarDist3D
 from stardist import Rays_GoldenSpiral, calculate_extents
-from scipy.ndimage import binary_fill_holes
-from scipy.ndimage.measurements import find_objects
-from scipy.ndimage import binary_dilation
 from csbdeep.utils import normalize
 import glob
 from csbdeep.io import load_training_data
@@ -22,57 +19,6 @@ from pathlib import Path
 from tifffile import imread, imwrite
 from csbdeep.utils import plot_history
 from scipy.ndimage import zoom
-
-
-def _raise(e):
-    raise e
-
-
-def _fill_label_holes(lbl_img, **kwargs):
-    lbl_img_filled = np.zeros_like(lbl_img)
-    for lb in set(np.unique(lbl_img)) - {0}:
-        mask = lbl_img == lb
-        mask_filled = binary_fill_holes(mask, **kwargs)
-        lbl_img_filled[mask_filled] = lb
-    return lbl_img_filled
-
-
-def fill_label_holes(lbl_img, **kwargs):
-    """Fill small holes in label image."""
-    # TODO: refactor 'fill_label_holes' and 'edt_prob' to share code
-    def grow(sl, interior):
-        return tuple(
-            slice(s.start - int(w[0]), s.stop + int(w[1]))
-            for s, w in zip(sl, interior)
-        )
-
-    def shrink(interior):
-        return tuple(
-            slice(int(w[0]), (-1 if w[1] else None)) for w in interior
-        )
-
-    objects = find_objects(lbl_img)
-    lbl_img_filled = np.zeros_like(lbl_img)
-    for i, sl in enumerate(objects, 1):
-        if sl is None:
-            continue
-        interior = [
-            (s.start > 0, s.stop < sz) for s, sz in zip(sl, lbl_img.shape)
-        ]
-        shrink_slice = shrink(interior)
-        grown_mask = lbl_img[grow(sl, interior)] == i
-        mask_filled = binary_fill_holes(grown_mask, **kwargs)[shrink_slice]
-        lbl_img_filled[sl][mask_filled] = i
-    return lbl_img_filled
-
-
-def dilate_label_holes(lbl_img, iterations):
-    lbl_img_filled = np.zeros_like(lbl_img)
-    for lb in range(np.min(lbl_img), np.max(lbl_img) + 1):
-        mask = lbl_img == lb
-        mask_filled = binary_dilation(mask, iterations=iterations)
-        lbl_img_filled[mask_filled] = lb
-    return lbl_img_filled
 
 
 def erode_labels(segmentation, erosion_iterations=2):
@@ -108,7 +54,7 @@ class SmartSeeds3D:
         npz_filename=None,
         n_patches_per_image=1,
         train_loss="mae",
-        raw_dir="Raw/",
+        raw_dir="raw/",
         real_mask_dir="real_mask/",
         binary_mask_dir="binary_mask/",
         val_raw_dir="val_raw/",
@@ -177,26 +123,26 @@ class SmartSeeds3D:
         self.Train()
 
     class DataSequencer(Sequence):
-        def __init__(self, files, axis_norm, Normalize=True, labelMe=False):
+        def __init__(self, files, axis_norm, normalize=True, label_me=False):
             super().__init__()
 
             self.files = files
 
             self.axis_norm = axis_norm
-            self.labelMe = labelMe
-            self.Normalize = Normalize
+            self.label_me = label_me
+            self.normalize = normalize
 
         def __len__(self):
             return len(self.files)
 
         def __getitem__(self, i):
 
-            # Read Raw images
-            if self.Normalize is True:
+            # Read raw images
+            if self.normalize is True:
                 x = read_float(self.files[i])
                 x = normalize(x, 1, 99.8, axis=self.axis_norm)
                 x = x
-            if self.labelMe is True:
+            if self.label_me is True:
                 # Read Label images
                 x = read_int(self.files[i])
                 x = x
@@ -204,45 +150,45 @@ class SmartSeeds3D:
 
     def Train(self):
 
-        Raw_path = os.path.join(self.base_dir, self.raw_dir)
-        Raw = os.listdir(Raw_path)
+        raw_path = os.path.join(self.base_dir, self.raw_dir)
+        raw = os.listdir(raw_path)
+        if self.load_data_sequence:
+            val_raw_path = os.path.join(self.base_dir, self.val_raw_dir)
+            Valraw = os.listdir(val_raw_path)
 
-        Val_Raw_path = os.path.join(self.base_dir, self.val_raw_dir)
-        ValRaw = os.listdir(Val_Raw_path)
+            val_real_mask_path = os.path.join(
+                self.base_dir, self.val_real_mask_dir
+            )
+            Path(val_real_mask_path).mkdir(exist_ok=True)
+            val_real_mask = os.listdir(val_real_mask_path)
 
-        Mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
-        Path(Mask_path).mkdir(exist_ok=True)
-        Mask = os.listdir(Mask_path)
+        mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
+        Path(mask_path).mkdir(exist_ok=True)
+        mask = os.listdir(mask_path)
 
-        Real_Mask_path = os.path.join(self.base_dir, self.real_mask_dir)
-        Path(Real_Mask_path).mkdir(exist_ok=True)
-        RealMask = os.listdir(Real_Mask_path)
+        Real_mask_path = os.path.join(self.base_dir, self.real_mask_dir)
+        Path(Real_mask_path).mkdir(exist_ok=True)
+        real_mask = os.listdir(Real_mask_path)
 
-        Val_Real_Mask_path = os.path.join(
-            self.base_dir, self.val_real_mask_dir
-        )
-        Path(Val_Real_Mask_path).mkdir(exist_ok=True)
-        ValRealMask = os.listdir(Val_Real_Mask_path)
-
-        print("Instance segmentation masks:", len(RealMask))
-        print("Semantic segmentation masks:", len(Mask))
-        if self.train_star and len(Mask) > 0 and len(RealMask) < len(Mask):
+        print("Instance segmentation masks:", len(real_mask))
+        print("Semantic segmentation masks:", len(mask))
+        if self.train_star and len(mask) > 0 and len(real_mask) < len(mask):
 
             print("Making labels")
-            Mask = sorted(
+            mask = sorted(
                 glob.glob(
                     self.base_dir + self.binary_mask_dir + "*" + self.pattern
                 )
             )
 
-            for fname in Mask:
+            for fname in mask:
                 if any(fname.endswith(f) for f in self.acceptable_formats):
                     image = imread(fname)
 
                     Name = os.path.basename(os.path.splitext(fname)[0])
                     if np.max(image) == 1:
                         image = image * 255
-                    Binaryimage = label(image)
+                    binary_image = label(image)
 
                     imwrite(
                         (
@@ -251,18 +197,18 @@ class SmartSeeds3D:
                                 self.real_mask_dir + Name + self.pattern,
                             )
                         ),
-                        Binaryimage.astype("uint16"),
+                        binary_image.astype("uint16"),
                     )
 
-        if len(RealMask) > 0 and len(Mask) < len(RealMask):
+        if len(real_mask) > 0 and len(mask) < len(real_mask):
             print("Generating Binary images")
 
-            RealfilesMask_path = os.path.join(
+            real_files_mask_path = os.path.join(
                 self.base_dir, self.real_mask_dir
             )
-            RealfilesMask = os.listdir(RealfilesMask_path)
+            real_files_mask = os.listdir(real_files_mask_path)
 
-            for fname in RealfilesMask:
+            for fname in real_files_mask:
                 if any(fname.endswith(f) for f in self.acceptable_formats):
                     image = imread(fname)
                     if self.erosion_iterations > 0:
@@ -271,7 +217,7 @@ class SmartSeeds3D:
                         )
                     Name = os.path.basename(os.path.splitext(fname)[0])
 
-                    Binaryimage = image > 0
+                    binary_image = image > 0
 
                     imwrite(
                         (
@@ -280,7 +226,7 @@ class SmartSeeds3D:
                                 self.binary_mask_dir + Name + self.pattern,
                             )
                         ),
-                        Binaryimage.astype("uint16"),
+                        binary_image.astype("uint16"),
                     )
 
         if self.generate_npz:
@@ -391,16 +337,16 @@ class SmartSeeds3D:
             )
             self.axis_norm = (0, 1, 2)
             if self.load_data_sequence is False:
-                assert len(Raw) > 1, "not enough training data"
-                print(len(Raw))
+                assert len(raw) > 1, "not enough training data"
+                print(len(raw))
                 rng = np.random.RandomState(42)
-                ind = rng.permutation(len(Raw))
+                ind = rng.permutation(len(raw))
 
-                X_train = list(map(read_float, Raw))
-                Y_train = list(map(read_int, RealMask))
+                x_train = list(map(read_float, raw))
+                y_train = list(map(read_int, real_mask))
                 self.Y = [
                     label(DownsampleData(y, self.downsample_factor))
-                    for y in tqdm(Y_train)
+                    for y in tqdm(y_train)
                 ]
                 self.X = [
                     normalize(
@@ -409,7 +355,7 @@ class SmartSeeds3D:
                         99.8,
                         axis=self.axis_norm,
                     )
-                    for x in tqdm(X_train)
+                    for x in tqdm(x_train)
                 ]
                 n_val = max(1, int(round(self.validation_split * len(ind))))
                 ind_train, ind_val = ind[:-n_val], ind[-n_val:]
@@ -427,17 +373,20 @@ class SmartSeeds3D:
 
             if self.load_data_sequence:
                 self.X_trn = self.DataSequencer(
-                    Raw, self.axis_norm, Normalize=True, labelMe=False
+                    raw, self.axis_norm, normalize=True, label_me=False
                 )
                 self.Y_trn = self.DataSequencer(
-                    RealMask, self.axis_norm, Normalize=False, labelMe=True
+                    real_mask, self.axis_norm, normalize=False, label_me=True
                 )
 
                 self.X_val = self.DataSequencer(
-                    ValRaw, self.axis_norm, Normalize=True, labelMe=False
+                    Valraw, self.axis_norm, normalize=True, label_me=False
                 )
                 self.Y_val = self.DataSequencer(
-                    ValRealMask, self.axis_norm, Normalize=False, labelMe=True
+                    val_real_mask,
+                    self.axis_norm,
+                    normalize=False,
+                    label_me=True,
                 )
                 self.train_sample_cache = False
 
