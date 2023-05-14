@@ -13,7 +13,6 @@ from tensorflow.keras.utils import Sequence
 from csbdeep.data import RawData, create_patches
 from skimage.measure import label, regionprops
 from scipy import ndimage
-from tqdm import tqdm
 import matplotlib.pyplot as plt
 from pathlib import Path
 from tifffile import imread, imwrite
@@ -341,22 +340,19 @@ class SmartSeeds3D:
                 print(len(raw))
                 rng = np.random.RandomState(42)
                 ind = rng.permutation(len(raw))
+                real_files_mask = os.listdir(real_files_mask_path)
+                raw = os.listdir(raw_path)
 
-                x_train = list(map(read_float, raw_path))
-                y_train = list(map(read_int, real_files_mask_path))
-                self.Y = [
-                    label(DownsampleData(y, self.downsample_factor))
-                    for y in tqdm(y_train)
-                ]
-                self.X = [
-                    normalize(
-                        DownsampleData(x, self.downsample_factor),
-                        1,
-                        99.8,
-                        axis=self.axis_norm,
-                    )
-                    for x in tqdm(x_train)
-                ]
+                for fname in real_files_mask:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        self.Y = [
+                            read_int(os.path.join(real_files_mask_path, fname))
+                        ]
+
+                for fname in raw:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        self.X = [read_float(os.path.join(raw_path, fname))]
+
                 n_val = max(1, int(round(self.validation_split * len(ind))))
                 ind_train, ind_val = ind[:-n_val], ind[-n_val:]
 
