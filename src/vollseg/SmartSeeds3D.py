@@ -342,12 +342,8 @@ class SmartSeeds3D:
                 rng = np.random.RandomState(42)
                 ind = rng.permutation(len(raw))
 
-                x_train = list(map(read_float, os.path.join(raw_path, raw)))
-                y_train = list(
-                    map(
-                        read_int, os.path.join(real_files_mask_path, real_mask)
-                    )
-                )
+                x_train = list(map(read_float, raw_path))
+                y_train = list(map(read_int, real_files_mask_path))
                 self.Y = [
                     label(DownsampleData(y, self.downsample_factor))
                     for y in tqdm(y_train)
