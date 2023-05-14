@@ -154,7 +154,7 @@ class SmartSeeds3D:
         raw = os.listdir(raw_path)
         if self.load_data_sequence:
             val_raw_path = os.path.join(self.base_dir, self.val_raw_dir)
-            Valraw = os.listdir(val_raw_path)
+            val_raw = os.listdir(val_raw_path)
 
             val_real_mask_path = os.path.join(
                 self.base_dir, self.val_real_mask_dir
@@ -166,9 +166,9 @@ class SmartSeeds3D:
         Path(mask_path).mkdir(exist_ok=True)
         mask = os.listdir(mask_path)
 
-        Real_mask_path = os.path.join(self.base_dir, self.real_mask_dir)
-        Path(Real_mask_path).mkdir(exist_ok=True)
-        real_mask = os.listdir(Real_mask_path)
+        real_mask_path = os.path.join(self.base_dir, self.real_mask_dir)
+        Path(real_mask_path).mkdir(exist_ok=True)
+        real_mask = os.listdir(real_mask_path)
 
         print("Instance segmentation masks:", len(real_mask))
         print("Semantic segmentation masks:", len(mask))
@@ -210,7 +210,7 @@ class SmartSeeds3D:
 
             for fname in real_files_mask:
                 if any(fname.endswith(f) for f in self.acceptable_formats):
-                    image = imread(os.path.join(self.base_dir, fname))
+                    image = imread(os.path.join(real_files_mask_path, fname))
                     if self.erosion_iterations > 0:
                         image = erode_labels(
                             image.astype("uint16"), self.erosion_iterations
@@ -342,11 +342,11 @@ class SmartSeeds3D:
                 rng = np.random.RandomState(42)
                 ind = rng.permutation(len(raw))
 
-                x_train = list(
-                    map(read_float, os.path.join(self.base_dir, raw))
-                )
+                x_train = list(map(read_float, os.path.join(raw_path, raw)))
                 y_train = list(
-                    map(read_int, os.path.join(self.base_dir, real_mask))
+                    map(
+                        read_int, os.path.join(real_files_mask_path, real_mask)
+                    )
                 )
                 self.Y = [
                     label(DownsampleData(y, self.downsample_factor))
@@ -377,23 +377,26 @@ class SmartSeeds3D:
 
             if self.load_data_sequence:
                 self.X_trn = self.DataSequencer(
-                    os.path.join(self.base_dir, raw),
+                    os.path.join(raw_path, raw),
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
                 )
                 self.Y_trn = self.DataSequencer(
-                    os.path.join(self.base_dir, real_mask),
+                    os.path.join(real_files_mask_path, real_mask),
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
                 )
 
                 self.X_val = self.DataSequencer(
-                    Valraw, self.axis_norm, normalize=True, label_me=False
+                    os.path.join(val_raw_path, val_raw),
+                    self.axis_norm,
+                    normalize=True,
+                    label_me=False,
                 )
                 self.Y_val = self.DataSequencer(
-                    val_real_mask,
+                    os.path.join(val_real_mask_path, val_real_mask),
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
