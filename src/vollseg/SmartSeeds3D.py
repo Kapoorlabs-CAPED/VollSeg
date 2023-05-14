@@ -336,13 +336,13 @@ class SmartSeeds3D:
             )
             self.axis_norm = (0, 1, 2)
             if self.load_data_sequence is False:
-                assert len(raw) > 1, "not enough training data"
-                print(len(raw))
+
+                real_files_mask_path = os.path.join(
+                    self.base_dir, self.real_mask_dir
+                )
+                real_files_mask = os.listdir(real_files_mask_path)
                 rng = np.random.RandomState(42)
                 ind = rng.permutation(len(raw))
-                real_files_mask = os.listdir(real_files_mask_path)
-                raw = os.listdir(raw_path)
-
                 for fname in real_files_mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
                         self.Y = [
