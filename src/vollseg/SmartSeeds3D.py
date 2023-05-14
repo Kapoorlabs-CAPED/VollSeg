@@ -183,7 +183,7 @@ class SmartSeeds3D:
 
             for fname in mask:
                 if any(fname.endswith(f) for f in self.acceptable_formats):
-                    image = imread(fname)
+                    image = imread(os.path.join(self.base_dir, fname))
 
                     Name = os.path.basename(os.path.splitext(fname)[0])
                     if np.max(image) == 1:
@@ -210,7 +210,7 @@ class SmartSeeds3D:
 
             for fname in real_files_mask:
                 if any(fname.endswith(f) for f in self.acceptable_formats):
-                    image = imread(fname)
+                    image = imread(os.path.join(self.base_dir, fname))
                     if self.erosion_iterations > 0:
                         image = erode_labels(
                             image.astype("uint16"), self.erosion_iterations
@@ -377,10 +377,16 @@ class SmartSeeds3D:
 
             if self.load_data_sequence:
                 self.X_trn = self.DataSequencer(
-                    raw, self.axis_norm, normalize=True, label_me=False
+                    os.path.join(self.base_dir, raw),
+                    self.axis_norm,
+                    normalize=True,
+                    label_me=False,
                 )
                 self.Y_trn = self.DataSequencer(
-                    real_mask, self.axis_norm, normalize=False, label_me=True
+                    os.path.join(self.base_dir, real_mask),
+                    self.axis_norm,
+                    normalize=False,
+                    label_me=True,
                 )
 
                 self.X_val = self.DataSequencer(
