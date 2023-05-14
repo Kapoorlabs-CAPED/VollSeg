@@ -341,7 +341,7 @@ class SmartSeeds3D:
                     self.base_dir, self.real_mask_dir
                 )
                 real_files_mask = os.listdir(real_files_mask_path)
-                rng = np.random.RandomState(42)
+                rng = np.random.RandomState(len(raw) // 2)
                 ind = rng.permutation(len(raw))
                 for fname in real_files_mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
