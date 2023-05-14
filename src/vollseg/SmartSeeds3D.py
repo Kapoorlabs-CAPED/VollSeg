@@ -343,15 +343,19 @@ class SmartSeeds3D:
                 real_files_mask = os.listdir(real_files_mask_path)
                 rng = np.random.RandomState(len(raw) // 2)
                 ind = rng.permutation(len(raw))
+                self.Y = []
+                self.X = []
                 for fname in real_files_mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
-                        self.Y = [
+                        self.Y.append(
                             read_int(os.path.join(real_files_mask_path, fname))
-                        ]
+                        )
 
                 for fname in raw:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
-                        self.X = [read_float(os.path.join(raw_path, fname))]
+                        self.X.append(
+                            read_float(os.path.join(raw_path, fname))
+                        )
 
                 n_val = max(1, int(round(self.validation_split * len(ind))))
                 ind_train, ind_val = ind[:-n_val], ind[-n_val:]
