@@ -41,20 +41,19 @@ class CellPose:
         self.gpu = gpu
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
 
-        self.train()
-        self.evaluate()
+        self._train()
 
-    def train(self):
+    def _train(self):
 
         files_labels = os.listdir(self.real_mask_dir)
         (
             self.train_images,
             self.train_labels,
             self.train_names,
-        ) = self.load_data(files_labels)
+        ) = self._load_data(files_labels)
 
         files_test_labels = os.listdir(self.test_real_mask_dir)
-        self.test_images, self.test_labels, self.test_names = self.load_data(
+        self.test_images, self.test_labels, self.test_names = self._load_data(
             files_test_labels
         )
 
@@ -87,7 +86,7 @@ class CellPose:
             f">>> average precision at iou threshold 0.5 = {ap[:,0].mean():.3f}"
         )
 
-    def load_data(self, files_labels):
+    def _load_data(self, files_labels):
 
         images = []
         labels = []
