@@ -23,7 +23,7 @@ import cv2
 
 # import matplotlib.pyplot as plt
 import pandas as pd
-from cellpose_vollseg import models
+from cellpose import models
 from csbdeep.utils import normalize
 from qtpy.QtWidgets import QComboBox, QPushButton
 from scipy import spatial
