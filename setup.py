@@ -40,6 +40,7 @@ setup(
         "lightning",
         "segment-anything",
         "opencv-contrib-python-headless",
+        "cellpose",
     ],
     packages=find_packages(),
     classifiers=[
