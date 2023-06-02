@@ -24,7 +24,7 @@ class SmartPatches:
         nuclei_binary_mask_patch_dir,
         membrane_binary_mask_patch_dir,
         patch_size,
-        erosion_iterations=2,
+        erosion_iterations=0,
         pattern=".tif",
         create_for_channel="both",
         lower_ratio_fore_to_back=0.5,
