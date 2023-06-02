@@ -2969,8 +2969,6 @@ def VollCellSeg(
         probability_map_nuclei = np.asarray(probability_map_nuclei)
         markers_nuclei = np.asarray(markers_nuclei)
         skeleton_nuclei = np.asarray(skeleton_nuclei)
-
-        roi_image_nuclei = np.asarray(roi_image_nuclei)
         sized_smart_seeds_membrane = np.asarray(sized_smart_seeds_membrane)
         instance_labels_membrane = np.asarray(instance_labels_membrane)
         star_labels_membrane = np.asarray(star_labels_membrane)
