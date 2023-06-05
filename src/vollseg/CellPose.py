@@ -16,6 +16,7 @@ class CellPose:
         test_raw_dir,
         test_real_mask_dir,
         n_epochs=400,
+        diam_mean=30,
         learning_rate=0.0001,
         weight_decay=1.0e-4,
         channels=1,
@@ -35,9 +36,13 @@ class CellPose:
         self.weight_decay = weight_decay
         self.real_train_3D = real_train_3D
         self.channels = channels
-        self.pretrained_cellpose_model_path = os.path.join(
-            model_dir, model_name
-        )
+        self.diam_mean = diam_mean
+        if model_dir and model_name is not None:
+            self.pretrained_cellpose_model_path = os.path.join(
+                model_dir, model_name
+            )
+        else:
+            self.pretrained_cellpose_model_path = False
         self.gpu = gpu
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
 
@@ -58,7 +63,9 @@ class CellPose:
         )
 
         self.cellpose_model = models.CellposeModel(
-            gpu=self.gpu, pretrained_model=self.pretrained_cellpose_model_path
+            gpu=self.gpu,
+            pretrained_model=self.pretrained_cellpose_model_path,
+            diam_mean=self.diam_mean,
         )
 
         self.new_cellpose_model_path = self.cellpose_model.train(
