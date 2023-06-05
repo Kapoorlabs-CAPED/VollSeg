@@ -73,6 +73,7 @@ class SmartSeeds3D:
         grid_y=1,
         annisotropy=(1, 1, 1),
         use_gpu=True,
+        val_size: int = None,
         batch_size=4,
         depth=3,
         kern_size=3,
@@ -118,6 +119,7 @@ class SmartSeeds3D:
         self.startfilter = startfilter
         self.n_patches_per_image = n_patches_per_image
         self.load_data_sequence = load_data_sequence
+        self.val_size = val_size
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
         self.Train()
 
@@ -320,6 +322,9 @@ class SmartSeeds3D:
                     )
                 )
 
+            if self.val_size is not None:
+                X_val = X_val[: self.val_size]
+                Y_val = Y_val[: self.val_size]
             history = model.train(X, Y, validation_data=(X_val, Y_val))
 
             print(sorted(list(history.history.keys())))
