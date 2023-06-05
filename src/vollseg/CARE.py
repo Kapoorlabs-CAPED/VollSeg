@@ -129,6 +129,7 @@ class CARE(CARE):
             iter(training_data),
             validation_data=validation_data,
             epochs=epochs,
+            callbacks=self.callbacks,
             steps_per_epoch=steps_per_epoch,
             verbose=1,
         )
