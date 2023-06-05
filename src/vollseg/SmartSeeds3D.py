@@ -9,7 +9,7 @@ import glob
 from csbdeep.io import load_training_data
 from csbdeep.utils import axes_dict
 from csbdeep.models import Config
-from . import CARE
+from .CARE import CARE
 from tensorflow.keras.utils import Sequence
 from csbdeep.data import RawData, create_patches
 from skimage.measure import label, regionprops
