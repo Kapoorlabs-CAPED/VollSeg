@@ -8,7 +8,8 @@ from csbdeep.utils import normalize
 import glob
 from csbdeep.io import load_training_data
 from csbdeep.utils import axes_dict
-from csbdeep.models import Config, CARE
+from csbdeep.models import Config
+from . import CARE
 from tensorflow.keras.utils import Sequence
 from csbdeep.data import RawData, create_patches
 from skimage.measure import label, regionprops
@@ -323,17 +324,17 @@ class SmartSeeds3D:
                 )
 
             if self.val_size is not None:
-                X_val = X_val[: self.val_size]
-                Y_val = Y_val[: self.val_size]
-            history = model.train(X, Y, validation_data=(X_val, Y_val))
+                history = model.train(X, Y)
+            else:
+                history = model.train(X, Y, validation_data=(X_val, Y_val))
+                plt.figure(figsize=(16, 5))
+                plot_history(
+                    history,
+                    ["loss", "val_loss"],
+                    ["mse", "val_mse", "mae", "val_mae"],
+                )
 
             print(sorted(list(history.history.keys())))
-            plt.figure(figsize=(16, 5))
-            plot_history(
-                history,
-                ["loss", "val_loss"],
-                ["mse", "val_mse", "mae", "val_mae"],
-            )
 
         if self.train_star:
             print(
