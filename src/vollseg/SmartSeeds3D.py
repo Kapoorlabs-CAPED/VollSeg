@@ -203,14 +203,11 @@ class SmartSeeds3D:
         if len(real_mask) > 0 and len(mask) < len(real_mask):
             print("Generating Binary images")
 
-            real_files_mask_path = os.path.join(
-                self.base_dir, self.real_mask_dir
-            )
-            real_files_mask = os.listdir(real_files_mask_path)
+            real_files_mask = os.listdir(real_mask_path)
 
             for fname in real_files_mask:
                 if any(fname.endswith(f) for f in self.acceptable_formats):
-                    image = imread(os.path.join(real_files_mask_path, fname))
+                    image = imread(os.path.join(real_mask_path, fname))
                     if self.erosion_iterations > 0:
                         image = erode_labels(
                             image.astype("uint16"), self.erosion_iterations
@@ -341,10 +338,7 @@ class SmartSeeds3D:
             self.axis_norm = (0, 1, 2)
             if self.load_data_sequence is False:
 
-                real_files_mask_path = os.path.join(
-                    self.base_dir, self.real_mask_dir
-                )
-                real_files_mask = os.listdir(real_files_mask_path)
+                real_files_mask = os.listdir(real_mask_path)
                 rng = np.random.RandomState(len(raw) // 2)
                 ind = rng.permutation(len(raw))
                 self.Y = []
@@ -352,7 +346,7 @@ class SmartSeeds3D:
                 for fname in real_files_mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
                         self.Y.append(
-                            read_int(os.path.join(real_files_mask_path, fname))
+                            read_int(os.path.join(real_mask_path, fname))
                         )
 
                 for fname in raw:
@@ -383,7 +377,7 @@ class SmartSeeds3D:
                     label_me=False,
                 )
                 self.Y_trn = self.DataSequencer(
-                    real_files_mask_path,
+                    real_mask_path,
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
