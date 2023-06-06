@@ -370,27 +370,51 @@ class SmartSeeds3D:
                 print("- validation:     %3d" % len(self.X_val))
 
             if self.load_data_sequence:
+                raw_path_list = []
+                for fname in raw_path:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        raw_path_list.append(os.path.join(raw_path, fname))
+                val_raw_path_list = []
+                for fname in val_raw_path:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        val_raw_path_list.append(
+                            os.path.join(val_raw_path, fname)
+                        )
+
                 self.X_trn = self.DataSequencer(
-                    raw_path,
+                    raw_path_list,
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
                 )
+                real_mask_path_list = []
+                for fname in real_mask_path:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        real_mask_path_list.append(
+                            os.path.join(real_mask_path, fname)
+                        )
+                val_real_mask_path_list = []
+                for fname in val_real_mask_path:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        val_real_mask_path_list.append(
+                            os.path.join(val_real_mask_path, fname)
+                        )
+
                 self.Y_trn = self.DataSequencer(
-                    real_mask_path,
+                    real_mask_path_list,
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
                 )
 
                 self.X_val = self.DataSequencer(
-                    val_raw_path,
+                    val_raw_path_list,
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
                 )
                 self.Y_val = self.DataSequencer(
-                    val_real_mask_path,
+                    val_real_mask_path_list,
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
