@@ -156,13 +156,11 @@ class SmartSeeds3D:
         raw = os.listdir(raw_path)
         if self.load_data_sequence:
             val_raw_path = os.path.join(self.base_dir, self.val_raw_dir)
-            val_raw = os.listdir(val_raw_path)
 
             val_real_mask_path = os.path.join(
                 self.base_dir, self.val_real_mask_dir
             )
             Path(val_real_mask_path).mkdir(exist_ok=True)
-            val_real_mask = os.listdir(val_real_mask_path)
 
         mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
         Path(mask_path).mkdir(exist_ok=True)
@@ -379,26 +377,26 @@ class SmartSeeds3D:
 
             if self.load_data_sequence:
                 self.X_trn = self.DataSequencer(
-                    os.path.join(raw_path, raw),
+                    raw_path,
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
                 )
                 self.Y_trn = self.DataSequencer(
-                    os.path.join(real_files_mask_path, real_mask),
+                    real_files_mask_path,
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
                 )
 
                 self.X_val = self.DataSequencer(
-                    os.path.join(val_raw_path, val_raw),
+                    val_raw_path,
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
                 )
                 self.Y_val = self.DataSequencer(
-                    os.path.join(val_real_mask_path, val_real_mask),
+                    val_real_mask_path,
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
