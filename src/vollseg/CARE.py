@@ -76,9 +76,7 @@ class CARE(CARE):
                 sys.stderr.flush()
             get_registered_models(cls, verbose=True)
 
-    def train(
-        self, X, Y, validation_data=None, epochs=None, steps_per_epoch=None
-    ):
+    def train(self, X, Y, validation_data=None, epochs=None):
         """Train the neural network with the given data.
 
         Parameters
@@ -114,12 +112,10 @@ class CARE(CARE):
 
         if epochs is None:
             epochs = self.config.train_epochs
-        if steps_per_epoch is None:
-            steps_per_epoch = self.config.train_steps_per_epoch
 
         if not self._model_prepared:
             self.prepare_for_training()
-
+        steps_per_epoch = len(X) // self.config.train_batch_size
         training_data = train.DataWrapper(
             X, Y, self.config.train_batch_size, length=epochs * steps_per_epoch
         )
