@@ -1,8 +1,9 @@
 import os
 import numpy as np
-from tifffile import imread
+from tifffile import imread, imwrite
 from cellpose import models, metrics
 import concurrent
+from pathlib import Path
 
 
 class CellPose:
@@ -22,6 +23,7 @@ class CellPose:
         channels=1,
         gpu=True,
         real_train_3D=False,
+        save_masks=True,
     ):
 
         self.base_dir = base_dir
@@ -37,6 +39,7 @@ class CellPose:
         self.real_train_3D = real_train_3D
         self.channels = channels
         self.diam_mean = diam_mean
+        self.save_masks = save_masks
         if model_dir and model_name is not None:
             self.pretrained_cellpose_model_path = os.path.join(
                 model_dir, model_name
@@ -46,10 +49,7 @@ class CellPose:
         self.gpu = gpu
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
 
-        self._train()
-
-    def _train(self):
-
+    def create_train(self):
         files_labels = os.listdir(self.real_mask_dir)
         (
             self.train_images,
@@ -61,6 +61,66 @@ class CellPose:
         self.test_images, self.test_labels, self.test_names = self._load_data(
             files_test_labels
         )
+        if self.save_masks:
+
+            raw_sliced_dir = self.raw_dir + "_sliced"
+            real_mask_sliced_dir = self.real_mask_dir + "_sliced"
+            test_raw_sliced_dir = self.test_raw_dir + "_sliced"
+            test_real_mask_sliced_dir = self.test_real_mask_dir + "_sliced"
+            self.save_raw_dir = os.path.join(self.base_dir, raw_sliced_dir)
+            self.save_real_mask_dir = os.path.join(
+                self.base_dir, real_mask_sliced_dir
+            )
+            self.save_test_raw_dir = os.path.join(
+                self.base_dir, test_raw_sliced_dir
+            )
+            self.save_test_real_mask_dir = os.path.join(
+                self.base_dir, test_real_mask_sliced_dir
+            )
+            Path(self.save_raw_dir).mkdir(exist_ok=True)
+            Path(self.save_real_mask_dir).mkdir(exist_ok=True)
+            Path(self.save_test_raw_dir).mkdir(exist_ok=True)
+            Path(self.save_test_real_mask_dir).mkdir(exist_ok=True)
+            for i in range(len(self.train_images)):
+                imwrite(
+                    os.path.join(
+                        self.save_raw_dir,
+                        self.train_names[i] + "_" + str(i) + ".tif",
+                    ),
+                    self.train_images[i].astype(np.float32),
+                )
+                imwrite(
+                    os.path.join(
+                        self.save_real_mask_dir,
+                        self.train_names[i] + "_" + str(i) + ".tif",
+                    ),
+                    self.train_labels[i].astype(np.uint16),
+                )
+            for i in range(len(self.test_images)):
+                imwrite(
+                    os.path.join(
+                        self.save_test_raw_dir,
+                        self.test_names[i] + "_" + str(i) + ".tif",
+                    ),
+                    self.test_images[i].astype(np.float32),
+                )
+                imwrite(
+                    os.path.join(
+                        self.save_test_real_mask_dir,
+                        self.test_names[i] + "_" + str(i) + ".tif",
+                    ),
+                    self.test_labels[i].astype(np.uint16),
+                )
+
+    def get_data(self):
+        files_labels = os.listdir(self.real_mask_dir + "_sliced")
+        (
+            self.train_images,
+            self.train_labels,
+            self.train_names,
+        ) = self._load_saved_data(files_labels)
+
+    def train(self):
 
         self.cellpose_model = models.CellposeModel(
             gpu=self.gpu,
@@ -92,6 +152,25 @@ class CellPose:
         print(
             f">>> average precision at iou threshold 0.5 = {ap[:,0].mean():.3f}"
         )
+
+    def _load_saved_data(self, files_labels):
+
+        images = []
+        labels = []
+        names = []
+        for fname in files_labels:
+            if any(fname.endswith(f) for f in self.acceptable_formats):
+                name = os.path.splitext(fname)[0]
+                labelimage = imread(
+                    os.path.join(self.real_mask_dir + "_sliced", fname)
+                ).astype(np.uint16)
+                image = imread(os.path.join(self.raw_dir + "_sliced", fname))
+
+                labels.append(labelimage)
+                images.append(image)
+                names.append(name)
+
+        return images, labels, names
 
     def _load_data(self, files_labels):
 
@@ -130,11 +209,12 @@ class CellPose:
                             )
                         ]
                     for i in range(len(current_labels)):
-                        labels.append(current_labels[i])
-                        current_name = name + str(i)
-                        names.append(current_name)
-                    for raw in current_raw:
-                        images.append(raw)
+                        if current_labels[i].max() > 0:
+                            labels.append(current_labels[i])
+                            current_name = name + str(i)
+                            names.append(current_name)
+                            for raw in current_raw:
+                                images.append(raw)
                 else:
                     labels.append(labelimage)
                     images.append(image)
