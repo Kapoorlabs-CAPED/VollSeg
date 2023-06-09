@@ -445,39 +445,46 @@ class SmartSeeds3D:
             )
 
             real_files_mask = os.listdir(real_mask_path)
-            rng = np.random.RandomState(len(raw) // 2)
-            ind = rng.permutation(len(raw))
-            self.Y = []
-            self.X = []
-            for fname in real_files_mask:
-                if any(fname.endswith(f) for f in self.acceptable_formats):
-                    self.Y.append(
-                        read_int(os.path.join(real_mask_path, fname))
-                    )
+            if not self.load_data_sequence:
+                rng = np.random.RandomState(len(raw) // 2)
+                ind = rng.permutation(len(raw))
+                self.Y = []
+                self.X = []
+                for fname in real_files_mask:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        self.Y.append(
+                            read_int(os.path.join(real_mask_path, fname))
+                        )
 
-            for fname in raw:
-                if any(fname.endswith(f) for f in self.acceptable_formats):
-                    self.X.append(read_float(os.path.join(raw_path, fname)))
+                for fname in raw:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        self.X.append(
+                            read_float(os.path.join(raw_path, fname))
+                        )
 
-            n_val = max(1, int(round(self.validation_split * len(ind))))
-            ind_train, ind_val = ind[:-n_val], ind[-n_val:]
+                n_val = max(1, int(round(self.validation_split * len(ind))))
+                ind_train, ind_val = ind[:-n_val], ind[-n_val:]
 
-            self.X_val, self.Y_val = [self.X[i] for i in ind_val], [
-                self.Y[i] for i in ind_val
-            ]
-            self.X_trn, self.Y_trn = [self.X[i] for i in ind_train], [
-                self.Y[i] for i in ind_train
-            ]
+                self.X_val, self.Y_val = [self.X[i] for i in ind_val], [
+                    self.Y[i] for i in ind_val
+                ]
+                self.X_trn, self.Y_trn = [self.X[i] for i in ind_train], [
+                    self.Y[i] for i in ind_train
+                ]
 
-            print("number of images: %3d" % len(self.X))
-            print("- training:       %3d" % len(self.X_trn))
-            print("- validation:     %3d" % len(self.X_val))
-            print(Config3D.__doc__)
+                print("number of images: %3d" % len(self.X))
+                print("- training:       %3d" % len(self.X_trn))
+                print("- validation:     %3d" % len(self.X_val))
+                print(Config3D.__doc__)
 
-            extents = calculate_extents(self.Y_trn)
-            self.annisotropy = tuple(np.max(extents) / extents)
-            rays = Rays_GoldenSpiral(self.n_rays, anisotropy=self.annisotropy)
+                extents = calculate_extents(self.Y_trn)
+                self.annisotropy = tuple(np.max(extents) / extents)
+                rays = Rays_GoldenSpiral(
+                    self.n_rays, anisotropy=self.annisotropy
+                )
             if self.load_data_sequence:
+                rays = None
+                self.annisotropy = None
                 raw_path_list = []
                 for fname in raw:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
