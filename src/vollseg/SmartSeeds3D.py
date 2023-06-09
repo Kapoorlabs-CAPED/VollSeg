@@ -149,7 +149,7 @@ class SmartSeeds3D:
             batch_x = self.filesraw[
                 idx * self.batch_size : (idx + 1) * self.batch_size
             ]
-            batch_y = self.y[
+            batch_y = self.filesmask[
                 idx * self.batch_size : (idx + 1) * self.batch_size
             ]
             rawlist = []
