@@ -152,12 +152,12 @@ class SmartSeeds3D:
 
             # Read raw images
             if self.normalize is True:
-                x = read_float(self.files[i])
+                x = read_float(np.asarray(self.files[i], dtype=np.float32))
                 x = normalize(x, 1, 99.8, axis=self.axis_norm)
                 x = x
             if self.label_me is True:
                 # Read Label images
-                x = read_int(self.files[i])
+                x = read_int(np.asarray(self.files[i], dtype=np.uint16))
                 if self.binary_me:
                     x = x > 0
                 x = x.astype(np.uint16)
@@ -284,7 +284,7 @@ class SmartSeeds3D:
                         )
 
                 X = self.DataSequencer(
-                    np.asarray(raw_path_list, dtype=np.float32),
+                    raw_path_list,
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
@@ -301,7 +301,7 @@ class SmartSeeds3D:
                         )
 
                 Y = self.DataSequencer(
-                    np.asarray(mask_path_list, dtype=np.uint16),
+                    mask_path_list,
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
@@ -309,13 +309,13 @@ class SmartSeeds3D:
                 )
 
                 X_val = self.DataSequencer(
-                    np.asarray(val_raw_path_list, dtype=np.float32),
+                    val_raw_path_list,
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
                 )
                 Y_val = self.DataSequencer(
-                    np.asarray(val_real_mask_path_list, dtype=np.uint16),
+                    val_real_mask_path_list,
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
@@ -450,7 +450,7 @@ class SmartSeeds3D:
                         )
 
                 self.X_trn = self.DataSequencer(
-                    np.asarray(raw_path_list, dtype=np.float32),
+                    raw_path_list,
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
@@ -469,20 +469,20 @@ class SmartSeeds3D:
                         )
 
                 self.Y_trn = self.DataSequencer(
-                    np.asarray(real_mask_path_list, dtype=np.uint16),
+                    real_mask_path_list,
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
                 )
 
                 self.X_val = self.DataSequencer(
-                    np.asarray(val_raw_path_list, dtype=np.float32),
+                    val_raw_path_list,
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
                 )
                 self.Y_val = self.DataSequencer(
-                    np.asarray(val_real_mask_path_list, dtype=np.uint16),
+                    val_real_mask_path_list,
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
