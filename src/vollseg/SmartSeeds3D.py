@@ -152,12 +152,12 @@ class SmartSeeds3D:
 
             # Read raw images
             if self.normalize is True:
-                x = read_float(np.asarray(self.files[i], dtype=np.float32))
+                x = read_float(self.files[i])
                 x = normalize(x, 1, 99.8, axis=self.axis_norm)
                 x = x
             if self.label_me is True:
                 # Read Label images
-                x = read_int(np.asarray(self.files[i], dtype=np.uint16))
+                x = read_int(self.files[i])
                 if self.binary_me:
                     x = x > 0
                 x = x.astype(np.uint16)
