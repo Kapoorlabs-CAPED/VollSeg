@@ -284,12 +284,11 @@ class SmartSeeds3D:
                         )
 
                 X = self.DataSequencer(
-                    raw_path_list,
+                    np.asarray(raw_path_list, dtype=np.float32),
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
                 )
-                print("raw_data", X.__len__())
                 mask_path_list = []
                 for fname in mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
@@ -302,7 +301,7 @@ class SmartSeeds3D:
                         )
 
                 Y = self.DataSequencer(
-                    mask_path_list,
+                    np.asarray(mask_path_list, dtype=np.uint16),
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
@@ -310,13 +309,13 @@ class SmartSeeds3D:
                 )
 
                 X_val = self.DataSequencer(
-                    val_raw_path_list,
+                    np.asarray(val_raw_path_list, dtype=np.float32),
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
                 )
                 Y_val = self.DataSequencer(
-                    val_real_mask_path_list,
+                    np.asarray(val_real_mask_path_list, dtype=np.uint16),
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
@@ -451,7 +450,7 @@ class SmartSeeds3D:
                         )
 
                 self.X_trn = self.DataSequencer(
-                    raw_path_list,
+                    np.asarray(raw_path_list, dtype=np.float32),
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
@@ -470,20 +469,20 @@ class SmartSeeds3D:
                         )
 
                 self.Y_trn = self.DataSequencer(
-                    real_mask_path_list,
+                    np.asarray(real_mask_path_list, dtype=np.uint16),
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
                 )
 
                 self.X_val = self.DataSequencer(
-                    val_raw_path_list,
+                    np.asarray(val_raw_path_list, dtype=np.float32),
                     self.axis_norm,
                     normalize=True,
                     label_me=False,
                 )
                 self.Y_val = self.DataSequencer(
-                    val_real_mask_path_list,
+                    np.asarray(val_real_mask_path_list, dtype=np.uint16),
                     self.axis_norm,
                     normalize=False,
                     label_me=True,
