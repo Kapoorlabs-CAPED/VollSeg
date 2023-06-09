@@ -7,7 +7,6 @@ from stardist import Rays_GoldenSpiral, calculate_extents
 from csbdeep.utils import normalize
 import glob
 from csbdeep.io import load_training_data
-from csbdeep.utils import axes_dict
 from csbdeep.models import Config
 from .CARE import CARE
 from tensorflow.keras.utils import Sequence
@@ -60,6 +59,7 @@ class SmartSeeds3D:
         val_raw_dir="val_raw/",
         val_real_mask_dir="val_real_mask/",
         n_channel_in=1,
+        n_channel_out=1,
         pattern=".tif",
         downsample_factor=1,
         backbone="resnet",
@@ -105,6 +105,7 @@ class SmartSeeds3D:
         self.learning_rate = learning_rate
         self.depth = depth
         self.n_channel_in = n_channel_in
+        self.n_channel_out = n_channel_out
         self.n_rays = n_rays
         self.pattern = pattern
         self.train_loss = train_loss
@@ -319,13 +320,10 @@ class SmartSeeds3D:
                     binary_me=True,
                 )
 
-            c = axes_dict(self.axes)["C"]
-            n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
-
             config = Config(
                 self.axes,
-                n_channel_in,
-                n_channel_out,
+                self.n_channel_in,
+                self.n_channel_out,
                 unet_n_depth=self.depth,
                 train_epochs=self.epochs,
                 train_batch_size=self.batch_size,
