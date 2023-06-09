@@ -133,24 +133,41 @@ class SmartSeeds3D:
             filesraw,
             filesmask,
             axis_norm,
+            batch_size=1,
         ):
             super().__init__()
 
             self.filesraw = filesraw
             self.filesmask = filesmask
             self.axis_norm = axis_norm
+            self.batch_size = batch_size
 
         def __len__(self):
             return len(self.filesraw)
 
-        def __getitem__(self, i):
+        def __getitem__(self, idx):
+            batch_x = self.filesraw[
+                idx * self.batch_size : (idx + 1) * self.batch_size
+            ]
+            batch_y = self.y[
+                idx * self.batch_size : (idx + 1) * self.batch_size
+            ]
+            rawlist = []
+            masklist = []
 
-            x = read_float(self.filesraw[i])
-            x = normalize(x, 1, 99.8, axis=self.axis_norm)
-            y = read_int(self.filesmask[i])
-            y = y > 0
-            y = y.astype(np.uint16)
-            return x, y
+            for fname in batch_x:
+                raw = read_float(fname)
+                raw = normalize(raw, 1, 99.8, axis=self.axis_norm)
+                rawlist.append(raw)
+            for fname in batch_y:
+                mask = read_int(fname)
+                mask = mask > 0
+                mask = mask.astype(np.uint16)
+                masklist.append(mask)
+
+            return np.asarray(rawlist, dtype=np.float32), np.asarray(
+                masklist, dtype=np.uint16
+            )
 
     class DataSequencer(Sequence):
         def __init__(
@@ -322,12 +339,14 @@ class SmartSeeds3D:
                     raw_path_list,
                     mask_path_list,
                     self.axis_norm,
+                    self.batch_size,
                 )
 
                 XY_val = self.UnetSequencer(
                     val_raw_path_list,
                     val_real_mask_path_list,
                     self.axis_norm,
+                    self.batch_size,
                 )
 
             config = Config(
