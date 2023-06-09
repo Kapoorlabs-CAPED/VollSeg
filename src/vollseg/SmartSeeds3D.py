@@ -125,13 +125,21 @@ class SmartSeeds3D:
         self.Train()
 
     class DataSequencer(Sequence):
-        def __init__(self, files, axis_norm, normalize=True, label_me=False):
+        def __init__(
+            self,
+            files,
+            axis_norm,
+            normalize=True,
+            label_me=False,
+            binary_me=False,
+        ):
             super().__init__()
 
             self.files = files
 
             self.axis_norm = axis_norm
             self.label_me = label_me
+            self.binary_me = binary_me
             self.normalize = normalize
 
         def __len__(self):
@@ -147,7 +155,9 @@ class SmartSeeds3D:
             if self.label_me is True:
                 # Read Label images
                 x = read_int(self.files[i])
-                x = x
+                if self.binary_me:
+                    x = x > 0
+                x = x.astype(np.uint16)
             return x
 
     def Train(self):
@@ -249,10 +259,63 @@ class SmartSeeds3D:
         if self.train_unet:
             print("Training UNET model")
             load_path = os.path.join(self.base_dir, self.npz_filename + ".npz")
+            if not self.load_data_sequence:
+                (X, Y), (X_val, Y_val), axes = load_training_data(
+                    load_path,
+                    validation_split=self.validation_split,
+                    verbose=True,
+                )
+            else:
+                raw_path_list = []
+                for fname in raw_path:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        raw_path_list.append(os.path.join(raw_path, fname))
+                val_raw_path_list = []
+                for fname in val_raw_path:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        val_raw_path_list.append(
+                            os.path.join(val_raw_path, fname)
+                        )
 
-            (X, Y), (X_val, Y_val), axes = load_training_data(
-                load_path, validation_split=self.validation_split, verbose=True
-            )
+                X = self.DataSequencer(
+                    raw_path_list,
+                    self.axis_norm,
+                    normalize=True,
+                    label_me=False,
+                )
+                mask_path_list = []
+                for fname in mask_path:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        mask_path_list.append(os.path.join(mask_path, fname))
+                val_real_mask_path_list = []
+                for fname in val_real_mask_path:
+                    if any(fname.endswith(f) for f in self.acceptable_formats):
+                        val_real_mask_path_list.append(
+                            os.path.join(val_real_mask_path, fname)
+                        )
+
+                Y = self.DataSequencer(
+                    mask_path_list,
+                    self.axis_norm,
+                    normalize=False,
+                    label_me=True,
+                    binary_me=True,
+                )
+
+                X_val = self.DataSequencer(
+                    val_raw_path_list,
+                    self.axis_norm,
+                    normalize=True,
+                    label_me=False,
+                )
+                Y_val = self.DataSequencer(
+                    val_real_mask_path_list,
+                    self.axis_norm,
+                    normalize=False,
+                    label_me=True,
+                    binary_me=True,
+                )
+
             c = axes_dict(axes)["C"]
             n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
 
@@ -318,16 +381,18 @@ class SmartSeeds3D:
                     )
                 )
 
-            if self.val_size is not None:
-                history = model.train(X, Y)
-            else:
-                history = model.train(X, Y, validation_data=(X_val, Y_val))
-                plt.figure(figsize=(16, 5))
-                plot_history(
-                    history,
-                    ["loss", "val_loss"],
-                    ["mse", "val_mse", "mae", "val_mae"],
-                )
+            history = model.train(
+                X,
+                Y,
+                validation_data=(X_val, Y_val),
+                load_data_sequence=self.load_data_sequence,
+            )
+            plt.figure(figsize=(16, 5))
+            plot_history(
+                history,
+                ["loss", "val_loss"],
+                ["mse", "val_mse", "mae", "val_mae"],
+            )
 
             print(sorted(list(history.history.keys())))
 
@@ -336,39 +401,40 @@ class SmartSeeds3D:
                 "Training StarDistModel model with", self.backbone, "backbone"
             )
             self.axis_norm = (0, 1, 2)
-            if self.load_data_sequence is False:
 
-                real_files_mask = os.listdir(real_mask_path)
-                rng = np.random.RandomState(len(raw) // 2)
-                ind = rng.permutation(len(raw))
-                self.Y = []
-                self.X = []
-                for fname in real_files_mask:
-                    if any(fname.endswith(f) for f in self.acceptable_formats):
-                        self.Y.append(
-                            read_int(os.path.join(real_mask_path, fname))
-                        )
+            real_files_mask = os.listdir(real_mask_path)
+            rng = np.random.RandomState(len(raw) // 2)
+            ind = rng.permutation(len(raw))
+            self.Y = []
+            self.X = []
+            for fname in real_files_mask:
+                if any(fname.endswith(f) for f in self.acceptable_formats):
+                    self.Y.append(
+                        read_int(os.path.join(real_mask_path, fname))
+                    )
 
-                for fname in raw:
-                    if any(fname.endswith(f) for f in self.acceptable_formats):
-                        self.X.append(
-                            read_float(os.path.join(raw_path, fname))
-                        )
+            for fname in raw:
+                if any(fname.endswith(f) for f in self.acceptable_formats):
+                    self.X.append(read_float(os.path.join(raw_path, fname)))
 
-                n_val = max(1, int(round(self.validation_split * len(ind))))
-                ind_train, ind_val = ind[:-n_val], ind[-n_val:]
+            n_val = max(1, int(round(self.validation_split * len(ind))))
+            ind_train, ind_val = ind[:-n_val], ind[-n_val:]
 
-                self.X_val, self.Y_val = [self.X[i] for i in ind_val], [
-                    self.Y[i] for i in ind_val
-                ]
-                self.X_trn, self.Y_trn = [self.X[i] for i in ind_train], [
-                    self.Y[i] for i in ind_train
-                ]
+            self.X_val, self.Y_val = [self.X[i] for i in ind_val], [
+                self.Y[i] for i in ind_val
+            ]
+            self.X_trn, self.Y_trn = [self.X[i] for i in ind_train], [
+                self.Y[i] for i in ind_train
+            ]
 
-                print("number of images: %3d" % len(self.X))
-                print("- training:       %3d" % len(self.X_trn))
-                print("- validation:     %3d" % len(self.X_val))
+            print("number of images: %3d" % len(self.X))
+            print("- training:       %3d" % len(self.X_trn))
+            print("- validation:     %3d" % len(self.X_val))
+            print(Config3D.__doc__)
 
+            extents = calculate_extents(self.Y_trn)
+            self.annisotropy = tuple(np.max(extents) / extents)
+            rays = Rays_GoldenSpiral(self.n_rays, anisotropy=self.annisotropy)
             if self.load_data_sequence:
                 raw_path_list = []
                 for fname in raw_path:
@@ -420,12 +486,6 @@ class SmartSeeds3D:
                     label_me=True,
                 )
                 self.train_sample_cache = False
-
-            print(Config3D.__doc__)
-
-            extents = calculate_extents(self.Y_trn)
-            self.annisotropy = tuple(np.max(extents) / extents)
-            rays = Rays_GoldenSpiral(self.n_rays, anisotropy=self.annisotropy)
 
             if self.backbone == "resnet":
 

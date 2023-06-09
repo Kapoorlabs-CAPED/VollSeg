@@ -76,28 +76,16 @@ class CARE(CARE):
                 sys.stderr.flush()
             get_registered_models(cls, verbose=True)
 
-    def train(self, X, Y, validation_data=None, epochs=None):
-        """Train the neural network with the given data.
-
-        Parameters
-        ----------
-        X : :class:`numpy.ndarray`
-            Array of source images.
-        Y : :class:`numpy.ndarray`
-            Array of target images.
-        validation_data : tuple(:class:`numpy.ndarray`, :class:`numpy.ndarray`)
-            Tuple of arrays for source and target validation images.
-        epochs : int
-            Optional argument to use instead of the value from ``config``.
-        steps_per_epoch : int
-            Optional argument to use instead of the value from ``config``.
-
-        Returns
-        -------
-        ``History`` object
-            See `Keras training history <https://keras.io/models/model/#fit>`_.
-
-        """
+    @classmethod
+    def train(
+        self,
+        X,
+        Y,
+        validation_data=None,
+        epochs=None,
+        steps_per_epoch=None,
+        load_data_sequence=False,
+    ):
 
         axes = axes_check_and_normalize("S" + self.config.axes, X.ndim)
         ax = axes_dict(axes)
@@ -115,20 +103,32 @@ class CARE(CARE):
 
         if not self._model_prepared:
             self.prepare_for_training()
-        steps_per_epoch = len(X) // self.config.train_batch_size
-        training_data = train.DataWrapper(
-            X, Y, self.config.train_batch_size, length=epochs * steps_per_epoch
-        )
 
-        fit = self.keras_model.fit
-        history = fit(
-            iter(training_data),
-            validation_data=validation_data,
-            epochs=epochs,
-            callbacks=self.callbacks,
-            steps_per_epoch=steps_per_epoch,
-            verbose=1,
-        )
+        if load_data_sequence:
+            training_data = train.DataWrapper(
+                X,
+                Y,
+                self.config.train_batch_size,
+                length=epochs * steps_per_epoch,
+            )
+
+            history = self.keras_model.fit(
+                iter(training_data),
+                validation_data=validation_data,
+                epochs=epochs,
+                callbacks=self.callbacks,
+                verbose=1,
+            )
+        else:
+            # A sequence object
+            history = self.keras_model.fit(
+                X,
+                Y,
+                validation_data=validation_data,
+                epochs=epochs,
+                callbacks=self.callbacks,
+                verbose=1,
+            )
         self._training_finished()
 
         return history
