@@ -127,6 +127,31 @@ class SmartSeeds3D:
         self.axes = "ZYXC"
         self.Train()
 
+    class UnetSequencer(Sequence):
+        def __init__(
+            self,
+            filesraw,
+            filesmask,
+            axis_norm,
+        ):
+            super().__init__()
+
+            self.filesraw = filesraw
+            self.filesmask = filesmask
+            self.axis_norm = axis_norm
+
+        def __len__(self):
+            return len(self.filesraw)
+
+        def __getitem__(self, i):
+
+            x = read_float(self.filesraw[i])
+            x = normalize(x, 1, 99.8, axis=self.axis_norm)
+            y = read_int(self.filesmask[i])
+            y = y > 0
+            y = y.astype(np.uint16)
+            return x, y
+
     class DataSequencer(Sequence):
         def __init__(
             self,
@@ -154,7 +179,6 @@ class SmartSeeds3D:
             if self.normalize is True:
                 x = read_float(self.files[i])
                 x = normalize(x, 1, 99.8, axis=self.axis_norm)
-                x = x
             if self.label_me is True:
                 # Read Label images
                 x = read_int(self.files[i])
@@ -283,12 +307,6 @@ class SmartSeeds3D:
                             os.path.join(val_raw_path, fname)
                         )
 
-                X = self.DataSequencer(
-                    raw_path_list,
-                    self.axis_norm,
-                    normalize=True,
-                    label_me=False,
-                )
                 mask_path_list = []
                 for fname in mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
@@ -300,26 +318,16 @@ class SmartSeeds3D:
                             os.path.join(val_real_mask_path, fname)
                         )
 
-                Y = self.DataSequencer(
+                XY = self.UnetSequencer(
+                    raw_path_list,
                     mask_path_list,
                     self.axis_norm,
-                    normalize=False,
-                    label_me=True,
-                    binary_me=True,
                 )
 
-                X_val = self.DataSequencer(
+                XY_val = self.UnetSequencer(
                     val_raw_path_list,
-                    self.axis_norm,
-                    normalize=True,
-                    label_me=False,
-                )
-                Y_val = self.DataSequencer(
                     val_real_mask_path_list,
                     self.axis_norm,
-                    normalize=False,
-                    label_me=True,
-                    binary_me=True,
                 )
 
             config = Config(
@@ -392,8 +400,8 @@ class SmartSeeds3D:
                 )
             else:
                 history = model.train(
-                    (X, Y),
-                    validation_data=(X_val, Y_val),
+                    XY,
+                    validation_data=XY_val,
                     load_data_sequence=self.load_data_sequence,
                 )
 
