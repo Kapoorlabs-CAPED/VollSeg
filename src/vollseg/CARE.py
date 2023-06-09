@@ -6,7 +6,6 @@ from .pretrained import (
     get_model_instance,
 )
 import sys
-from csbdeep.utils import axes_check_and_normalize, axes_dict
 
 # if IS_TF_1:
 #     import tensorflow as tf
@@ -76,30 +75,16 @@ class CARE(CARE):
                 sys.stderr.flush()
             get_registered_models(cls, verbose=True)
 
-    @classmethod
     def train(
         self,
         X,
         Y,
         validation_data=None,
-        epochs=None,
         steps_per_epoch=None,
         load_data_sequence=False,
     ):
 
-        axes = axes_check_and_normalize("S" + self.config.axes, X.ndim)
-        ax = axes_dict(axes)
-
-        for a, div_by in zip(axes, self._axes_div_by(axes)):
-            n = X.shape[ax[a]]
-            if n % div_by != 0:
-                raise ValueError(
-                    "training images must be evenly divisible by %d along axis %s"
-                    " (which has incompatible size %d)" % (div_by, a, n)
-                )
-
-        if epochs is None:
-            epochs = self.config.train_epochs
+        epochs = self.config.train_epochs
 
         if not self._model_prepared:
             self.prepare_for_training()
