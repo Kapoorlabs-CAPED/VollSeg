@@ -166,7 +166,7 @@ class SmartSeeds3D:
                 masklist.append(mask)
 
             return np.asarray(rawlist, dtype=np.float32), np.asarray(
-                masklist, dtype=np.uint16
+                masklist, dtype=np.float32
             )
 
     class DataSequencer(Sequence):
