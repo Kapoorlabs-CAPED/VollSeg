@@ -78,7 +78,7 @@ class CARE(CARE):
     def train(
         self,
         X,
-        Y,
+        Y=None,
         validation_data=None,
         steps_per_epoch=None,
         load_data_sequence=False,
@@ -110,7 +110,6 @@ class CARE(CARE):
             # A sequence object
             history = self.keras_model.fit(
                 X,
-                Y,
                 validation_data=validation_data,
                 epochs=epochs,
                 callbacks=self.callbacks,

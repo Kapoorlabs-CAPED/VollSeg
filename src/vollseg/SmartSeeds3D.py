@@ -383,13 +383,20 @@ class SmartSeeds3D:
                         os.path.join(self.unet_model_name, "weights_best.h5"),
                     )
                 )
+            if not self.load_data_sequence:
+                history = model.train(
+                    X,
+                    Y,
+                    validation_data=(X_val, Y_val),
+                    load_data_sequence=self.load_data_sequence,
+                )
+            else:
+                history = model.train(
+                    (X, Y),
+                    validation_data=(X_val, Y_val),
+                    load_data_sequence=self.load_data_sequence,
+                )
 
-            history = model.train(
-                X,
-                Y,
-                validation_data=(X_val, Y_val),
-                load_data_sequence=self.load_data_sequence,
-            )
             plt.figure(figsize=(16, 5))
             plot_history(
                 history,
