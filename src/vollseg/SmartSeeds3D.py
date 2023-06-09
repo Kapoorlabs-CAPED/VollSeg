@@ -122,6 +122,7 @@ class SmartSeeds3D:
         self.load_data_sequence = load_data_sequence
         self.val_size = val_size
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
+        self.axis_norm = (0, 1, 2)
         self.Train()
 
     class DataSequencer(Sequence):
@@ -400,7 +401,6 @@ class SmartSeeds3D:
             print(
                 "Training StarDistModel model with", self.backbone, "backbone"
             )
-            self.axis_norm = (0, 1, 2)
 
             real_files_mask = os.listdir(real_mask_path)
             rng = np.random.RandomState(len(raw) // 2)
