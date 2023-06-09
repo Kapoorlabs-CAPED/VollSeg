@@ -123,6 +123,7 @@ class SmartSeeds3D:
         self.val_size = val_size
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
         self.axis_norm = (0, 1, 2)
+        self.axes = "ZYXC"
         self.Train()
 
     class DataSequencer(Sequence):
@@ -266,6 +267,7 @@ class SmartSeeds3D:
                     validation_split=self.validation_split,
                     verbose=True,
                 )
+                self.axes = axes
             else:
                 raw_path_list = []
                 for fname in raw_path:
@@ -317,11 +319,11 @@ class SmartSeeds3D:
                     binary_me=True,
                 )
 
-            c = axes_dict(axes)["C"]
+            c = axes_dict(self.axes)["C"]
             n_channel_in, n_channel_out = X.shape[c], Y.shape[c]
 
             config = Config(
-                axes,
+                self.axes,
                 n_channel_in,
                 n_channel_out,
                 unet_n_depth=self.depth,
