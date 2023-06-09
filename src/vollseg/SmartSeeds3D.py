@@ -145,9 +145,10 @@ class SmartSeeds3D:
             self.shape = shape
 
         def __len__(self):
-            return len(self.filesraw)
+            return len(self.filesraw) // self.batch_size
 
         def __getitem__(self, idx):
+
             batch_x = self.filesraw[
                 idx * self.batch_size : (idx + 1) * self.batch_size
             ]
@@ -158,7 +159,7 @@ class SmartSeeds3D:
             masklist = []
 
             for fname in batch_x:
-                raw = read_float(fname)
+                raw = read_float(self.filesraw[idx])
                 if raw.shape == self.shape:
                     raw = normalize(raw, 1, 99.8, axis=self.axis_norm)
                     rawlist.append(raw)
@@ -166,7 +167,6 @@ class SmartSeeds3D:
                 mask = read_int(fname)
                 if mask.shape == self.shape:
                     mask = mask > 0
-                    mask = mask.astype(np.uint16)
                     masklist.append(mask)
 
             return np.asarray(rawlist, dtype=np.float32), np.asarray(
