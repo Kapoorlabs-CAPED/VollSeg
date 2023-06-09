@@ -134,6 +134,7 @@ class SmartSeeds3D:
             filesmask,
             axis_norm,
             batch_size=1,
+            shape=(16, 256, 256),
         ):
             super().__init__()
 
@@ -141,6 +142,7 @@ class SmartSeeds3D:
             self.filesmask = filesmask
             self.axis_norm = axis_norm
             self.batch_size = batch_size
+            self.shape = shape
 
         def __len__(self):
             return len(self.filesraw)
@@ -157,13 +159,15 @@ class SmartSeeds3D:
 
             for fname in batch_x:
                 raw = read_float(fname)
-                raw = normalize(raw, 1, 99.8, axis=self.axis_norm)
-                rawlist.append(raw)
+                if raw.shape == self.shape:
+                    raw = normalize(raw, 1, 99.8, axis=self.axis_norm)
+                    rawlist.append(raw)
             for fname in batch_y:
                 mask = read_int(fname)
-                mask = mask > 0
-                mask = mask.astype(np.uint16)
-                masklist.append(mask)
+                if mask.shape == self.shape:
+                    mask = mask > 0
+                    mask = mask.astype(np.uint16)
+                    masklist.append(mask)
 
             return np.asarray(rawlist, dtype=np.float32), np.asarray(
                 masklist, dtype=np.float32
@@ -340,6 +344,7 @@ class SmartSeeds3D:
                     mask_path_list,
                     self.axis_norm,
                     self.batch_size,
+                    self.patch_size,
                 )
 
                 XY_val = self.UnetSequencer(
@@ -347,6 +352,7 @@ class SmartSeeds3D:
                     val_real_mask_path_list,
                     self.axis_norm,
                     self.batch_size,
+                    self.patch_size,
                 )
 
             config = Config(
