@@ -169,11 +169,13 @@ class SmartSeeds3D:
         raw = os.listdir(raw_path)
         if self.load_data_sequence:
             val_raw_path = os.path.join(self.base_dir, self.val_raw_dir)
-
+            val_raw = os.listdir(val_raw_path)
             val_real_mask_path = os.path.join(
                 self.base_dir, self.val_real_mask_dir
             )
+
             Path(val_real_mask_path).mkdir(exist_ok=True)
+            val_real_mask = os.listdir(val_real_mask_path)
 
         mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
         Path(mask_path).mkdir(exist_ok=True)
@@ -271,11 +273,11 @@ class SmartSeeds3D:
                 self.axes = axes
             else:
                 raw_path_list = []
-                for fname in raw_path:
+                for fname in raw:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
                         raw_path_list.append(os.path.join(raw_path, fname))
                 val_raw_path_list = []
-                for fname in val_raw_path:
+                for fname in val_raw:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
                         val_raw_path_list.append(
                             os.path.join(val_raw_path, fname)
@@ -287,12 +289,13 @@ class SmartSeeds3D:
                     normalize=True,
                     label_me=False,
                 )
+                print("raw_data", X.__len__())
                 mask_path_list = []
-                for fname in mask_path:
+                for fname in mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
                         mask_path_list.append(os.path.join(mask_path, fname))
                 val_real_mask_path_list = []
-                for fname in val_real_mask_path:
+                for fname in val_real_mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
                         val_real_mask_path_list.append(
                             os.path.join(val_real_mask_path, fname)
@@ -437,11 +440,11 @@ class SmartSeeds3D:
             rays = Rays_GoldenSpiral(self.n_rays, anisotropy=self.annisotropy)
             if self.load_data_sequence:
                 raw_path_list = []
-                for fname in raw_path:
+                for fname in raw:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
                         raw_path_list.append(os.path.join(raw_path, fname))
                 val_raw_path_list = []
-                for fname in val_raw_path:
+                for fname in val_raw:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
                         val_raw_path_list.append(
                             os.path.join(val_raw_path, fname)
@@ -454,13 +457,13 @@ class SmartSeeds3D:
                     label_me=False,
                 )
                 real_mask_path_list = []
-                for fname in real_mask_path:
+                for fname in real_mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
                         real_mask_path_list.append(
                             os.path.join(real_mask_path, fname)
                         )
                 val_real_mask_path_list = []
-                for fname in val_real_mask_path:
+                for fname in val_real_mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
                         val_real_mask_path_list.append(
                             os.path.join(val_real_mask_path, fname)
