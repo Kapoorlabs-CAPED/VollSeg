@@ -90,6 +90,7 @@ class CARE(CARE):
             self.prepare_for_training()
 
         if load_data_sequence:
+            steps_per_epoch = len(X) // self.config.train_batch_size
             training_data = train.DataWrapper(
                 X,
                 Y,
