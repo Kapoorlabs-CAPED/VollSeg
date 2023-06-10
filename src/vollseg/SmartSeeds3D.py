@@ -159,7 +159,7 @@ class SmartSeeds3D:
             masklist = []
 
             for fname in batch_x:
-                raw = read_float(self.filesraw[idx])
+                raw = read_float(fname)
                 if raw.shape == self.shape:
                     raw = normalize(raw, 1, 99.8, axis=self.axis_norm)
                     rawlist.append(raw)
@@ -308,8 +308,11 @@ class SmartSeeds3D:
         # Training UNET model
         if self.train_unet:
             print("Training UNET model")
-            load_path = os.path.join(self.base_dir, self.npz_filename + ".npz")
+
             if not self.load_data_sequence:
+                load_path = os.path.join(
+                    self.base_dir, self.npz_filename + ".npz"
+                )
                 (X, Y), (X_val, Y_val), axes = load_training_data(
                     load_path,
                     validation_split=self.validation_split,
@@ -483,7 +486,7 @@ class SmartSeeds3D:
                     self.n_rays, anisotropy=self.annisotropy
                 )
             if self.load_data_sequence:
-                rays = None
+                rays = self.n_rays
                 self.annisotropy = None
                 raw_path_list = []
                 for fname in raw:
