@@ -3970,6 +3970,15 @@ def VollSeg(
         star_model is None
         and roi_model is None
         and unet_model is not None
+        and noise_model is not None
+    ):
+
+        instance_labels, skeleton, image = res
+
+    elif (
+        star_model is None
+        and roi_model is None
+        and unet_model is not None
         and noise_model is None
     ):
 
