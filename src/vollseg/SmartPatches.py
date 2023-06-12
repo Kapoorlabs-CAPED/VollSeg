@@ -6,6 +6,8 @@ from skimage.measure import regionprops
 from skimage.morphology import remove_small_objects
 from scipy.ndimage import binary_erosion
 from tqdm import tqdm
+from datetime import datetime
+from uuid import uuid4
 
 
 class SmartPatches:
@@ -248,19 +250,24 @@ class SmartPatches:
             else:
                 eroded_crop_labelimage = self.crop_labelimage
             eroded_binary_image = eroded_crop_labelimage > 0
+            eventid = datetime.now().strftime("%Y%m-%d%H-%M%S-") + str(uuid4())
             imwrite(
                 os.path.join(
-                    binary_mask_patch_dir, name + str(count) + self.pattern
+                    binary_mask_patch_dir,
+                    name + eventid + str(count) + self.pattern,
                 ),
                 eroded_binary_image.astype("uint16"),
             )
             imwrite(
-                os.path.join(raw_save_dir, name + str(count) + self.pattern),
+                os.path.join(
+                    raw_save_dir, name + eventid + str(count) + self.pattern
+                ),
                 self.crop_image.astype("float32"),
             )
             imwrite(
                 os.path.join(
-                    real_mask_patch_dir, name + str(count) + self.pattern
+                    real_mask_patch_dir,
+                    name + eventid + str(count) + self.pattern,
                 ),
                 self.crop_labelimage.astype("uint16"),
             )
