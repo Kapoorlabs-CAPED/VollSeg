@@ -243,13 +243,13 @@ class SmartPatches:
         if self.valid:
             self.main_count += 1
             if self.erosion_iterations > 0:
-                eroded_crop_labelimage = erode_labels(
+                self.eroded_crop_labelimage = erode_labels(
                     self.crop_labelimage.astype("uint16"),
                     self.erosion_iterations,
                 )
             else:
-                eroded_crop_labelimage = self.crop_labelimage
-            eroded_binary_image = eroded_crop_labelimage > 0
+                self.eroded_crop_labelimage = self.crop_labelimage
+            eroded_binary_image = self.eroded_crop_labelimage > 0
             eventid = datetime.now().strftime("%Y%m-%d%H-%M%S-") + str(uuid4())
             imwrite(
                 os.path.join(
@@ -269,7 +269,7 @@ class SmartPatches:
                     real_mask_patch_dir,
                     name + eventid + str(count) + self.pattern,
                 ),
-                self.crop_labelimage.astype("uint16"),
+                self.eroded_crop_labelimage.astype("uint16"),
             )
 
     def _region_selector(self):
