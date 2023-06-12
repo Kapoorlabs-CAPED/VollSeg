@@ -25,7 +25,7 @@ import cv2
 import pandas as pd
 from cellpose import models
 from csbdeep.utils import normalize
-from qtpy.QtWidgets import QComboBox, QPushButton
+
 from scipy import spatial
 from scipy.ndimage import (
     binary_dilation,
@@ -84,6 +84,7 @@ class SegCorrect:
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
 
     def showNapari(self):
+        from qtpy.QtWidgets import QComboBox, QPushButton
 
         self.viewer = napari.Viewer()
         X = os.listdir(self.imagedir)
