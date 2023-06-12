@@ -31,8 +31,10 @@ class SmartPatches:
         create_for_channel="both",
         lower_ratio_fore_to_back=0.5,
         upper_ratio_fore_to_back=0.9,
+        max_patches_per_image=1000,
     ):
 
+        self.max_patches_per_image = max_patches_per_image
         self.base_membrane_dir = base_membrane_dir
         self.base_nuclei_dir = base_nuclei_dir
         self.raw_membrane_dir = os.path.join(
@@ -240,7 +242,7 @@ class SmartPatches:
     ):
 
         self._region_selector()
-        if self.valid:
+        if self.valid and self.main_count < self.max_patches_per_image:
             self.main_count += 1
             if self.erosion_iterations > 0:
                 self.eroded_crop_labelimage = erode_labels(
