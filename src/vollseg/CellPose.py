@@ -125,6 +125,13 @@ class CellPose:
             self.train_names,
         ) = self._load_saved_data(files_labels)
 
+        files_test_labels = os.listdir(self.save_test_real_mask_dir)
+        (
+            self.test_images,
+            self.test_labels,
+            self.test_names,
+        ) = self._load_saved_test_data(files_test_labels)
+
     def train(self):
 
         self.cellpose_model = models.CellposeModel(
@@ -170,6 +177,25 @@ class CellPose:
                     os.path.join(self.save_real_mask_dir, fname)
                 ).astype(np.uint16)
                 image = imread(os.path.join(self.save_raw_dir, fname))
+
+                labels.append(labelimage)
+                images.append(image)
+                names.append(name)
+
+        return images, labels, names
+
+    def _load_saved_test_data(self, files_labels):
+
+        images = []
+        labels = []
+        names = []
+        for fname in files_labels:
+            if any(fname.endswith(f) for f in self.acceptable_formats):
+                name = os.path.splitext(fname)[0]
+                labelimage = imread(
+                    os.path.join(self.save_test_real_mask_dir, fname)
+                ).astype(np.uint16)
+                image = imread(os.path.join(self.save_test_raw_dir, fname))
 
                 labels.append(labelimage)
                 images.append(image)
