@@ -118,7 +118,7 @@ class CellPose:
                 )
 
     def get_data(self):
-        files_labels = os.listdir(self.real_mask_dir + "_sliced")
+        files_labels = os.listdir(self.save_real_mask_dir)
         (
             self.train_images,
             self.train_labels,
@@ -167,9 +167,9 @@ class CellPose:
             if any(fname.endswith(f) for f in self.acceptable_formats):
                 name = os.path.splitext(fname)[0]
                 labelimage = imread(
-                    os.path.join(self.real_mask_dir + "_sliced", fname)
+                    os.path.join(self.save_real_mask_dir, fname)
                 ).astype(np.uint16)
-                image = imread(os.path.join(self.raw_dir + "_sliced", fname))
+                image = imread(os.path.join(self.save_raw_dir, fname))
 
                 labels.append(labelimage)
                 images.append(image)
