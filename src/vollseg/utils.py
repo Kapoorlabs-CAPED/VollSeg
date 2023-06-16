@@ -1401,9 +1401,9 @@ def _cellpose_star_time_block(
                 do_3D,
             )
         )
-        results = [r.result() for r in futures]
+    results = [r.result() for r in futures]
 
-        res, cellres = results
+    res, cellres = results
 
     return cellres, res
 
@@ -2527,7 +2527,56 @@ def _membrane_block(
     do_3D,
 ):
 
-    pass
+    cellres = None
+    res = VollSeg(
+        image,
+        unet_model=unet_model,
+        star_model=star_model,
+        roi_model=roi_model,
+        axes=axes,
+        noise_model=noise_model,
+        prob_thresh=prob_thresh,
+        ExpandLabels=ExpandLabels,
+        nms_thresh=nms_thresh,
+        min_size_mask=min_size_mask,
+        min_size=min_size,
+        max_size=max_size,
+        n_tiles=n_tiles,
+        UseProbability=UseProbability,
+        donormalize=donormalize,
+        lower_perc=lower_perc,
+        upper_perc=upper_perc,
+        dounet=dounet,
+        seedpool=seedpool,
+    )
+    if cellpose_model_path is not None:
+
+        cellpose_model = models.CellposeModel(
+            gpu=gpu, pretrained_model=cellpose_model_path
+        )
+        if anisotropy is not None:
+            cellres = cellpose_model.eval(
+                image,
+                diameter=diameter_cellpose,
+                flow_threshold=flow_threshold,
+                cellprob_threshold=cellprob_threshold,
+                stitch_threshold=stitch_threshold,
+                anisotropy=anisotropy,
+                tile=True,
+                do_3D=do_3D,
+            )
+        else:
+            cellres = cellpose_model.eval(
+                image,
+                diameter=diameter_cellpose,
+                flow_threshold=flow_threshold,
+                cellprob_threshold=cellprob_threshold,
+                stitch_threshold=stitch_threshold,
+                tile=True,
+                do_3D=do_3D,
+            )
+
+    return cellres, res
 
 
 def _membrane_time_block(
@@ -2561,7 +2610,57 @@ def _membrane_time_block(
     do_3D,
 ):
 
-    pass
+    futures = []
+
+    with concurrent.futures.ThreadPoolExecutor(
+        max_workers=os.cpu_count()
+    ) as executor:
+
+        futures.append(
+            executor.submit(
+                VollSeg(
+                    image,
+                    unet_model=unet_model,
+                    star_model=star_model,
+                    roi_model=roi_model,
+                    axes=axes,
+                    noise_model=noise_model,
+                    prob_thresh=prob_thresh,
+                    ExpandLabels=ExpandLabels,
+                    nms_thresh=nms_thresh,
+                    min_size_mask=min_size_mask,
+                    min_size=min_size,
+                    max_size=max_size,
+                    n_tiles=n_tiles,
+                    UseProbability=UseProbability,
+                    donormalize=donormalize,
+                    lower_perc=lower_perc,
+                    upper_perc=upper_perc,
+                    dounet=dounet,
+                    seedpool=seedpool,
+                )
+            )
+        )
+
+        futures.append(
+            executor.submit(
+                _cellpose_time_block,
+                image,
+                diameter_cellpose,
+                flow_threshold,
+                cellprob_threshold,
+                stitch_threshold,
+                anisotropy,
+                cellpose_model_path,
+                gpu,
+                do_3D,
+            )
+        )
+    results = [r.result() for r in futures]
+
+    res, cellres = results
+
+    return cellres, res
 
 
 def _cellpose_star_block(
@@ -2601,37 +2700,34 @@ def _cellpose_star_block(
 ):
 
     cellres = None
-    res = None
 
-    if star_model_nuclei is not None or star_model_membrane is not None:
-
-        res = SuperVollSeg(
-            image_nuclei,
-            image_membrane,
-            unet_model_nuclei,
-            unet_model_membrane,
-            star_model_nuclei,
-            star_model_membrane,
-            axes=axes,
-            noise_model=noise_model,
-            roi_model_nuclei=roi_model_nuclei,
-            prob_thresh_nuclei=prob_thresh_nuclei,
-            nms_thresh_nuclei=nms_thresh_nuclei,
-            prob_thresh_membrane=prob_thresh_membrane,
-            nms_thresh_membrane=nms_thresh_membrane,
-            min_size_mask=min_size_mask,
-            min_size=min_size,
-            max_size=max_size,
-            n_tiles=n_tiles,
-            UseProbability=UseProbability,
-            ExpandLabels=ExpandLabels,
-            dounet=dounet,
-            seedpool=seedpool,
-            donormalize=donormalize,
-            lower_perc=lower_perc,
-            upper_perc=upper_perc,
-            slice_merge=slice_merge,
-        )
+    res = SuperVollSeg(
+        image_nuclei,
+        image_membrane,
+        unet_model_nuclei,
+        unet_model_membrane,
+        star_model_nuclei,
+        star_model_membrane,
+        axes=axes,
+        noise_model=noise_model,
+        roi_model_nuclei=roi_model_nuclei,
+        prob_thresh_nuclei=prob_thresh_nuclei,
+        nms_thresh_nuclei=nms_thresh_nuclei,
+        prob_thresh_membrane=prob_thresh_membrane,
+        nms_thresh_membrane=nms_thresh_membrane,
+        min_size_mask=min_size_mask,
+        min_size=min_size,
+        max_size=max_size,
+        n_tiles=n_tiles,
+        UseProbability=UseProbability,
+        ExpandLabels=ExpandLabels,
+        dounet=dounet,
+        seedpool=seedpool,
+        donormalize=donormalize,
+        lower_perc=lower_perc,
+        upper_perc=upper_perc,
+        slice_merge=slice_merge,
+    )
 
     if cellpose_model_path is not None:
 
