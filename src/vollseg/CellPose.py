@@ -33,20 +33,22 @@ class CellPose:
         self.real_mask_dir = os.path.join(base_dir, real_mask_dir)
         self.test_raw_dir = os.path.join(base_dir, test_raw_dir)
         self.test_real_mask_dir = os.path.join(base_dir, test_real_mask_dir)
+
         self.save_raw_dir = os.path.join(
-            base_dir, os.path.join(os.path.basename(raw_dir), "_sliced")
+            self.base_dir, (raw_dir).replace("/", "") + "_sliced"
         )
+
         self.save_real_mask_dir = os.path.join(
             self.base_dir,
-            os.path.join(os.path.basename(real_mask_dir), "_sliced"),
+            (real_mask_dir).replace("/", "") + "_sliced",
         )
         self.save_test_raw_dir = os.path.join(
             self.base_dir,
-            os.path.join(os.path.basename(test_raw_dir), "_sliced"),
+            (test_raw_dir).replace("/", "") + "_sliced",
         )
         self.save_test_real_mask_dir = os.path.join(
             self.base_dir,
-            os.path.join(os.path.basename(test_real_mask_dir), "_sliced"),
+            (test_real_mask_dir).replace("/", "") + "_sliced",
         )
 
         self.n_epochs = n_epochs
