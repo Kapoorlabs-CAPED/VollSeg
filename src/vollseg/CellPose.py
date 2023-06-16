@@ -33,6 +33,19 @@ class CellPose:
         self.real_mask_dir = os.path.join(base_dir, real_mask_dir)
         self.test_raw_dir = os.path.join(base_dir, test_raw_dir)
         self.test_real_mask_dir = os.path.join(base_dir, test_real_mask_dir)
+        self.save_raw_dir = os.path.join(
+            base_dir, os.path.basename(raw_dir) + "_sliced"
+        )
+        self.save_real_mask_dir = os.path.join(
+            self.base_dir, os.path.basename(real_mask_dir) + "_sliced"
+        )
+        self.save_test_raw_dir = os.path.join(
+            self.base_dir, os.path.basename(test_raw_dir) + "_sliced"
+        )
+        self.save_test_real_mask_dir = os.path.join(
+            self.base_dir, os.path.basename(test_real_mask_dir) + "_sliced"
+        )
+
         self.n_epochs = n_epochs
         self.learning_rate = learning_rate
         self.weight_decay = weight_decay
@@ -48,6 +61,11 @@ class CellPose:
             self.pretrained_cellpose_model_path = False
         self.gpu = gpu
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
+        if self.save_masks:
+            Path(self.save_raw_dir).mkdir(exist_ok=True)
+            Path(self.save_real_mask_dir).mkdir(exist_ok=True)
+            Path(self.save_test_raw_dir).mkdir(exist_ok=True)
+            Path(self.save_test_real_mask_dir).mkdir(exist_ok=True)
 
     def create_train(self):
         files_labels = os.listdir(self.real_mask_dir)
@@ -63,31 +81,6 @@ class CellPose:
         )
         if self.save_masks:
 
-            raw_sliced_dir = os.path.basename(self.raw_dir) + "_sliced"
-            real_mask_sliced_dir = (
-                os.path.basename(self.real_mask_dir) + "_sliced"
-            )
-            test_raw_sliced_dir = (
-                os.path.basename(self.test_raw_dir) + "_sliced"
-            )
-            test_real_mask_sliced_dir = (
-                os.path.basename(self.test_real_mask_dir) + "_sliced"
-            )
-
-            self.save_raw_dir = os.path.join(self.base_dir, raw_sliced_dir)
-            self.save_real_mask_dir = os.path.join(
-                self.base_dir, real_mask_sliced_dir
-            )
-            self.save_test_raw_dir = os.path.join(
-                self.base_dir, test_raw_sliced_dir
-            )
-            self.save_test_real_mask_dir = os.path.join(
-                self.base_dir, test_real_mask_sliced_dir
-            )
-            Path(self.save_raw_dir).mkdir(exist_ok=True)
-            Path(self.save_real_mask_dir).mkdir(exist_ok=True)
-            Path(self.save_test_raw_dir).mkdir(exist_ok=True)
-            Path(self.save_test_real_mask_dir).mkdir(exist_ok=True)
             for i in range(len(self.train_images)):
                 imwrite(
                     os.path.join(
