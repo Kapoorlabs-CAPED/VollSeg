@@ -151,6 +151,7 @@ class CellPose:
             channels=self.channels,
             weight_decay=self.weight_decay,
             model_name=self.model_name,
+            min_train_masks=1,
         )
         self.diam_labels = self.cellpose_model.diam_labels.copy()
 

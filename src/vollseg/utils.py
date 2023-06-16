@@ -2496,6 +2496,74 @@ def _cellpose_3D_star_block(
     return cellres, res
 
 
+def _membrane_block(
+    image,
+    diameter_cellpose,
+    flow_threshold,
+    cellprob_threshold,
+    stitch_threshold,
+    anisotropy,
+    cellpose_model_path,
+    gpu,
+    unet_model,
+    star_model,
+    roi_model,
+    ExpandLabels,
+    axes,
+    noise_model,
+    prob_thresh,
+    nms_thresh,
+    donormalize,
+    n_tiles,
+    UseProbability,
+    dounet,
+    seedpool,
+    slice_merge,
+    lower_perc,
+    upper_perc,
+    min_size_mask,
+    min_size,
+    max_size,
+    do_3D,
+):
+
+    pass
+
+
+def _membrane_time_block(
+    image,
+    diameter_cellpose,
+    flow_threshold,
+    cellprob_threshold,
+    stitch_threshold,
+    anisotropy,
+    cellpose_model_path,
+    gpu,
+    unet_model,
+    star_model,
+    roi_model,
+    ExpandLabels,
+    axes,
+    noise_model,
+    prob_thresh,
+    nms_thresh,
+    donormalize,
+    n_tiles,
+    UseProbability,
+    dounet,
+    seedpool,
+    slice_merge,
+    lower_perc,
+    upper_perc,
+    min_size_mask,
+    min_size,
+    max_size,
+    do_3D,
+):
+
+    pass
+
+
 def _cellpose_star_block(
     image_membrane,
     image_nuclei,
@@ -2593,6 +2661,675 @@ def _cellpose_star_block(
             )
 
     return cellres, res
+
+
+def MembraneSeg(
+    image: np.ndarray,
+    diameter_cellpose: float = 34.6,
+    stitch_threshold: float = 0.5,
+    channel_nuclei: int = 1,
+    flow_threshold: float = 0.4,
+    cellprob_threshold: float = 0.0,
+    anisotropy=None,
+    unet_model=None,
+    star_model=None,
+    noise_model=None,
+    roi_model=None,
+    cellpose_model_path: str = None,
+    gpu: bool = False,
+    axes: str = "ZYX",
+    prob_thresh: float = None,
+    nms_thresh: float = None,
+    min_size_mask: int = 10,
+    min_size: int = 10,
+    max_size: int = 10000,
+    n_tiles: tuple = (1, 1, 1),
+    UseProbability: bool = True,
+    ExpandLabels: bool = False,
+    donormalize: bool = True,
+    lower_perc: float = 1.0,
+    upper_perc: float = 99.8,
+    dounet: bool = True,
+    seedpool: bool = True,
+    save_dir: str = None,
+    Name: str = "Result",
+    slice_merge: bool = False,
+    do_3D: bool = False,
+    z_thresh: int = 2,
+):
+
+    if prob_thresh is None and nms_thresh is None:
+        prob_thresh = star_model.thresholds.prob
+        nms_thresh = star_model.thresholds.nms
+
+    if len(image.shape) == 3 and "T" not in axes:
+        # Just a 3D image
+
+        cellres, res = _membrane_block(
+            image,
+            diameter_cellpose,
+            flow_threshold,
+            cellprob_threshold,
+            stitch_threshold,
+            anisotropy,
+            cellpose_model_path,
+            gpu,
+            unet_model,
+            star_model,
+            roi_model,
+            ExpandLabels,
+            axes,
+            noise_model,
+            prob_thresh,
+            nms_thresh,
+            donormalize,
+            n_tiles,
+            UseProbability,
+            dounet,
+            seedpool,
+            slice_merge,
+            lower_perc,
+            upper_perc,
+            min_size_mask,
+            min_size,
+            max_size,
+            do_3D,
+        )
+
+    if len(image.shape) == 4 and "T" in axes:
+
+        if len(n_tiles) == 4:
+            n_tiles = (n_tiles[1], n_tiles[2], n_tiles[3])
+        cellres, res = _membrane_time_block(
+            image,
+            diameter_cellpose,
+            flow_threshold,
+            cellprob_threshold,
+            stitch_threshold,
+            anisotropy,
+            cellpose_model_path,
+            gpu,
+            unet_model,
+            star_model,
+            roi_model,
+            ExpandLabels,
+            axes,
+            noise_model,
+            prob_thresh,
+            nms_thresh,
+            donormalize,
+            n_tiles,
+            UseProbability,
+            dounet,
+            seedpool,
+            slice_merge,
+            lower_perc,
+            upper_perc,
+            min_size_mask,
+            min_size,
+            max_size,
+            do_3D,
+        )
+
+    if cellpose_model_path is not None:
+        cellpose_labels = cellres[0]
+
+    cellpose_labels = np.asarray(cellpose_labels)
+    cellpose_labels = CleanCellPose(
+        cellpose_mask=cellpose_labels,
+        nms_thresh=nms_thresh,
+        z_thresh=z_thresh,
+    )
+    if "T" in axes:
+        for i in range(cellpose_labels.shape[0]):
+            for j in range(cellpose_labels.shape[1]):
+                cellpose_labels[i, j, :] = remove_small_objects(
+                    cellpose_labels[i, j, :].astype("uint16"),
+                    min_size=min_size_mask,
+                )
+                cellpose_labels[i, j, :] = remove_big_objects(
+                    cellpose_labels[i, j, :].astype("uint16"),
+                    max_size=max_size,
+                )
+    if "T" not in axes:
+        for i in range(cellpose_labels.shape[0]):
+
+            cellpose_labels[i, :] = remove_small_objects(
+                cellpose_labels[i, :].astype("uint16"), min_size=min_size_mask
+            )
+            cellpose_labels[i, :] = remove_big_objects(
+                cellpose_labels[i, :].astype("uint16"), max_size=max_size
+            )
+
+    cellpose_labels_copy = cellpose_labels.copy()
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is not None
+        and cellpose_model_path is None
+    ):
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            roi_image,
+        ) = res
+
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+        roi_image = np.asarray(roi_image)
+
+        voll_cell_seg = _cellpose_block(
+            axes,
+            sized_smart_seeds,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
+
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is not None
+        and cellpose_model_path is not None
+    ):
+
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            roi_image,
+        ) = res
+
+        roi_image = np.asarray(roi_image)
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+
+        voll_cell_seg = _cellpose_block(
+            axes,
+            sized_smart_seeds,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
+
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is None
+        and cellpose_model_path is None
+    ):
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+        ) = res
+
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is None
+        and cellpose_model_path is not None
+    ):
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+        ) = res
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+
+        voll_cell_seg = _cellpose_block(
+            axes,
+            sized_smart_seeds,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
+
+    if (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is not None
+        and cellpose_model_path is None
+    ):
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            image,
+            roi_image,
+        ) = res
+
+    if (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is not None
+        and cellpose_model_path is not None
+    ):
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            image,
+            roi_image,
+        ) = res
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+        image = np.asarray(image)
+        roi_image = np.asarray(roi_image)
+        voll_cell_seg = _cellpose_block(
+            axes,
+            sized_smart_seeds,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
+
+    if (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is None
+        and cellpose_model_path is not None
+    ):
+        (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            image,
+        ) = res
+
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+        image = np.asarray(image)
+        voll_cell_seg = _cellpose_block(
+            axes,
+            sized_smart_seeds,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
+
+    elif (
+        noise_model is not None
+        and star_model is None
+        and roi_model is None
+        and unet_model is None
+        and cellpose_model_path is not None
+    ):
+
+        voll_cell_seg = res
+
+    elif (
+        star_model is None
+        and roi_model is None
+        and unet_model is not None
+        and noise_model is not None
+        and cellpose_model_path is not None
+    ):
+
+        instance_labels, skeleton, image = res
+
+    elif (
+        star_model is None
+        and roi_model is not None
+        and unet_model is not None
+        and noise_model is not None
+        and cellpose_model_path is not None
+    ):
+
+        instance_labels, skeleton, image = res
+
+    elif (
+        star_model is None
+        and roi_model is None
+        and unet_model is not None
+        and noise_model is None
+        and cellpose_model_path is not None
+    ):
+
+        instance_labels, skeleton = res
+
+    elif (
+        star_model is None
+        and roi_model is not None
+        and unet_model is None
+        and noise_model is None
+        and cellpose_model_path is not None
+    ):
+
+        roi_image, skeleton = res
+        instance_labels = roi_image
+
+    elif (
+        star_model is None
+        and roi_model is not None
+        and unet_model is not None
+        and noise_model is None
+        and cellpose_model_path is not None
+    ):
+
+        roi_image, skeleton = res
+        instance_labels = roi_image
+
+    if save_dir is not None:
+        print("Saving Results ...")
+        Path(save_dir).mkdir(exist_ok=True)
+
+        if cellpose_model_path is not None:
+            cellpose_results = os.path.join(save_dir, "CellPose")
+            Path(cellpose_results).mkdir(exist_ok=True)
+            imwrite(
+                (os.path.join(cellpose_results, Name + ".tif")),
+                np.asarray(cellpose_labels).astype("uint16"),
+            )
+
+            vollcellpose_results = os.path.join(save_dir, "MembranePose")
+            Path(vollcellpose_results).mkdir(exist_ok=True)
+            imwrite(
+                (os.path.join(vollcellpose_results, Name + ".tif")),
+                np.asarray(voll_cell_seg).astype("uint16"),
+            )
+
+        if roi_model is not None:
+            roi_results = os.path.join(save_dir, "Roi")
+            Path(roi_results).mkdir(exist_ok=True)
+            imwrite(
+                (os.path.join(roi_results, Name + ".tif")),
+                np.asarray(roi_image).astype("uint16"),
+            )
+
+        if unet_model is not None:
+            unet_results = os.path.join(save_dir, "BinaryMask")
+
+            Path(unet_results).mkdir(exist_ok=True)
+            imwrite(
+                (os.path.join(unet_results, Name + ".tif")),
+                np.asarray(instance_labels).astype("uint16"),
+            )
+
+        if star_model is not None:
+            vollseg_results = os.path.join(save_dir, "VollSeg")
+            stardist_results = os.path.join(save_dir, "StarDist")
+            probability_results = os.path.join(save_dir, "Probability")
+            marker_results = os.path.join(save_dir, "Markers")
+            skel_results = os.path.join(save_dir, "Skeleton")
+            Path(vollseg_results).mkdir(exist_ok=True)
+            Path(stardist_results).mkdir(exist_ok=True)
+            Path(probability_results).mkdir(exist_ok=True)
+            Path(marker_results).mkdir(exist_ok=True)
+            Path(skel_results).mkdir(exist_ok=True)
+            imwrite(
+                (os.path.join(stardist_results, Name + ".tif")),
+                np.asarray(star_labels).astype("uint16"),
+            )
+            imwrite(
+                (os.path.join(vollseg_results, Name + ".tif")),
+                np.asarray(sized_smart_seeds).astype("uint16"),
+            )
+            imwrite(
+                (os.path.join(probability_results, Name + ".tif")),
+                np.asarray(probability_map).astype("float32"),
+            )
+            imwrite(
+                (os.path.join(marker_results, Name + ".tif")),
+                np.asarray(markers).astype("uint16"),
+            )
+            imwrite(
+                (os.path.join(skel_results, Name + ".tif")),
+                np.asarray(skeleton).astype("uint16"),
+            )
+
+        if noise_model is not None:
+            denoised_results = os.path.join(save_dir, "Denoised")
+            Path(denoised_results).mkdir(exist_ok=True)
+            imwrite(
+                (os.path.join(denoised_results, Name + ".tif")),
+                np.asarray(image).astype("float32"),
+            )
+
+        if noise_model is not None:
+            denoised_results = os.path.join(save_dir, "Denoised")
+            Path(denoised_results).mkdir(exist_ok=True)
+            imwrite(
+                (os.path.join(denoised_results, Name + ".tif")),
+                np.asarray(image).astype("float32"),
+            )
+
+    # If denoising is not done but stardist and unet models are supplied we return the stardist, vollseg and semantic segmentation maps
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is not None
+        and cellpose_model_path is None
+    ):
+
+        return (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            roi_image,
+        )
+
+    if (
+        noise_model is None
+        and star_model is not None
+        and roi_model is not None
+        and cellpose_model_path is not None
+    ):
+
+        return (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            roi_image,
+            cellpose_labels,
+            voll_cell_seg,
+        )
+
+    elif (
+        noise_model is None
+        and star_model is not None
+        and roi_model is None
+        and cellpose_model_path is None
+    ):
+
+        return (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+        )
+
+    elif (
+        noise_model is None
+        and star_model is not None
+        and roi_model is None
+        and cellpose_model_path is not None
+    ):
+
+        return (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            cellpose_labels,
+            voll_cell_seg,
+        )
+
+    # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
+    elif (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is not None
+        and cellpose_model_path is None
+    ):
+
+        return (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            image,
+            roi_image,
+        )
+
+    elif (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is not None
+        and cellpose_model_path is not None
+    ):
+
+        return (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            image,
+            roi_image,
+            cellpose_labels,
+            voll_cell_seg,
+        )
+
+    elif (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is None
+        and cellpose_model_path is None
+    ):
+
+        return (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            image,
+        )
+
+    elif (
+        noise_model is not None
+        and star_model is not None
+        and roi_model is None
+        and cellpose_model_path is not None
+    ):
+
+        return (
+            sized_smart_seeds,
+            instance_labels,
+            star_labels,
+            probability_map,
+            markers,
+            skeleton,
+            image,
+            cellpose_labels,
+            voll_cell_seg,
+        )
+
+    # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
+    elif (
+        star_model is None
+        and roi_model is not None
+        and noise_model is not None
+        and cellpose_model_path is None
+    ):
+
+        return instance_labels, skeleton, image
+
+    elif (
+        star_model is None
+        and roi_model is not None
+        and noise_model is None
+        and cellpose_model_path is None
+    ):
+
+        return roi_image, skeleton
+
+    elif (
+        star_model is None
+        and roi_model is not None
+        and noise_model is not None
+        and cellpose_model_path is None
+    ):
+
+        return roi_image, skeleton, image
+
+    elif (
+        noise_model is not None
+        and star_model is None
+        and roi_model is None
+        and unet_model is None
+        and cellpose_model_path is None
+    ):
+
+        return instance_labels, skeleton, image
+
+    elif (
+        star_model is None
+        and roi_model is None
+        and noise_model is None
+        and unet_model is not None
+        and cellpose_model_path is None
+    ):
+
+        return instance_labels, skeleton
 
 
 def VollCellSeg(
