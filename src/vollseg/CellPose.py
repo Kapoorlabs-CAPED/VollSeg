@@ -63,10 +63,17 @@ class CellPose:
         )
         if self.save_masks:
 
-            raw_sliced_dir = self.raw_dir + "_sliced"
-            real_mask_sliced_dir = self.real_mask_dir + "_sliced"
-            test_raw_sliced_dir = self.test_raw_dir + "_sliced"
-            test_real_mask_sliced_dir = self.test_real_mask_dir + "_sliced"
+            raw_sliced_dir = os.path.basename(self.raw_dir) + "_sliced"
+            real_mask_sliced_dir = (
+                os.path.basename(self.real_mask_dir) + "_sliced"
+            )
+            test_raw_sliced_dir = (
+                os.path.basename(self.test_raw_dir) + "_sliced"
+            )
+            test_real_mask_sliced_dir = (
+                os.path.basename(self.test_real_mask_dir) + "_sliced"
+            )
+
             self.save_raw_dir = os.path.join(self.base_dir, raw_sliced_dir)
             self.save_real_mask_dir = os.path.join(
                 self.base_dir, real_mask_sliced_dir
@@ -211,10 +218,10 @@ class CellPose:
                     for i in range(len(current_labels)):
                         if current_labels[i].max() > 0:
                             labels.append(current_labels[i])
+                            images.append(current_raw[i])
                             current_name = name + str(i)
                             names.append(current_name)
-                            for raw in current_raw:
-                                images.append(raw)
+
                 else:
                     labels.append(labelimage)
                     images.append(image)
