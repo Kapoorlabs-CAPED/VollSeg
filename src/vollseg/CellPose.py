@@ -21,6 +21,7 @@ class CellPose:
         learning_rate=0.0001,
         weight_decay=1.0e-4,
         channels=1,
+        min_train_masks=1,
         gpu=True,
         real_train_3D=False,
         save_masks=True,
@@ -33,7 +34,7 @@ class CellPose:
         self.real_mask_dir = os.path.join(base_dir, real_mask_dir)
         self.test_raw_dir = os.path.join(base_dir, test_raw_dir)
         self.test_real_mask_dir = os.path.join(base_dir, test_real_mask_dir)
-
+        self.min_train_masks = min_train_masks
         self.save_raw_dir = os.path.join(
             self.base_dir, (raw_dir).replace("/", "") + "_sliced"
         )
@@ -151,7 +152,7 @@ class CellPose:
             channels=self.channels,
             weight_decay=self.weight_decay,
             model_name=self.model_name,
-            min_train_masks=1,
+            min_train_masks=self.min_train_masks,
         )
         self.diam_labels = self.cellpose_model.diam_labels.copy()
 
