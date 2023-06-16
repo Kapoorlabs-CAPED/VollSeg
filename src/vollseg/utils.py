@@ -746,12 +746,6 @@ def VollSeg_label_precondition(image, overall_mask, Finalimage):
 def VollSeg_label_expansion(image, overall_mask, Finalimage, skeleton, RGB):
 
     for i in range(image.shape[0]):
-        Finalimage[i, :] = Finalimage[i, :] > 0
-        Finalimage[i, :] = binary_erosion(
-            Finalimage[i, :], iterations=GLOBAL_ERODE
-        )
-        Finalimage[i, :] = label(Finalimage[i, :])
-        Finalimage[i, :] = relabel_sequential(Finalimage[i, :])[0]
         Finalimage[i, :] = expand_labels(Finalimage[i, :], distance=50)
         skeleton[i, :] = Skel(Finalimage[i, :], RGB)
         skeleton[i, :] = skeleton[i, :] > 0
