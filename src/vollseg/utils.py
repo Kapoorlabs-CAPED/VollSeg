@@ -746,6 +746,9 @@ def VollSeg_label_precondition(image, overall_mask, Finalimage):
 def VollSeg_label_expansion(image, overall_mask, Finalimage, skeleton, RGB):
 
     for i in range(image.shape[0]):
+        Finalimage[i, :] = Finalimage[i, :] > 0
+        Finalimage[i] = binary_erosion(Finalimage[i], iterations=GLOBAL_ERODE)
+        Finalimage[i, :] = relabel_sequential(Finalimage[i, :])[0]
         Finalimage[i, :] = expand_labels(Finalimage[i, :], distance=50)
         skeleton[i, :] = Skel(Finalimage[i, :], RGB)
         skeleton[i, :] = skeleton[i, :] > 0
@@ -855,15 +858,10 @@ def VollSeg_unet(
             Finalimage = relabel_sequential(Binary)[0]
             skeleton = Skel(Finalimage, RGB)
             skeleton = skeleton > 0
-        if model_dim == 3 and slice_merge:
-            for i in range(image.shape[0]):
-                Binary[i] = label(Binary[i])
-
-            Binary = match_labels(Binary, nms_thresh=nms_thresh)
-            Binary = fill_label_holes(Binary)
 
         if model_dim == 3:
             for i in range(image.shape[0]):
+                Binary[i] = label(Binary[i])
                 Binary[i] = remove_small_objects(
                     Binary[i].astype("uint16"), min_size=min_size_mask
                 )
@@ -878,6 +876,9 @@ def VollSeg_unet(
                 Finalimage, skeleton = VollSeg_label_expansion(
                     image, overall_mask, Finalimage, skeleton, RGB
                 )
+            if slice_merge:
+                Finalimage = match_labels(Finalimage, nms_thresh=nms_thresh)
+                Finalimage = fill_label_holes(Finalimage)
 
     elif roi_model is not None:
 
