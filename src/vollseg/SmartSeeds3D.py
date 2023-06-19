@@ -18,6 +18,7 @@ from pathlib import Path
 from tifffile import imread, imwrite
 from csbdeep.utils import plot_history
 from scipy.ndimage import zoom
+from scipy.ndimage import binary_fill_holes
 
 
 def erode_labels(segmentation, erosion_iterations=2):
@@ -167,6 +168,7 @@ class SmartSeeds3D:
                 mask = read_int(fname)
                 if mask.shape == self.shape:
                     mask = mask > 0
+                    mask = binary_fill_holes(mask)
                     masklist.append(mask)
 
             return np.asarray(rawlist, dtype=np.float32), np.asarray(
