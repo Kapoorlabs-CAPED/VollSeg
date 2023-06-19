@@ -2896,6 +2896,7 @@ def MembraneSeg(
             )
 
     cellpose_labels_copy = cellpose_labels.copy()
+    voll_cell_seg = cellpose_labels_copy
     if (
         noise_model is None
         and star_model is not None
@@ -3021,6 +3022,20 @@ def MembraneSeg(
             image,
             roi_image,
         ) = res
+        sized_smart_seeds = np.asarray(sized_smart_seeds)
+        instance_labels = np.asarray(instance_labels)
+        star_labels = np.asarray(star_labels)
+        probability_map = np.asarray(probability_map)
+        markers = np.asarray(markers)
+        skeleton = np.asarray(skeleton)
+
+        voll_cell_seg = _cellpose_block(
+            axes,
+            sized_smart_seeds,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
 
     if (
         noise_model is not None
@@ -3093,7 +3108,17 @@ def MembraneSeg(
         and cellpose_model_path is not None
     ):
 
-        voll_cell_seg = res
+        instance_labels, skeleton, image = res
+        instance_labels = np.asarray(instance_labels)
+        skeleton = np.asarray(skeleton)
+        image = np.asarray(image)
+        voll_cell_seg = _cellpose_block(
+            axes,
+            instance_labels,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
 
     elif (
         star_model is None
@@ -3104,6 +3129,16 @@ def MembraneSeg(
     ):
 
         instance_labels, skeleton, image = res
+        instance_labels = np.asarray(instance_labels)
+        skeleton = np.asarray(skeleton)
+        image = np.asarray(image)
+        voll_cell_seg = _cellpose_block(
+            axes,
+            instance_labels,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
 
     elif (
         star_model is None
@@ -3114,6 +3149,16 @@ def MembraneSeg(
     ):
 
         instance_labels, skeleton, image = res
+        instance_labels = np.asarray(instance_labels)
+        skeleton = np.asarray(skeleton)
+        image = np.asarray(image)
+        voll_cell_seg = _cellpose_block(
+            axes,
+            instance_labels,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
 
     elif (
         star_model is None
@@ -3124,6 +3169,15 @@ def MembraneSeg(
     ):
 
         instance_labels, skeleton = res
+        instance_labels = np.asarray(instance_labels)
+        skeleton = np.asarray(skeleton)
+        voll_cell_seg = _cellpose_block(
+            axes,
+            instance_labels,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
 
     elif (
         star_model is None
@@ -3146,6 +3200,15 @@ def MembraneSeg(
 
         roi_image, skeleton = res
         instance_labels = roi_image
+        instance_labels = np.asarray(instance_labels)
+        skeleton = np.asarray(skeleton)
+        voll_cell_seg = _cellpose_block(
+            axes,
+            instance_labels,
+            cellpose_labels_copy,
+            nms_thresh,
+            z_thresh=z_thresh,
+        )
 
     if save_dir is not None:
         print("Saving Results ...")
