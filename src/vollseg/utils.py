@@ -2096,7 +2096,7 @@ def VollCellPose3D(
         and cellpose_model_3D_pretrained_file is not None
     ):
 
-        roi_image, skeleton, image = res
+        roi_image, skeleton = res
         instance_labels = roi_image
 
     elif (
@@ -2118,7 +2118,7 @@ def VollCellPose3D(
         and cellpose_model_3D_pretrained_file is not None
     ):
 
-        roi_image, skeleton, image = res
+        roi_image, skeleton = res
         instance_labels = roi_image
 
     if save_dir is not None:
@@ -2375,7 +2375,7 @@ def VollCellPose3D(
         and cellpose_model_3D_pretrained_file is None
     ):
 
-        return roi_image.astype("uint16"), skeleton, image
+        return roi_image.astype("uint16"), skeleton
 
     elif (
         star_model is None
@@ -2404,10 +2404,9 @@ def VollCellPose3D(
         and cellpose_model_3D_pretrained_file is None
     ):
 
-        return instance_labels, skeleton, image
+        return instance_labels, skeleton
 
 
-# 3d cellpose
 def _cellpose_3D_star_block(
     cellpose_model_3D_pretrained_file,
     image_membrane,
@@ -2762,6 +2761,7 @@ def MembraneSeg(
     image: np.ndarray,
     diameter_cellpose: float = 34.6,
     stitch_threshold: float = 0.5,
+    channel_nuclei: int = 1,
     flow_threshold: float = 0.4,
     cellprob_threshold: float = 0.0,
     anisotropy=None,
@@ -3123,7 +3123,7 @@ def MembraneSeg(
         and cellpose_model_path is not None
     ):
 
-        instance_labels, skeleton, image = res
+        instance_labels, skeleton = res
 
     elif (
         star_model is None
@@ -3144,7 +3144,7 @@ def MembraneSeg(
         and cellpose_model_path is not None
     ):
 
-        roi_image, skeleton, image = res
+        roi_image, skeleton = res
         instance_labels = roi_image
 
     if save_dir is not None:
@@ -4740,7 +4740,7 @@ def VollSeg(
             skeleton,
         ) = res
 
-    elif (
+    if (
         noise_model is not None
         and star_model is not None
         and roi_model is not None
@@ -4756,7 +4756,7 @@ def VollSeg(
             roi_image,
         ) = res
 
-    elif (
+    if (
         noise_model is not None
         and star_model is not None
         and roi_model is None
@@ -4771,7 +4771,7 @@ def VollSeg(
             image,
         ) = res
 
-    elif (
+    if (
         noise_model is not None
         and star_model is None
         and roi_model is None
@@ -4780,16 +4780,7 @@ def VollSeg(
 
         instance_labels, skeleton, image = res
 
-    elif (
-        star_model is None
-        and roi_model is None
-        and unet_model is not None
-        and noise_model is not None
-    ):
-
-        instance_labels, skeleton, image = res
-
-    elif (
+    if (
         star_model is None
         and roi_model is not None
         and unet_model is not None
@@ -4798,7 +4789,7 @@ def VollSeg(
 
         instance_labels, skeleton, image = res
 
-    elif (
+    if (
         star_model is None
         and roi_model is None
         and unet_model is not None
@@ -4807,26 +4798,26 @@ def VollSeg(
 
         instance_labels, skeleton, image = res
 
-    elif (
+    if (
         star_model is None
         and roi_model is None
         and unet_model is not None
         and noise_model is None
     ):
 
-        instance_labels, skeleton, image = res
+        instance_labels, skeleton = res
 
-    elif (
+    if (
         star_model is None
         and roi_model is not None
         and unet_model is None
         and noise_model is None
     ):
 
-        roi_image, skeleton, image = res
+        roi_image, skeleton = res
         instance_labels = roi_image
 
-    elif (
+    if (
         star_model is None
         and roi_model is not None
         and unet_model is None
@@ -4836,14 +4827,14 @@ def VollSeg(
         roi_image, skeleton, image = res
         instance_labels = roi_image
 
-    elif (
+    if (
         star_model is None
         and roi_model is not None
         and unet_model is not None
         and noise_model is None
     ):
 
-        roi_image, skeleton, image = res
+        roi_image, skeleton = res
         instance_labels = roi_image
 
     if save_dir is not None:
@@ -4925,7 +4916,7 @@ def VollSeg(
             roi_image,
         )
 
-    elif noise_model is None and star_model is not None and roi_model is None:
+    if noise_model is None and star_model is not None and roi_model is None:
 
         return (
             sized_smart_seeds,
@@ -4937,7 +4928,7 @@ def VollSeg(
         )
 
     # If denoising is done and stardist and unet models are supplied we return the stardist, vollseg, denoised image and semantic segmentation maps
-    elif (
+    if (
         noise_model is not None
         and star_model is not None
         and roi_model is not None
@@ -4954,7 +4945,7 @@ def VollSeg(
             roi_image,
         )
 
-    elif (
+    if (
         noise_model is not None
         and star_model is not None
         and roi_model is None
@@ -4971,19 +4962,15 @@ def VollSeg(
         )
 
     # If the stardist model is not supplied but only the unet and noise model we return the denoised result and the semantic segmentation map
-    elif (
-        star_model is None
-        and roi_model is not None
-        and noise_model is not None
-    ):
+    if star_model is None and noise_model is not None:
 
         return instance_labels, skeleton, image
 
-    elif star_model is None and roi_model is not None and noise_model is None:
+    if star_model is None and noise_model is None:
 
-        return roi_image.astype("uint16"), skeleton, image
+        return roi_image.astype("uint16"), skeleton
 
-    elif (
+    if (
         star_model is None
         and roi_model is not None
         and noise_model is not None
@@ -4991,7 +4978,7 @@ def VollSeg(
 
         return roi_image.astype("uint16"), skeleton, image
 
-    elif (
+    if (
         noise_model is not None
         and star_model is None
         and roi_model is None
@@ -5000,14 +4987,14 @@ def VollSeg(
 
         return instance_labels, skeleton, image
 
-    elif (
+    if (
         star_model is None
         and roi_model is None
         and noise_model is None
         and unet_model is not None
     ):
 
-        return instance_labels, skeleton, image
+        return instance_labels, skeleton
 
 
 def VollSeg3D(
@@ -5367,7 +5354,7 @@ def VollSeg3D(
         and star_model is None
         and unet_model is not None
     ):
-        return instance_labels.astype("uint16"), skeleton, image
+        return instance_labels.astype("uint16"), skeleton
 
 
 def VollSam(
@@ -6155,10 +6142,7 @@ def SuperVollSeg(
         and star_model_membrane is None
         and unet_model_membrane is None
     ):
-        return (
-            instance_labels_nuclei.astype("uint16"),
-            skeleton_nuclei,
-        )
+        return (instance_labels_nuclei.astype("uint16"), skeleton_nuclei)
 
     if (
         noise_model is None
@@ -6229,10 +6213,7 @@ def SuperVollSeg(
         and unet_model_membrane is not None
         and star_model_nuclei is None
     ):
-        return (
-            instance_labels_membrane.astype("uint16"),
-            skeleton_membrane,
-        )
+        return (instance_labels_membrane.astype("uint16"), skeleton_membrane)
 
     if (
         noise_model is None
