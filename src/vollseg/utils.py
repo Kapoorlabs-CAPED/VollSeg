@@ -2762,7 +2762,6 @@ def MembraneSeg(
     image: np.ndarray,
     diameter_cellpose: float = 34.6,
     stitch_threshold: float = 0.5,
-    channel_nuclei: int = 1,
     flow_threshold: float = 0.4,
     cellprob_threshold: float = 0.0,
     anisotropy=None,
@@ -3124,7 +3123,7 @@ def MembraneSeg(
         and cellpose_model_path is not None
     ):
 
-        instance_labels, skeleton = res
+        instance_labels, skeleton, image = res
 
     elif (
         star_model is None
@@ -3145,7 +3144,7 @@ def MembraneSeg(
         and cellpose_model_path is not None
     ):
 
-        roi_image, skeleton = res
+        roi_image, skeleton, image = res
         instance_labels = roi_image
 
     if save_dir is not None:
