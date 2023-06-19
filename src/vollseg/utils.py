@@ -5029,7 +5029,7 @@ def VollSeg(
 
         return instance_labels, skeleton, image
 
-    if star_model is None and noise_model is None:
+    if star_model is None and roi_model is not None and noise_model is None:
 
         return roi_image.astype("uint16"), skeleton
 
