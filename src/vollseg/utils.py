@@ -2407,6 +2407,7 @@ def VollCellPose3D(
         return instance_labels, skeleton, image
 
 
+# 3d cellpose
 def _cellpose_3D_star_block(
     cellpose_model_3D_pretrained_file,
     image_membrane,
