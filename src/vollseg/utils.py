@@ -4868,7 +4868,7 @@ def VollSeg(
         and noise_model is None
     ):
 
-        instance_labels, skeleton = res
+        instance_labels, skeleton, image = res
 
     if (
         star_model is None
@@ -4897,7 +4897,7 @@ def VollSeg(
         and noise_model is None
     ):
 
-        roi_image, skeleton = res
+        roi_image, skeleton, image = res
         instance_labels = roi_image
 
     if save_dir is not None:
