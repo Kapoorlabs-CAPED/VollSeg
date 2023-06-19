@@ -2792,7 +2792,7 @@ def MembraneSeg(
     z_thresh: int = 2,
 ):
 
-    if prob_thresh is None and nms_thresh is None:
+    if prob_thresh is None and nms_thresh is None and star_model is not None:
         prob_thresh = star_model.thresholds.prob
         nms_thresh = star_model.thresholds.nms
 
