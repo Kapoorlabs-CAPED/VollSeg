@@ -31,7 +31,7 @@ class SmartPatches:
         create_for_channel="both",
         lower_ratio_fore_to_back=0.5,
         upper_ratio_fore_to_back=0.9,
-        max_patches_per_image=1000,
+        max_patches_per_image=np.inf,
     ):
 
         self.max_patches_per_image = max_patches_per_image
@@ -102,7 +102,7 @@ class SmartPatches:
 
                     raw_nuclei_image = imread(
                         os.path.join(self.raw_nuclei_dir, fname)
-                    ).astype(np.uint16)
+                    )
                     self.ndim = len(raw_nuclei_image.shape)
                     label_image_nuclei = imread(
                         os.path.join(
@@ -130,7 +130,7 @@ class SmartPatches:
 
                     raw_membrane_image = imread(
                         os.path.join(self.raw_membrane_dir, fname)
-                    ).astype(np.uint16)
+                    )
                     self.ndim = len(raw_membrane_image.shape)
                     label_image_membrane = imread(
                         os.path.join(
