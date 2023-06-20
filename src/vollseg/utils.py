@@ -36,7 +36,7 @@ from scipy.ndimage.measurements import find_objects
 from scipy.ndimage.morphology import binary_fill_holes
 from skimage import measure, morphology
 from skimage.filters import threshold_multiotsu
-from skimage.measure import label, regionprops
+from skimage.measure import label
 from skimage.morphology import (
     dilation,
     remove_small_objects,
@@ -59,7 +59,6 @@ from .CARE import CARE
 from .MASKUNET import MASKUNET
 from .CellPose3D import CellPose3DModel, CellPoseRes3DModel
 from .PredictTiledLoader import PredictTiled
-from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
@@ -276,49 +275,7 @@ def match_labels(ys: np.ndarray, nms_thresh=0.5):
     if nms_thresh is None:
         nms_thresh = 0.3
     ys = np.asarray(ys)
-    for i in range(ys.shape[0]):
-        if len(ys.shape) == 3:
-            ys[i] = label(ys[i])
-            if i > 0:
-                pixel_condition = ys[i] > 0
-                pixel_replace_condition = np.max(ys[i - 1])
-                ys[i] = image_addition_conditionals(
-                    ys[i], pixel_condition, pixel_replace_condition
-                )
-
-    if len(ys.shape) not in (3, 4):
-        raise ValueError("label image y should be 3 or 4 dimensional!")
-
-    def _match_single(x, y):
-        res = matching(x, y, report_matches=True)
-
-        pairs = tuple(
-            p
-            for p, s in zip(res.matched_pairs, res.matched_scores)
-            if s >= nms_thresh
-        )
-        map_dict = {i2: i1 for i1, i2 in pairs}
-
-        y2 = np.zeros_like(y)
-        y_labels = set(np.unique(y)) - {0}
-
-        # labels that can be used for non-matched objects
-        label_reservoir = list(
-            set(np.arange(1, len(y_labels) + 1)) - set(map_dict.values())
-        )
-        for r in regionprops(y):
-            m = y[r.slice] == r.label
-            if r.label in map_dict:
-                y2[r.slice][m] = map_dict[r.label]
-            else:
-                y2[r.slice][m] = label_reservoir.pop(0)
-
-        return y2
-
-    ys_new = ys.copy()
-
-    for i in tqdm(range(len(ys) - 1)):
-        ys_new[i + 1] = _match_single(ys_new[i], ys[i + 1])
+    ys_new = merge_labels_across_volume(ys, RelabelZ)
 
     return ys_new
 
@@ -4613,6 +4570,7 @@ def VollSeg(
                 max_size=max_size,
                 noise_model=noise_model,
                 RGB=RGB,
+                nms_thresh=nms_thresh,
                 slice_merge=slice_merge,
                 dounet=dounet,
             )
@@ -4657,6 +4615,7 @@ def VollSeg(
                 noise_model=noise_model,
                 RGB=RGB,
                 slice_merge=slice_merge,
+                nms_thresh=nms_thresh,
                 dounet=dounet,
             )
     if len(image.shape) == 3 and "T" not in axes and RGB:
@@ -4698,6 +4657,7 @@ def VollSeg(
                 noise_model=noise_model,
                 RGB=RGB,
                 slice_merge=slice_merge,
+                nms_thresh=nms_thresh,
                 dounet=dounet,
             )
 
@@ -4748,6 +4708,7 @@ def VollSeg(
                             noise_model=noise_model,
                             RGB=RGB,
                             slice_merge=slice_merge,
+                            nms_thresh=nms_thresh,
                             dounet=dounet,
                         )
                         for _x in tqdm(image)
