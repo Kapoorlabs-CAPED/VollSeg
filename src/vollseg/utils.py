@@ -36,7 +36,7 @@ from scipy.ndimage.measurements import find_objects
 from scipy.ndimage.morphology import binary_fill_holes
 from skimage import measure, morphology
 from skimage.filters import threshold_multiotsu
-from skimage.measure import label
+from skimage.measure import label, regionprops
 from skimage.morphology import (
     dilation,
     remove_small_objects,
@@ -59,6 +59,7 @@ from .CARE import CARE
 from .MASKUNET import MASKUNET
 from .CellPose3D import CellPose3DModel, CellPoseRes3DModel
 from .PredictTiledLoader import PredictTiled
+from vollseg.matching import matching
 from vollseg.nmslabel import NMSLabel
 from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
@@ -274,10 +275,36 @@ def match_labels(ys: np.ndarray, nms_thresh=0.5):
 
     if nms_thresh is None:
         nms_thresh = 0.3
-    ys = np.asarray(ys)
-    ys_new = merge_labels_across_volume(ys, RelabelZ)
+    ys_grouped = np.empty_like(ys, dtype=np.uint16)
 
-    return ys_new
+    def _match_single(y_prev, y, next_id):
+        y = y.astype(np.uint16, copy=False)
+        res = matching(
+            y_prev,
+            y,
+            report_matches=True,
+            thresh=nms_thresh,
+            criterion="iou",
+        )
+        # relabel dict (for matching labels) that maps label ids from y -> y_prev
+        relabel = dict(reversed(res.matched_pairs[i]) for i in res.matched_tps)
+        y_grouped = np.zeros_like(y)
+        for r in regionprops(y):
+            m = y[r.slice] == r.label
+            if r.label in relabel:
+                y_grouped[r.slice][m] = relabel[r.label]
+            else:
+                y_grouped[r.slice][m] = next_id
+                next_id += 1
+        return y_grouped, next_id
+
+    ys_grouped[0] = ys[0]
+    next_id = ys_grouped[0].max() + 1
+    for i in range(len(ys) - 1):
+        ys_grouped[i + 1], next_id = _match_single(
+            ys_grouped[i], ys[i + 1], next_id
+        )
+    return ys_grouped
 
 
 def remove_big_objects(ar: np.ndarray, max_size):
