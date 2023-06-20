@@ -276,6 +276,16 @@ def match_labels(ys: np.ndarray, nms_thresh=0.5):
     if nms_thresh is None:
         nms_thresh = 0.3
     ys = np.asarray(ys)
+    for i in range(ys.shape[0]):
+        if len(ys.shape) == 3:
+            ys[i] = label(ys[i])
+            if i > 0:
+                pixel_condition = ys[i] > 0
+                pixel_replace_condition = np.max(ys[i - 1])
+                ys[i] = image_addition_conditionals(
+                    ys[i], pixel_condition, pixel_replace_condition
+                )
+
     if len(ys.shape) not in (3, 4):
         raise ValueError("label image y should be 3 or 4 dimensional!")
 
@@ -6468,6 +6478,18 @@ def image_conditionals(image, pixel_condition, pixel_replace_condition):
     for index in indices:
 
         image[index] = pixel_replace_condition
+
+    return image
+
+
+def image_addition_conditionals(
+    image, pixel_condition, pixel_replace_condition
+):
+
+    indices = zip(*np.where(pixel_condition))
+    for index in indices:
+
+        image[index] = image[index] + pixel_replace_condition
 
     return image
 
