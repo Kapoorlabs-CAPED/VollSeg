@@ -102,9 +102,9 @@ class SegCorrect:
         imageidbox.addItem(Boxname)
         savebutton = QPushButton(" Save Corrections")
 
-        for i in range(0, len(Imageids)):
+        for i in range(0, len(SegImageids)):
 
-            imageidbox.addItem(str(Imageids[i]))
+            imageidbox.addItem(str(SegImageids[i]))
 
         imageidbox.currentIndexChanged.connect(
             lambda trackid=imageidbox: self.image_add(
