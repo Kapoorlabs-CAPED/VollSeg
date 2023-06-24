@@ -2121,14 +2121,14 @@ def VollCellPose3D(
             Path(vollcellpose_results).mkdir(exist_ok=True)
 
             imwrite(
-                os.path.join(vollcellpose_results.as_posix() + Name + ".tif"),
+                os.path.join(vollcellpose_results.as_posix(), Name + ".tif"),
                 np.asarray(voll_cell_seg).astype("uint16"),
             )
 
             Path(vollcellpose_flows).mkdir(exist_ok=True)
 
             imwrite(
-                os.path.join(vollcellpose_flows.as_posix() + Name + ".tif"),
+                os.path.join(vollcellpose_flows.as_posix(), Name + ".tif"),
                 np.asarray(flows).astype("float32"),
             )
 
@@ -2136,7 +2136,7 @@ def VollCellPose3D(
 
             imwrite(
                 os.path.join(
-                    vollcellpose_foreground.as_posix() + Name + ".tif"
+                    vollcellpose_foreground.as_posix(), Name + ".tif"
                 ),
                 np.asarray(foreground).astype("float32"),
             )
@@ -2145,7 +2145,7 @@ def VollCellPose3D(
             roi_results = Path(save_dir) / "Roi"
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
-                os.path.join(roi_results.as_posix() + Name + ".tif"),
+                os.path.join(roi_results.as_posix(), Name + ".tif"),
                 np.asarray(roi_image).astype("uint16"),
             )
 
@@ -2156,11 +2156,11 @@ def VollCellPose3D(
             Path(skel_unet_results).mkdir(exist_ok=True)
 
             imwrite(
-                os.path.join(unet_results.as_posix() + Name + ".tif"),
+                os.path.join(unet_results.as_posix(), Name + ".tif"),
                 np.asarray(instance_labels).astype("uint16"),
             )
             imwrite(
-                os.path.join(skel_unet_results.as_posix() + Name + ".tif"),
+                os.path.join(skel_unet_results.as_posix(), Name + ".tif"),
                 np.asarray(skeleton).astype("uint16"),
             )
         if star_model is not None:
@@ -2175,30 +2175,30 @@ def VollCellPose3D(
             Path(probability_results).mkdir(exist_ok=True)
             Path(marker_results).mkdir(exist_ok=True)
             imwrite(
-                os.path.join(stardist_results.as_posix() + Name + ".tif"),
+                os.path.join(stardist_results.as_posix(), Name + ".tif"),
                 np.asarray(star_labels).astype("uint16"),
             )
             imwrite(
-                os.path.join(vollseg_results.as_posix() + Name + ".tif"),
+                os.path.join(vollseg_results.as_posix(), Name + ".tif"),
                 np.asarray(sized_smart_seeds).astype("uint16"),
             )
             imwrite(
-                os.path.join(probability_results.as_posix() + Name + ".tif"),
+                os.path.join(probability_results.as_posix(), Name + ".tif"),
                 np.asarray(probability_map).astype("float32"),
             )
             imwrite(
-                os.path.join(marker_results.as_posix() + Name + ".tif"),
+                os.path.join(marker_results.as_posix(), Name + ".tif"),
                 np.asarray(markers).astype("uint16"),
             )
             imwrite(
-                os.path.join(skel_results.as_posix() + Name + ".tif"),
+                os.path.join(skel_results.as_posix(), Name + ".tif"),
                 np.asarray(skeleton),
             )
         if noise_model is not None:
             denoised_results = Path(save_dir) / "Denoised"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
-                os.path.join(denoised_results.as_posix() + Name + ".tif"),
+                os.path.join(denoised_results.as_posix(), Name + ".tif"),
                 np.asarray(image).astype("float32"),
             )
 
@@ -4902,7 +4902,7 @@ def VollSeg(
             roi_results = Path(save_dir) / "Roi"
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
-                os.path.join(roi_results.as_posix() + Name + ".tif"),
+                os.path.join(roi_results.as_posix(), Name + ".tif"),
                 np.asarray(roi_image).astype("uint16"),
             )
 
@@ -4913,11 +4913,11 @@ def VollSeg(
             Path(skel_unet_results).mkdir(exist_ok=True)
 
             imwrite(
-                os.path.join(unet_results.as_posix() + Name + ".tif"),
+                os.path.join(unet_results.as_posix(), Name + ".tif"),
                 np.asarray(instance_labels).astype("uint16"),
             )
             imwrite(
-                os.path.join(skel_unet_results.as_posix() + Name + ".tif"),
+                os.path.join(skel_unet_results.as_posix(), Name + ".tif"),
                 np.asarray(skeleton).astype("uint16"),
             )
         if star_model is not None:
@@ -4932,30 +4932,30 @@ def VollSeg(
             Path(probability_results).mkdir(exist_ok=True)
             Path(marker_results).mkdir(exist_ok=True)
             imwrite(
-                os.path.join(stardist_results.as_posix() + Name + ".tif"),
+                os.path.join(stardist_results.as_posix(), Name + ".tif"),
                 np.asarray(star_labels).astype("uint16"),
             )
             imwrite(
-                os.path.join(vollseg_results.as_posix() + Name + ".tif"),
+                os.path.join(vollseg_results.as_posix(), Name + ".tif"),
                 np.asarray(sized_smart_seeds).astype("uint16"),
             )
             imwrite(
-                os.path.join(probability_results.as_posix() + Name + ".tif"),
+                os.path.join(probability_results.as_posix(), Name + ".tif"),
                 np.asarray(probability_map).astype("float32"),
             )
             imwrite(
-                os.path.join(marker_results.as_posix() + Name + ".tif"),
+                os.path.join(marker_results.as_posix(), Name + ".tif"),
                 np.asarray(markers).astype("uint16"),
             )
             imwrite(
-                os.path.join(skel_results.as_posix() + Name + ".tif"),
+                os.path.join(skel_results.as_posix(), Name + ".tif"),
                 np.asarray(skeleton),
             )
         if noise_model is not None:
             denoised_results = Path(save_dir) / "Denoised"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
-                os.path.join(denoised_results.as_posix() + Name + ".tif"),
+                os.path.join(denoised_results.as_posix(), Name + ".tif"),
                 np.asarray(image).astype("float32"),
             )
 
