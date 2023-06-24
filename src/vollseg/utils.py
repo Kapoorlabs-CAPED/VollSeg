@@ -109,12 +109,8 @@ class SegCorrect:
         imageidbox.currentIndexChanged.connect(
             lambda trackid=imageidbox: self.image_add(
                 imageidbox.currentText(),
-                Path(os.path.join(self.imagedir, imageidbox.currentText())),
-                Path(
-                    os.path.join(
-                        self.segmentationdir, imageidbox.currentText()
-                    )
-                ),
+                Path(Path(self.imagedir, imageidbox.currentText())),
+                Path(Path(self.segmentationdir, imageidbox.currentText())),
                 False,
             )
         )
@@ -122,12 +118,8 @@ class SegCorrect:
         savebutton.clicked.connect(
             lambda trackid=imageidbox: self.image_add(
                 imageidbox.currentText(),
-                Path(os.path.join(self.imagedir, imageidbox.currentText())),
-                Path(
-                    os.path.join(
-                        self.segmentationdir, imageidbox.currentText()
-                    )
-                ),
+                Path(Path(self.imagedir, imageidbox.currentText())),
+                Path(Path(self.segmentationdir, imageidbox.currentText())),
                 True,
             )
         )
@@ -2121,88 +2113,90 @@ def VollCellPose3D(
 
         if cellpose_model_3D_pretrained_file is not None:
 
-            vollcellpose_results = os.path.join(save_dir, "VollCellPose3D/")
-            vollcellpose_flows = os.path.join(save_dir, "CellPoseFlows/")
-            vollcellpose_foreground = os.path.join(
-                save_dir, "CellPoseForeground/"
-            )
+            vollcellpose_results = Path(save_dir) / "VollCellPose3D"
+            vollcellpose_flows = Path(save_dir) / "CellPoseFlows"
+            vollcellpose_foreground = Path(save_dir) / "CellPoseForeground"
+
             flows = np.asarray(flows)
             Path(vollcellpose_results).mkdir(exist_ok=True)
 
             imwrite(
-                (vollcellpose_results + Name + ".tif"),
+                os.path.join(vollcellpose_results + Name + ".tif"),
                 np.asarray(voll_cell_seg).astype("uint16"),
             )
 
             Path(vollcellpose_flows).mkdir(exist_ok=True)
 
             imwrite(
-                (vollcellpose_flows + Name + ".tif"),
+                os.path.join(vollcellpose_flows + Name + ".tif"),
                 np.asarray(flows).astype("float32"),
             )
 
             Path(vollcellpose_foreground).mkdir(exist_ok=True)
 
             imwrite(
-                (vollcellpose_foreground + Name + ".tif"),
+                os.path.join(vollcellpose_foreground + Name + ".tif"),
                 np.asarray(foreground).astype("float32"),
             )
 
         if roi_model is not None:
-            roi_results = os.path.join(save_dir, "Roi/")
+            roi_results = Path(save_dir) / "Roi"
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
-                (roi_results + Name + ".tif"),
+                os.path.join(roi_results + Name + ".tif"),
                 np.asarray(roi_image).astype("uint16"),
             )
 
         if unet_model is not None:
-            unet_results = os.path.join(save_dir, "BinaryMask/")
-            skel_unet_results = os.path.join(save_dir, "skeleton/")
+            unet_results = Path(save_dir) / "BinaryMask"
+            skel_unet_results = Path(save_dir) / "Skeleton"
             Path(unet_results).mkdir(exist_ok=True)
             Path(skel_unet_results).mkdir(exist_ok=True)
 
             imwrite(
-                (unet_results + Name + ".tif"),
+                os.path.join(unet_results + Name + ".tif"),
                 np.asarray(instance_labels).astype("uint16"),
             )
             imwrite(
-                (skel_unet_results + Name + ".tif"),
+                os.path.join(skel_unet_results + Name + ".tif"),
                 np.asarray(skeleton).astype("uint16"),
             )
         if star_model is not None:
-            vollseg_results = os.path.join(save_dir, "VollSeg/")
-            stardist_results = os.path.join(save_dir, "StarDist/")
-            probability_results = os.path.join(save_dir, "Probability/")
-            marker_results = os.path.join(save_dir, "markers/")
-            skel_results = os.path.join(save_dir, "skeleton/")
+            vollseg_results = Path(save_dir) / "VollSeg"
+            stardist_results = Path(save_dir) / "StarDist"
+            probability_results = Path(save_dir) / "Probability"
+            marker_results = Path(save_dir) / "Markers"
+            skel_results = Path(save_dir) / "Skeleton"
             Path(skel_results).mkdir(exist_ok=True)
             Path(vollseg_results).mkdir(exist_ok=True)
             Path(stardist_results).mkdir(exist_ok=True)
             Path(probability_results).mkdir(exist_ok=True)
             Path(marker_results).mkdir(exist_ok=True)
             imwrite(
-                (stardist_results + Name + ".tif"),
+                os.path.join(stardist_results + Name + ".tif"),
                 np.asarray(star_labels).astype("uint16"),
             )
             imwrite(
-                (vollseg_results + Name + ".tif"),
+                os.path.join(vollseg_results + Name + ".tif"),
                 np.asarray(sized_smart_seeds).astype("uint16"),
             )
             imwrite(
-                (probability_results + Name + ".tif"),
+                os.path.join(probability_results + Name + ".tif"),
                 np.asarray(probability_map).astype("float32"),
             )
             imwrite(
-                (marker_results + Name + ".tif"),
+                os.path.join(marker_results + Name + ".tif"),
                 np.asarray(markers).astype("uint16"),
             )
-            imwrite((skel_results + Name + ".tif"), np.asarray(skeleton))
+            imwrite(
+                os.path.join(skel_results + Name + ".tif"),
+                np.asarray(skeleton),
+            )
         if noise_model is not None:
-            denoised_results = os.path.join(save_dir, "Denoised/")
+            denoised_results = Path(save_dir) / "Denoised"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
-                (denoised_results + Name + ".tif"),
+                os.path.join(denoised_results + Name + ".tif"),
                 np.asarray(image).astype("float32"),
             )
 
@@ -3209,14 +3203,14 @@ def MembraneSeg(
         Path(save_dir).mkdir(exist_ok=True)
 
         if cellpose_model_path is not None:
-            cellpose_results = os.path.join(save_dir, "CellPose")
+            cellpose_results = Path(save_dir) / "CellPose"
             Path(cellpose_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(cellpose_results, Name + ".tif")),
                 np.asarray(cellpose_labels).astype("uint16"),
             )
 
-            vollcellpose_results = os.path.join(save_dir, "MembranePose")
+            vollcellpose_results = Path(save_dir) / "MembranePose"
             Path(vollcellpose_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(vollcellpose_results, Name + ".tif")),
@@ -3224,7 +3218,7 @@ def MembraneSeg(
             )
 
         if roi_model is not None:
-            roi_results = os.path.join(save_dir, "Roi")
+            roi_results = Path(save_dir) / "Roi"
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(roi_results, Name + ".tif")),
@@ -3232,7 +3226,7 @@ def MembraneSeg(
             )
 
         if unet_model is not None:
-            unet_results = os.path.join(save_dir, "BinaryMask")
+            unet_results = Path(save_dir) / "BinaryMask"
 
             Path(unet_results).mkdir(exist_ok=True)
             imwrite(
@@ -3241,11 +3235,11 @@ def MembraneSeg(
             )
 
         if star_model is not None:
-            vollseg_results = os.path.join(save_dir, "VollSeg")
-            stardist_results = os.path.join(save_dir, "StarDist")
-            probability_results = os.path.join(save_dir, "Probability")
-            marker_results = os.path.join(save_dir, "Markers")
-            skel_results = os.path.join(save_dir, "Skeleton")
+            vollseg_results = Path(save_dir) / "VollSeg"
+            stardist_results = Path(save_dir) / "StarDist"
+            probability_results = Path(save_dir) / "Probability"
+            marker_results = Path(save_dir) / "Markers"
+            skel_results = Path(save_dir) / "Skeleton"
             Path(vollseg_results).mkdir(exist_ok=True)
             Path(stardist_results).mkdir(exist_ok=True)
             Path(probability_results).mkdir(exist_ok=True)
@@ -3273,7 +3267,7 @@ def MembraneSeg(
             )
 
         if noise_model is not None:
-            denoised_results = os.path.join(save_dir, "Denoised")
+            denoised_results = Path(save_dir) / "Denoised"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(denoised_results, Name + ".tif")),
@@ -3281,7 +3275,7 @@ def MembraneSeg(
             )
 
         if noise_model is not None:
-            denoised_results = os.path.join(save_dir, "Denoised")
+            denoised_results = Path(save_dir) / "Denoised"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(denoised_results, Name + ".tif")),
@@ -4134,14 +4128,14 @@ def VollCellSeg(
         Path(save_dir).mkdir(exist_ok=True)
 
         if cellpose_model_path is not None:
-            cellpose_results = os.path.join(save_dir, "CellPose")
+            cellpose_results = Path(save_dir) / "CellPose"
             Path(cellpose_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(cellpose_results, Name + ".tif")),
                 np.asarray(cellpose_labels).astype("uint16"),
             )
 
-            vollcellpose_results = os.path.join(save_dir, "VollCellPose")
+            vollcellpose_results = Path(save_dir) / "VollCellPose"
             Path(vollcellpose_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(vollcellpose_results, Name + ".tif")),
@@ -4149,7 +4143,7 @@ def VollCellSeg(
             )
 
         if roi_model_nuclei is not None:
-            roi_results = os.path.join(save_dir, "Roi")
+            roi_results = Path(save_dir) / "Roi"
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(roi_results, Name + ".tif")),
@@ -4157,7 +4151,7 @@ def VollCellSeg(
             )
 
         if unet_model_nuclei is not None:
-            unet_results = os.path.join(save_dir, "NucleiBinaryMask")
+            unet_results = Path(save_dir) / "NucleiBinaryMask"
 
             Path(unet_results).mkdir(exist_ok=True)
             imwrite(
@@ -4166,7 +4160,7 @@ def VollCellSeg(
             )
 
         if unet_model_membrane is not None:
-            unet_results = os.path.join(save_dir, "MembraneBinaryMask")
+            unet_results = Path(save_dir) / "MembraneBinaryMask"
 
             Path(unet_results).mkdir(exist_ok=True)
             imwrite(
@@ -4175,11 +4169,11 @@ def VollCellSeg(
             )
 
         if star_model_nuclei is not None:
-            vollseg_results = os.path.join(save_dir, "NucleiVollSeg")
-            stardist_results = os.path.join(save_dir, "NucleiStarDist")
-            probability_results = os.path.join(save_dir, "NucleiProbability")
-            marker_results = os.path.join(save_dir, "NucleiMarkers")
-            skel_results = os.path.join(save_dir, "NucleiSkeleton")
+            vollseg_results = Path(save_dir) / "NucleiVollSeg"
+            stardist_results = Path(save_dir) / "NucleiStarDist"
+            probability_results = Path(save_dir) / "NucleiProbability"
+            marker_results = Path(save_dir) / "NucleiMarkers"
+            skel_results = Path(save_dir) / "NucleiSkeleton"
             Path(vollseg_results).mkdir(exist_ok=True)
             Path(stardist_results).mkdir(exist_ok=True)
             Path(probability_results).mkdir(exist_ok=True)
@@ -4207,11 +4201,11 @@ def VollCellSeg(
             )
 
         if star_model_membrane is not None:
-            vollseg_results = os.path.join(save_dir, "MembraneVollSeg")
-            stardist_results = os.path.join(save_dir, "MembraneStarDist")
-            probability_results = os.path.join(save_dir, "MembraneProbability")
-            marker_results = os.path.join(save_dir, "MembraneMarkers")
-            skel_results = os.path.join(save_dir, "MembraneSkeleton")
+            vollseg_results = Path(save_dir) / "MembraneVollSeg"
+            stardist_results = Path(save_dir) / "MembraneStarDist"
+            probability_results = Path(save_dir) / "MembraneProbability"
+            marker_results = Path(save_dir) / "MembraneMarkers"
+            skel_results = Path(save_dir) / "MembraneSkeleton"
             Path(vollseg_results).mkdir(exist_ok=True)
             Path(stardist_results).mkdir(exist_ok=True)
             Path(probability_results).mkdir(exist_ok=True)
@@ -4239,7 +4233,7 @@ def VollCellSeg(
             )
 
         if noise_model is not None:
-            denoised_results = os.path.join(save_dir, "Denoised")
+            denoised_results = Path(save_dir) / "Denoised"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(denoised_results, Name + ".tif")),
@@ -4247,7 +4241,7 @@ def VollCellSeg(
             )
 
         if noise_model is not None:
-            denoised_results = os.path.join(save_dir, "Denoised")
+            denoised_results = Path(save_dir) / "Denoised"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(denoised_results, Name + ".tif")),
@@ -4903,60 +4897,63 @@ def VollSeg(
         Path(save_dir).mkdir(exist_ok=True)
 
         if roi_model is not None:
-            roi_results = save_dir + "Roi/"
+            roi_results = Path(save_dir) / "Roi"
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
-                (roi_results + Name + ".tif"),
+                os.path.join(roi_results + Name + ".tif"),
                 np.asarray(roi_image).astype("uint16"),
             )
 
         if unet_model is not None:
-            unet_results = save_dir + "BinaryMask/"
-            skel_unet_results = save_dir + "skeleton/"
+            unet_results = Path(save_dir) / "BinaryMask"
+            skel_unet_results = Path(save_dir) / "Skeleton"
             Path(unet_results).mkdir(exist_ok=True)
             Path(skel_unet_results).mkdir(exist_ok=True)
 
             imwrite(
-                (unet_results + Name + ".tif"),
+                os.path.join(unet_results + Name + ".tif"),
                 np.asarray(instance_labels).astype("uint16"),
             )
             imwrite(
-                (skel_unet_results + Name + ".tif"),
+                os.path.join(skel_unet_results + Name + ".tif"),
                 np.asarray(skeleton).astype("uint16"),
             )
         if star_model is not None:
-            vollseg_results = save_dir + "VollSeg/"
-            stardist_results = save_dir + "StarDist/"
-            probability_results = save_dir + "Probability/"
-            marker_results = save_dir + "markers/"
-            skel_results = save_dir + "skeleton/"
+            vollseg_results = Path(save_dir) / "VollSeg"
+            stardist_results = Path(save_dir) / "StarDist"
+            probability_results = Path(save_dir) / "Probability"
+            marker_results = Path(save_dir) / "Markers"
+            skel_results = Path(save_dir) / "Skeleton"
             Path(skel_results).mkdir(exist_ok=True)
             Path(vollseg_results).mkdir(exist_ok=True)
             Path(stardist_results).mkdir(exist_ok=True)
             Path(probability_results).mkdir(exist_ok=True)
             Path(marker_results).mkdir(exist_ok=True)
             imwrite(
-                (stardist_results + Name + ".tif"),
+                os.path.join(stardist_results + Name + ".tif"),
                 np.asarray(star_labels).astype("uint16"),
             )
             imwrite(
-                (vollseg_results + Name + ".tif"),
+                os.path.join(vollseg_results + Name + ".tif"),
                 np.asarray(sized_smart_seeds).astype("uint16"),
             )
             imwrite(
-                (probability_results + Name + ".tif"),
+                os.path.join(probability_results + Name + ".tif"),
                 np.asarray(probability_map).astype("float32"),
             )
             imwrite(
-                (marker_results + Name + ".tif"),
+                os.path.join(marker_results + Name + ".tif"),
                 np.asarray(markers).astype("uint16"),
             )
-            imwrite((skel_results + Name + ".tif"), np.asarray(skeleton))
+            imwrite(
+                os.path.join(skel_results + Name + ".tif"),
+                np.asarray(skeleton),
+            )
         if noise_model is not None:
-            denoised_results = save_dir + "Denoised/"
+            denoised_results = Path(save_dir) / "Denoised"
             Path(denoised_results).mkdir(exist_ok=True)
             imwrite(
-                (denoised_results + Name + ".tif"),
+                os.path.join(denoised_results + Name + ".tif"),
                 np.asarray(image).astype("float32"),
             )
 
@@ -5444,7 +5441,7 @@ def VollSam(
     Name: str = "Result",
 ):
     sam = sam_model_registry[model_type](
-        checkpoint=os.path.join(ckpt_directory, ckpt_model_name)
+        checkpoint=Path(ckpt_directory, ckpt_model_name)
     )
     min_mask_region_area = min_size * min_size
     mask_generator = SamAutomaticMaskGenerator(
@@ -5537,8 +5534,8 @@ def VollSam(
         print("Saving Results ...")
         Path(save_dir).mkdir(exist_ok=True)
 
-        nuclei_results = os.path.join(save_dir, "NucleiSAM")
-        membrane_results = os.path.join(save_dir, "MembraneSAM")
+        nuclei_results = Path(save_dir) / "NucleiSAM"
+        membrane_results = Path(save_dir) / "MembraneSAM"
         Path(nuclei_results).mkdir(exist_ok=True)
         Path(membrane_results).mkdir(exist_ok=True)
         imwrite(
