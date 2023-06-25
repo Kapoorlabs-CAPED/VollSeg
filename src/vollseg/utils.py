@@ -775,7 +775,7 @@ def VollSeg_unet(
     dounet=True,
     erosion_iterations=15,
 ):
-
+    Finalimage = np.zeros(image.shape, dtype=np.uint16)
     model_dim = len(image.shape)
     if len(n_tiles) != model_dim:
         if model_dim == 3:
@@ -883,19 +883,19 @@ def VollSeg_unet(
             else:
                 tiles = n_tiles
             maximage = np.amax(image, axis=0)
-            Segmented = roi_model.predict(
+            roi_Segmented = roi_model.predict(
                 maximage.astype("float32"), "YX", n_tiles=tiles
             )
             try:
-                thresholds = threshold_multiotsu(Segmented, classes=2)
+                thresholds = threshold_multiotsu(roi_Segmented, classes=2)
 
                 # Using the threshold values, we generate the three regions.
-                regions = np.digitize(Segmented, bins=thresholds)
+                roi_regions = np.digitize(roi_Segmented, bins=thresholds)
             except ValueError:
 
-                regions = Segmented
+                roi_regions = roi_Segmented
 
-            s_Binary = regions > 0
+            s_Binary = roi_regions > 0
 
             s_Binary = label(s_Binary)
             s_Binary = remove_small_objects(
@@ -904,35 +904,30 @@ def VollSeg_unet(
             s_Binary = remove_big_objects(
                 s_Binary.astype("uint16"), max_size=max_size
             )
-            s_Binary = fill_label_holes(s_Binary)
+            s_skeleton = fill_label_holes(s_Binary)
 
-            s_Finalimage = relabel_sequential(s_Binary)[0]
+            s_skeleton = relabel_sequential(s_Binary)[0]
 
-            s_skeleton = Skel(s_Finalimage)
-            Binary = np.zeros_like(image)
             skeleton = np.zeros_like(image)
-            Finalimage = np.zeros_like(image)
             for i in range(0, image.shape[0]):
 
-                Binary[i] = s_Binary
                 skeleton[i] = s_skeleton
-                Finalimage[i] = s_Finalimage
 
         elif model_dim == len(image.shape):
 
-            Segmented = roi_model.predict(
+            roi_Segmented = roi_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
             )
             try:
-                thresholds = threshold_multiotsu(Segmented, classes=2)
+                thresholds = threshold_multiotsu(roi_Segmented, classes=2)
 
                 # Using the threshold values, we generate the three regions.
-                regions = np.digitize(Segmented, bins=thresholds)
+                regions = np.digitize(roi_Segmented, bins=thresholds)
             except ValueError:
 
-                regions = Segmented
+                roi_regions = roi_Segmented
 
-            Binary = regions > 0
+            Binary = roi_regions > 0
 
             Binary = label(Binary)
             if model_dim == 3 and slice_merge:
@@ -949,9 +944,7 @@ def VollSeg_unet(
                         Binary[i].astype("uint16"), max_size=max_size
                     )
 
-            Finalimage = relabel_sequential(Binary)[0]
-
-            skeleton = Skel(Finalimage)
+            skeleton = relabel_sequential(Binary)[0]
 
     return Finalimage.astype("uint16"), skeleton, image
 
@@ -2146,7 +2139,7 @@ def VollCellPose3D(
             Path(roi_results).mkdir(exist_ok=True)
             imwrite(
                 os.path.join(roi_results.as_posix(), Name + ".tif"),
-                np.asarray(roi_image).astype("uint16"),
+                np.asarray(skeleton).astype("uint16"),
             )
 
         if unet_model is not None:
@@ -3177,8 +3170,7 @@ def MembraneSeg(
         and cellpose_model_path is not None
     ):
 
-        roi_image, skeleton = res
-        instance_labels = roi_image
+        instance_labels, roi_image = res
 
     elif (
         star_model is None
@@ -3188,8 +3180,7 @@ def MembraneSeg(
         and cellpose_model_path is not None
     ):
 
-        roi_image, skeleton = res
-        instance_labels = roi_image
+        instance_labels, roi_image = res
         instance_labels = np.asarray(instance_labels)
         skeleton = np.asarray(skeleton)
         voll_cell_seg = _cellpose_block(
@@ -3447,7 +3438,7 @@ def MembraneSeg(
         and cellpose_model_path is None
     ):
 
-        return roi_image, skeleton
+        return roi_image
 
     elif (
         star_model is None
@@ -3456,7 +3447,7 @@ def MembraneSeg(
         and cellpose_model_path is None
     ):
 
-        return roi_image, skeleton, image
+        return roi_image, image
 
     elif (
         noise_model is not None
@@ -4844,7 +4835,8 @@ def VollSeg(
         and noise_model is not None
     ):
 
-        instance_labels, skeleton, image = res
+        instance_labels, roi_image, image = res
+        skeleton = Skel(instance_labels)
 
     if (
         star_model is None
@@ -4871,8 +4863,8 @@ def VollSeg(
         and noise_model is None
     ):
 
-        roi_image, skeleton = res
-        instance_labels = roi_image
+        instance_labels, roi_image = res
+        skeleton = Skel(instance_labels)
 
     if (
         star_model is None
@@ -4881,8 +4873,8 @@ def VollSeg(
         and noise_model is not None
     ):
 
-        roi_image, skeleton, image = res
-        instance_labels = roi_image
+        instance_labels, roi_image, image = res
+        skeleton = Skel(instance_labels)
 
     if (
         star_model is None
@@ -4891,8 +4883,8 @@ def VollSeg(
         and noise_model is None
     ):
 
-        roi_image, skeleton, image = res
-        instance_labels = roi_image
+        instance_labels, roi_image, image = res
+        skeleton = Skel(instance_labels)
 
     if save_dir is not None:
         print("Saving Results ...")
@@ -5028,7 +5020,7 @@ def VollSeg(
 
     if star_model is None and roi_model is not None and noise_model is None:
 
-        return roi_image.astype("uint16"), skeleton
+        return instance_labels, roi_image
 
     if (
         star_model is None
@@ -5036,7 +5028,7 @@ def VollSeg(
         and noise_model is not None
     ):
 
-        return roi_image.astype("uint16"), skeleton, image
+        return instance_labels, roi_image, image
 
     if (
         noise_model is not None
