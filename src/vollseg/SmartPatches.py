@@ -8,6 +8,9 @@ from scipy.ndimage import binary_erosion
 from tqdm import tqdm
 from datetime import datetime
 from uuid import uuid4
+from skimage.segmentation import find_boundaries
+from skimage.morphology import dilation
+from skimage.filters import gaussian
 
 
 class SmartPatches:
@@ -26,6 +29,7 @@ class SmartPatches:
         nuclei_binary_mask_patch_dir,
         membrane_binary_mask_patch_dir,
         patch_size,
+        edge_membrane_dir=None,
         erosion_iterations=0,
         pattern=".tif",
         create_for_channel="both",
@@ -69,6 +73,12 @@ class SmartPatches:
         self.membrane_real_mask_patch_dir = os.path.join(
             self.base_membrane_dir, membrane_real_mask_patch_dir
         )
+        if edge_membrane_dir is None:
+            self.edge_membrane_dir = os.path.join(
+                self.base_membrane_dir, edge_membrane_dir
+            )
+        else:
+            self.edge_membrane_dir = edge_membrane_dir
         self.patch_size = patch_size
         self.erosion_iterations = erosion_iterations
         self.pattern = pattern
@@ -131,12 +141,27 @@ class SmartPatches:
                     raw_membrane_image = imread(
                         os.path.join(self.raw_membrane_dir, fname)
                     )
+
                     self.ndim = len(raw_membrane_image.shape)
                     label_image_membrane = imread(
                         os.path.join(
                             self.membrane_channel_results_directory, fname
                         )
                     ).astype(np.uint16)
+                    if self.edge_membrane_dir is not None:
+                        edge_membrane_image = find_boundaries(
+                            label_image_membrane
+                        )
+                        edge_membrane_image = dilation(edge_membrane_image)
+                        edge_membrane_image = gaussian(edge_membrane_image)
+                        name = os.path.splitext(fname)[0]
+                        imwrite(
+                            os.path.join(
+                                self.edge_membrane_dir,
+                                name + self.pattern,
+                            ),
+                            edge_membrane_image.astype("float32"),
+                        )
                     properties_membrane = regionprops(label_image_membrane)
                     for count, prop in tqdm(enumerate(properties_membrane)):
                         self._label_maker(
