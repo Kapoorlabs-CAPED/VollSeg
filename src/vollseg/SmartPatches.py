@@ -263,6 +263,14 @@ class SmartPatches:
 
         zero_indices = list(zip(*np.where(labelimage == 0)))
         self.main_count = 0
+        non_zero_indices = list(zip(*np.where(labelimage > 0)))
+
+        total_indices = list(zip(*np.where(labelimage >= 0)))
+        if len(total_indices) > 0:
+            norm_foreground = len(non_zero_indices) / len(total_indices)
+            index_ratio = float(norm_foreground)
+        else:
+            index_ratio = 0
         for index in zero_indices:
 
             if self.main_count < self.max_patches_per_image:
@@ -287,7 +295,7 @@ class SmartPatches:
                             crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
                         ]
 
-                        if np.sum(raw_patch) > 0 and np.sum(mask_patch) > 0:
+                        if index_ratio > self.lower_ratio_fore_to_back / 10:
                             self.main_count += 1
                             eventid = datetime.now().strftime(
                                 "%Y%m-%d%H-%M%S-"
@@ -362,7 +370,7 @@ class SmartPatches:
                             crop_Yminus:crop_Yplus,
                             crop_Xminus:crop_Xplus,
                         ]
-                        if np.sum(raw_patch) > 0 and np.sum(mask_patch) > 0:
+                        if index_ratio > self.lower_ratio_fore_to_back / 10:
                             self.main_count += 1
                             eventid = datetime.now().strftime(
                                 "%Y%m-%d%H-%M%S-"
