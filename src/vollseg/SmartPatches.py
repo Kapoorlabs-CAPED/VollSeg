@@ -427,6 +427,9 @@ class SmartPatches:
                                 raw_patchc = rawimage[regionc]
                                 mask_patchc = labelimage[regionc]
                                 raw_patch = np.add(raw_patch, raw_patchc)
+                                mask_patch = np.add(
+                                    mask_patch_zero, mask_patchc
+                                )
 
                                 if (
                                     np.sum(raw_patch) > 0
