@@ -287,7 +287,7 @@ class SmartPatches:
                             crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
                         ]
 
-                        if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
+                        if np.sum(raw_patch) > 0 and np.sum(mask_patch) > 0:
                             self.main_count += 1
                             eventid = datetime.now().strftime(
                                 "%Y%m-%d%H-%M%S-"
@@ -362,7 +362,7 @@ class SmartPatches:
                             crop_Yminus:crop_Yplus,
                             crop_Xminus:crop_Xplus,
                         ]
-                        if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
+                        if np.sum(raw_patch) > 0 and np.sum(mask_patch) > 0:
                             self.main_count += 1
                             eventid = datetime.now().strftime(
                                 "%Y%m-%d%H-%M%S-"
