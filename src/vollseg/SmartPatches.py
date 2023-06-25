@@ -73,7 +73,7 @@ class SmartPatches:
         self.membrane_real_mask_patch_dir = os.path.join(
             self.base_membrane_dir, membrane_real_mask_patch_dir
         )
-        if edge_membrane_dir is None:
+        if edge_membrane_dir is not None:
             self.edge_membrane_dir = os.path.join(
                 self.base_membrane_dir, edge_membrane_dir
             )
