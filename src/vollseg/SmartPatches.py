@@ -36,11 +36,13 @@ class SmartPatches:
         lower_ratio_fore_to_back=0.5,
         upper_ratio_fore_to_back=0.9,
         max_patches_per_image=np.inf,
+        create_background_only=False,
     ):
 
         self.max_patches_per_image = max_patches_per_image
         self.base_membrane_dir = base_membrane_dir
         self.base_nuclei_dir = base_nuclei_dir
+        self.create_background_only = create_background_only
         self.raw_membrane_dir = os.path.join(
             self.base_membrane_dir, raw_membrane_dir
         )
@@ -86,7 +88,81 @@ class SmartPatches:
         self.lower_ratio_fore_to_back = lower_ratio_fore_to_back
         self.upper_ratio_fore_to_back = upper_ratio_fore_to_back
         self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
-        self._create_smart_patches()
+
+        if self.create_background_only:
+            self._create_background_patches()
+        else:
+
+            self._create_smart_patches()
+            self._create_background_patches()
+
+    def _create_background_patches(self):
+
+        Path(self.nuclei_raw_save_dir).mkdir(exist_ok=True)
+        Path(self.membrane_raw_save_dir).mkdir(exist_ok=True)
+        Path(self.nuclei_binary_mask_patch_dir).mkdir(exist_ok=True)
+        Path(self.membrane_binary_mask_patch_dir).mkdir(exist_ok=True)
+        Path(self.nuclei_real_mask_patch_dir).mkdir(exist_ok=True)
+        Path(self.membrane_real_mask_patch_dir).mkdir(exist_ok=True)
+        if self.create_for_channel == "nuclei":
+            files = os.listdir(self.raw_nuclei_dir)
+        else:
+            files = os.listdir(self.raw_membrane_dir)
+        for fname in files:
+            if any(fname.endswith(f) for f in self.acceptable_formats):
+
+                if (
+                    self.create_for_channel == "nuclei"
+                    or self.create_for_channel == "both"
+                ):
+
+                    self.main_count = 0
+
+                    raw_nuclei_image = imread(
+                        os.path.join(self.raw_nuclei_dir, fname)
+                    )
+                    self.ndim = len(raw_nuclei_image.shape)
+                    label_image_nuclei = imread(
+                        os.path.join(
+                            self.nuclei_channel_results_directory, fname
+                        )
+                    ).astype(np.uint16)
+
+                    self._background_label_maker(
+                        fname,
+                        raw_nuclei_image,
+                        label_image_nuclei,
+                        self.nuclei_raw_save_dir,
+                        self.nuclei_binary_mask_patch_dir,
+                        self.nuclei_real_mask_patch_dir,
+                    )
+
+            if (
+                self.create_for_channel == "membrane"
+                or self.create_for_channel == "both"
+            ):
+
+                self.main_count = 0
+
+                raw_membrane_image = imread(
+                    os.path.join(self.raw_membrane_dir, fname)
+                )
+
+                self.ndim = len(raw_membrane_image.shape)
+                label_image_membrane = imread(
+                    os.path.join(
+                        self.membrane_channel_results_directory, fname
+                    )
+                ).astype(np.uint16)
+
+                self._background_label_maker(
+                    fname,
+                    raw_membrane_image,
+                    label_image_membrane,
+                    self.membrane_raw_save_dir,
+                    self.membrane_binary_mask_patch_dir,
+                    self.membrane_real_mask_patch_dir,
+                )
 
     def _create_smart_patches(self):
 
@@ -173,6 +249,148 @@ class SmartPatches:
                             self.membrane_raw_save_dir,
                             self.membrane_binary_mask_patch_dir,
                             self.membrane_real_mask_patch_dir,
+                        )
+
+    def _background_label_maker(
+        self,
+        fname,
+        rawimage,
+        labelimage,
+        raw_save_dir: str,
+        binary_mask_patch_dir: str,
+        real_mask_patch_dir: str,
+    ):
+
+        zero_indices = list(zip(*np.where(labelimage == 0)))
+
+        for index in zero_indices:
+            self.main_count += 1
+            name = os.path.splitext(fname)[0]
+            if self.ndim == 2:
+                x = index[1]
+                y = index[0]
+                crop_Xminus = x - int(self.patch_size[1] / 2)
+                crop_Xplus = x + int(self.patch_size[1] / 2)
+                crop_Yminus = y - int(self.patch_size[0] / 2)
+                crop_Yplus = y + int(self.patch_size[0] / 2)
+                if (
+                    crop_Xminus > 0
+                    and crop_Xplus < rawimage.shape[1]
+                    and crop_Yminus > 0
+                    and crop_Yplus < rawimage.shape[0]
+                ):
+                    raw_patch = rawimage[
+                        crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
+                    ]
+                    mask_patch = labelimage[
+                        crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
+                    ]
+                    if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
+                        imwrite(
+                            os.path.join(
+                                raw_save_dir,
+                                name + str(self.main_count) + ".tif",
+                            ),
+                            raw_patch.astype("float32"),
+                        )
+                        binary_mask_patch = np.zeros(
+                            (self.patch_size[0], self.patch_size[1]),
+                            dtype=np.uint16,
+                        )
+                        binary_mask_patch[
+                            :,
+                        ] = 0
+                        imwrite(
+                            os.path.join(
+                                binary_mask_patch_dir,
+                                name + str(self.main_count) + ".tif",
+                            ),
+                            binary_mask_patch.astype("uint16"),
+                        )
+                        real_mask_patch = np.zeros(
+                            (self.patch_size[0], self.patch_size[1]),
+                            dtype=np.uint16,
+                        )
+                        real_mask_patch[
+                            :,
+                        ] = 0
+                        imwrite(
+                            os.path.join(
+                                real_mask_patch_dir,
+                                name + str(self.main_count) + ".tif",
+                            ),
+                            real_mask_patch.astype("uint16"),
+                        )
+            if self.ndim == 3:
+                x = index[2]
+                y = index[1]
+                z = index[0]
+                crop_Xminus = x - int(self.patch_size[2] / 2)
+                crop_Xplus = x + int(self.patch_size[2] / 2)
+                crop_Yminus = y - int(self.patch_size[1] / 2)
+                crop_Yplus = y + int(self.patch_size[1] / 2)
+                crop_Zminus = z - int(self.patch_size[0] / 2)
+                crop_Zplus = z + int(self.patch_size[0] / 2)
+                if (
+                    crop_Xminus > 0
+                    and crop_Xplus < rawimage.shape[2]
+                    and crop_Yminus > 0
+                    and crop_Yplus < rawimage.shape[1]
+                    and crop_Zminus > 0
+                    and crop_Zplus < rawimage.shape[0]
+                ):
+                    raw_patch = rawimage[
+                        crop_Zminus:crop_Zplus,
+                        crop_Yminus:crop_Yplus,
+                        crop_Xminus:crop_Xplus,
+                    ]
+                    mask_patch = labelimage[
+                        crop_Zminus:crop_Zplus,
+                        crop_Yminus:crop_Yplus,
+                        crop_Xminus:crop_Xplus,
+                    ]
+                    if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
+                        imwrite(
+                            os.path.join(
+                                raw_save_dir,
+                                name + str(self.main_count) + ".tif",
+                            ),
+                            raw_patch.astype("float32"),
+                        )
+                        binary_mask_patch = np.zeros(
+                            (
+                                self.patch_size[0],
+                                self.patch_size[1],
+                                self.patch_size[2],
+                            ),
+                            dtype=np.uint16,
+                        )
+                        binary_mask_patch[
+                            :,
+                        ] = 0
+                        imwrite(
+                            os.path.join(
+                                binary_mask_patch_dir,
+                                name + str(self.main_count) + ".tif",
+                            ),
+                            binary_mask_patch.astype("uint16"),
+                        )
+                        real_mask_patch = np.zeros(
+                            (
+                                self.patch_size[0],
+                                self.patch_size[1],
+                                self.patch_size[2],
+                            ),
+                            dtype=np.uint16,
+                        )
+                        real_mask_patch[
+                            :,
+                        ] = 0
+                        imwrite(
+                            os.path.join(
+                                real_mask_patch_dir,
+                                name + str(self.main_count) + ".tif",
+                            )
                         )
 
     def _label_maker(
