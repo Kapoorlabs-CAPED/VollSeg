@@ -293,13 +293,14 @@ class SmartPatches:
                             ),
                             raw_patch.astype("float32"),
                         )
-                        binary_mask_patch = np.zeros(
-                            (self.patch_size[0], self.patch_size[1]),
-                            dtype=np.uint16,
-                        )
-                        binary_mask_patch[
-                            :,
-                        ] = 0
+                        if self.erosion_iterations > 0:
+                            binary_mask_patch = erode_labels(
+                                mask_patch.astype("uint16"),
+                                self.erosion_iterations,
+                            )
+                        else:
+                            binary_mask_patch = mask_patch
+                        binary_mask_patch = binary_mask_patch > 0
                         imwrite(
                             os.path.join(
                                 binary_mask_patch_dir,
@@ -307,19 +308,13 @@ class SmartPatches:
                             ),
                             binary_mask_patch.astype("uint16"),
                         )
-                        real_mask_patch = np.zeros(
-                            (self.patch_size[0], self.patch_size[1]),
-                            dtype=np.uint16,
-                        )
-                        real_mask_patch[
-                            :,
-                        ] = 0
+
                         imwrite(
                             os.path.join(
                                 real_mask_patch_dir,
                                 name + "back" + str(self.main_count) + ".tif",
                             ),
-                            real_mask_patch.astype("uint16"),
+                            mask_patch.astype("uint16"),
                         )
             if self.ndim == 3:
                 x = index[2]
@@ -357,17 +352,14 @@ class SmartPatches:
                             ),
                             raw_patch.astype("float32"),
                         )
-                        binary_mask_patch = np.zeros(
-                            (
-                                self.patch_size[0],
-                                self.patch_size[1],
-                                self.patch_size[2],
-                            ),
-                            dtype=np.uint16,
-                        )
-                        binary_mask_patch[
-                            :,
-                        ] = 0
+                        if self.erosion_iterations > 0:
+                            binary_mask_patch = erode_labels(
+                                mask_patch.astype("uint16"),
+                                self.erosion_iterations,
+                            )
+                        else:
+                            binary_mask_patch = mask_patch
+                        binary_mask_patch = binary_mask_patch > 0
                         imwrite(
                             os.path.join(
                                 binary_mask_patch_dir,
@@ -375,22 +367,13 @@ class SmartPatches:
                             ),
                             binary_mask_patch.astype("uint16"),
                         )
-                        real_mask_patch = np.zeros(
-                            (
-                                self.patch_size[0],
-                                self.patch_size[1],
-                                self.patch_size[2],
-                            ),
-                            dtype=np.uint16,
-                        )
-                        real_mask_patch[
-                            :,
-                        ] = 0
+
                         imwrite(
                             os.path.join(
                                 real_mask_patch_dir,
                                 name + "back" + str(self.main_count) + ".tif",
-                            )
+                            ),
+                            mask_patch.astype("uint16"),
                         )
 
     def _label_maker(
