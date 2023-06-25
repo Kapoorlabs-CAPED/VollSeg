@@ -263,14 +263,6 @@ class SmartPatches:
 
         zero_indices = list(zip(*np.where(labelimage == 0)))
         self.main_count = 0
-        non_zero_indices = list(zip(*np.where(labelimage > 0)))
-
-        total_indices = list(zip(*np.where(labelimage >= 0)))
-        if len(total_indices) > 0:
-            norm_foreground = len(non_zero_indices) / len(total_indices)
-            index_ratio = float(norm_foreground)
-        else:
-            index_ratio = 0
         for index in zero_indices:
 
             if self.main_count < self.max_patches_per_image:
@@ -282,24 +274,50 @@ class SmartPatches:
                     crop_Xplus = x + int(self.patch_size[1] / 2)
                     crop_Yminus = y - int(self.patch_size[0] / 2)
                     crop_Yplus = y + int(self.patch_size[0] / 2)
+
+                    properties = regionprops(labelimage)
+                    centroid = properties[0].centroid
+                    xc = centroid[1]
+                    yc = centroid[0]
+                    crop_Xminusc = xc - int(self.patch_size[1] / 2)
+                    crop_Xplusc = xc + int(self.patch_size[1] / 2)
+                    crop_Yminusc = yc - int(self.patch_size[0] / 2)
+                    crop_Yplusc = yc + int(self.patch_size[0] / 2)
+                    regionc = (
+                        slice(int(crop_Yminusc), int(crop_Yplusc)),
+                        slice(int(crop_Xminusc), int(crop_Xplusc)),
+                    )
                     if (
                         crop_Xminus > 0
                         and crop_Xplus < rawimage.shape[1]
                         and crop_Yminus > 0
                         and crop_Yplus < rawimage.shape[0]
+                        and crop_Xminusc > 0
+                        and crop_Xplusc < rawimage.shape[1]
+                        and crop_Yminusc > 0
+                        and crop_Yplusc < rawimage.shape[0]
                     ):
                         raw_patch = rawimage[
                             crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
                         ]
-                        mask_patch = labelimage[
+                        mask_patch_zero = labelimage[
                             crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
                         ]
 
-                        if index_ratio > self.lower_ratio_fore_to_back / 10:
+                        raw_patchc = rawimage[regionc]
+                        mask_patchc = labelimage[regionc]
+                        raw_patch = np.add(raw_patch, raw_patchc)
+                        mask_patch = np.add(mask_patch_zero, mask_patchc)
+
+                        if (
+                            np.sum(raw_patch) > 0
+                            and np.sum(mask_patch_zero) == 0
+                        ):
                             self.main_count += 1
                             eventid = datetime.now().strftime(
                                 "%Y%m-%d%H-%M%S-"
                             ) + str(uuid4())
+
                             imwrite(
                                 os.path.join(
                                     raw_save_dir,
@@ -352,6 +370,25 @@ class SmartPatches:
                     crop_Yplus = y + int(self.patch_size[1] / 2)
                     crop_Zminus = z - int(self.patch_size[0] / 2)
                     crop_Zplus = z + int(self.patch_size[0] / 2)
+
+                    properties = regionprops(labelimage)
+                    centroid = properties[0].centroid
+                    xc = centroid[2]
+                    yc = centroid[1]
+                    zc = centroid[0]
+
+                    crop_Xminusc = xc - int(self.patch_size[2] / 2)
+                    crop_Xplusc = xc + int(self.patch_size[2] / 2)
+                    crop_Yminusc = yc - int(self.patch_size[1] / 2)
+                    crop_Yplusc = yc + int(self.patch_size[1] / 2)
+                    crop_Zminusc = zc - int(self.patch_size[0] / 2)
+                    crop_Zplusc = zc + int(self.patch_size[0] / 2)
+                    regionc = (
+                        slice(int(crop_Zminusc), int(crop_Zplusc)),
+                        slice(int(crop_Yminusc), int(crop_Yplusc)),
+                        slice(int(crop_Xminusc), int(crop_Xplusc)),
+                    )
+
                     if (
                         crop_Xminus > 0
                         and crop_Xplus < rawimage.shape[2]
@@ -359,18 +396,32 @@ class SmartPatches:
                         and crop_Yplus < rawimage.shape[1]
                         and crop_Zminus > 0
                         and crop_Zplus < rawimage.shape[0]
+                        and crop_Xminusc > 0
+                        and crop_Xplusc < rawimage.shape[2]
+                        and crop_Yminusc > 0
+                        and crop_Yplusc < rawimage.shape[1]
+                        and crop_Zminusc > 0
+                        and crop_Zplusc < rawimage.shape[0]
                     ):
                         raw_patch = rawimage[
                             crop_Zminus:crop_Zplus,
                             crop_Yminus:crop_Yplus,
                             crop_Xminus:crop_Xplus,
                         ]
-                        mask_patch = labelimage[
+                        mask_patch_zero = labelimage[
                             crop_Zminus:crop_Zplus,
                             crop_Yminus:crop_Yplus,
                             crop_Xminus:crop_Xplus,
                         ]
-                        if index_ratio > self.lower_ratio_fore_to_back / 10:
+
+                        raw_patchc = rawimage[regionc]
+                        mask_patchc = labelimage[regionc]
+                        raw_patch = np.add(raw_patch, raw_patchc)
+
+                        if (
+                            np.sum(raw_patch) > 0
+                            and np.sum(mask_patch_zero) == 0
+                        ):
                             self.main_count += 1
                             eventid = datetime.now().strftime(
                                 "%Y%m-%d%H-%M%S-"
