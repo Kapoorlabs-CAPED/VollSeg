@@ -286,10 +286,17 @@ class SmartPatches:
                         crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
                     ]
                     if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
+                        eventid = datetime.now().strftime(
+                            "%Y%m-%d%H-%M%S-"
+                        ) + str(uuid4())
                         imwrite(
                             os.path.join(
                                 raw_save_dir,
-                                name + "back" + str(self.main_count) + ".tif",
+                                name
+                                + "back"
+                                + eventid
+                                + str(self.main_count)
+                                + ".tif",
                             ),
                             raw_patch.astype("float32"),
                         )
@@ -304,7 +311,11 @@ class SmartPatches:
                         imwrite(
                             os.path.join(
                                 binary_mask_patch_dir,
-                                name + "back" + str(self.main_count) + ".tif",
+                                name
+                                + "back"
+                                + eventid
+                                + str(self.main_count)
+                                + ".tif",
                             ),
                             binary_mask_patch.astype("uint16"),
                         )
@@ -312,7 +323,11 @@ class SmartPatches:
                         imwrite(
                             os.path.join(
                                 real_mask_patch_dir,
-                                name + "back" + str(self.main_count) + ".tif",
+                                name
+                                + "back"
+                                + eventid
+                                + str(self.main_count)
+                                + ".tif",
                             ),
                             mask_patch.astype("uint16"),
                         )
@@ -345,10 +360,18 @@ class SmartPatches:
                         crop_Xminus:crop_Xplus,
                     ]
                     if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
+                        eventid = datetime.now().strftime(
+                            "%Y%m-%d%H-%M%S-"
+                        ) + str(uuid4())
+
                         imwrite(
                             os.path.join(
                                 raw_save_dir,
-                                name + "back" + str(self.main_count) + ".tif",
+                                name
+                                + "back"
+                                + eventid
+                                + str(self.main_count)
+                                + ".tif",
                             ),
                             raw_patch.astype("float32"),
                         )
@@ -363,7 +386,11 @@ class SmartPatches:
                         imwrite(
                             os.path.join(
                                 binary_mask_patch_dir,
-                                name + "back" + str(self.main_count) + ".tif",
+                                name
+                                + "back"
+                                + eventid
+                                + str(self.main_count)
+                                + ".tif",
                             ),
                             binary_mask_patch.astype("uint16"),
                         )
@@ -371,7 +398,11 @@ class SmartPatches:
                         imwrite(
                             os.path.join(
                                 real_mask_patch_dir,
-                                name + "back" + str(self.main_count) + ".tif",
+                                name
+                                + "back"
+                                + eventid
+                                + str(self.main_count)
+                                + ".tif",
                             ),
                             mask_patch.astype("uint16"),
                         )
