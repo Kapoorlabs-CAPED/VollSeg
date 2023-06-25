@@ -922,7 +922,7 @@ def VollSeg_unet(
                 thresholds = threshold_multiotsu(roi_Segmented, classes=2)
 
                 # Using the threshold values, we generate the three regions.
-                regions = np.digitize(roi_Segmented, bins=thresholds)
+                roi_regions = np.digitize(roi_Segmented, bins=thresholds)
             except ValueError:
 
                 roi_regions = roi_Segmented
