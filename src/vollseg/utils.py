@@ -921,7 +921,7 @@ def VollSeg_unet(
         elif model_dim == len(image.shape):
 
             Segmented = roi_model.predict(
-                image.astype("float32"), "YX", n_tiles=n_tiles
+                image.astype("float32"), axes, n_tiles=n_tiles
             )
             try:
                 thresholds = threshold_multiotsu(Segmented, classes=2)
