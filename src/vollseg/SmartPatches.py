@@ -262,7 +262,7 @@ class SmartPatches:
     ):
 
         zero_indices = list(zip(*np.where(labelimage == 0)))
-
+        self.main_count = 0
         for index in zero_indices:
             self.main_count += 1
             if self.main_count < self.max_patches_per_image:
