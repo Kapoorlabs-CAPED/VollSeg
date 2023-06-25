@@ -264,7 +264,7 @@ class SmartPatches:
         zero_indices = list(zip(*np.where(labelimage == 0)))
         self.main_count = 0
         for index in zero_indices:
-            self.main_count += 1
+
             if self.main_count < self.max_patches_per_image:
                 name = os.path.splitext(fname)[0]
                 if self.ndim == 2:
@@ -288,6 +288,7 @@ class SmartPatches:
                         ]
 
                         if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
+                            self.main_count += 1
                             eventid = datetime.now().strftime(
                                 "%Y%m-%d%H-%M%S-"
                             ) + str(uuid4())
@@ -362,6 +363,7 @@ class SmartPatches:
                             crop_Xminus:crop_Xplus,
                         ]
                         if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
+                            self.main_count += 1
                             eventid = datetime.now().strftime(
                                 "%Y%m-%d%H-%M%S-"
                             ) + str(uuid4())
