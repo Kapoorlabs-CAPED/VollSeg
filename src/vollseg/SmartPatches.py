@@ -289,7 +289,7 @@ class SmartPatches:
                         imwrite(
                             os.path.join(
                                 raw_save_dir,
-                                name + str(self.main_count) + ".tif",
+                                name + "back" + str(self.main_count) + ".tif",
                             ),
                             raw_patch.astype("float32"),
                         )
@@ -303,7 +303,7 @@ class SmartPatches:
                         imwrite(
                             os.path.join(
                                 binary_mask_patch_dir,
-                                name + str(self.main_count) + ".tif",
+                                name + "back" + str(self.main_count) + ".tif",
                             ),
                             binary_mask_patch.astype("uint16"),
                         )
@@ -317,7 +317,7 @@ class SmartPatches:
                         imwrite(
                             os.path.join(
                                 real_mask_patch_dir,
-                                name + str(self.main_count) + ".tif",
+                                name + "back" + str(self.main_count) + ".tif",
                             ),
                             real_mask_patch.astype("uint16"),
                         )
@@ -353,7 +353,7 @@ class SmartPatches:
                         imwrite(
                             os.path.join(
                                 raw_save_dir,
-                                name + str(self.main_count) + ".tif",
+                                name + "back" + str(self.main_count) + ".tif",
                             ),
                             raw_patch.astype("float32"),
                         )
@@ -371,7 +371,7 @@ class SmartPatches:
                         imwrite(
                             os.path.join(
                                 binary_mask_patch_dir,
-                                name + str(self.main_count) + ".tif",
+                                name + "back" + str(self.main_count) + ".tif",
                             ),
                             binary_mask_patch.astype("uint16"),
                         )
@@ -389,7 +389,7 @@ class SmartPatches:
                         imwrite(
                             os.path.join(
                                 real_mask_patch_dir,
-                                name + str(self.main_count) + ".tif",
+                                name + "back" + str(self.main_count) + ".tif",
                             )
                         )
 
