@@ -265,147 +265,149 @@ class SmartPatches:
 
         for index in zero_indices:
             self.main_count += 1
-            name = os.path.splitext(fname)[0]
-            if self.ndim == 2:
-                x = index[1]
-                y = index[0]
-                crop_Xminus = x - int(self.patch_size[1] / 2)
-                crop_Xplus = x + int(self.patch_size[1] / 2)
-                crop_Yminus = y - int(self.patch_size[0] / 2)
-                crop_Yplus = y + int(self.patch_size[0] / 2)
-                if (
-                    crop_Xminus > 0
-                    and crop_Xplus < rawimage.shape[1]
-                    and crop_Yminus > 0
-                    and crop_Yplus < rawimage.shape[0]
-                ):
-                    raw_patch = rawimage[
-                        crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
-                    ]
-                    mask_patch = labelimage[
-                        crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
-                    ]
-                    if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
-                        eventid = datetime.now().strftime(
-                            "%Y%m-%d%H-%M%S-"
-                        ) + str(uuid4())
-                        imwrite(
-                            os.path.join(
-                                raw_save_dir,
-                                name
-                                + "back"
-                                + eventid
-                                + str(self.main_count)
-                                + ".tif",
-                            ),
-                            raw_patch.astype("float32"),
-                        )
-                        if self.erosion_iterations > 0:
-                            binary_mask_patch = erode_labels(
-                                mask_patch.astype("uint16"),
-                                self.erosion_iterations,
+            if self.main_count < self.max_patches_per_image:
+                name = os.path.splitext(fname)[0]
+                if self.ndim == 2:
+                    x = index[1]
+                    y = index[0]
+                    crop_Xminus = x - int(self.patch_size[1] / 2)
+                    crop_Xplus = x + int(self.patch_size[1] / 2)
+                    crop_Yminus = y - int(self.patch_size[0] / 2)
+                    crop_Yplus = y + int(self.patch_size[0] / 2)
+                    if (
+                        crop_Xminus > 0
+                        and crop_Xplus < rawimage.shape[1]
+                        and crop_Yminus > 0
+                        and crop_Yplus < rawimage.shape[0]
+                    ):
+                        raw_patch = rawimage[
+                            crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
+                        ]
+                        mask_patch = labelimage[
+                            crop_Yminus:crop_Yplus, crop_Xminus:crop_Xplus
+                        ]
+
+                        if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
+                            eventid = datetime.now().strftime(
+                                "%Y%m-%d%H-%M%S-"
+                            ) + str(uuid4())
+                            imwrite(
+                                os.path.join(
+                                    raw_save_dir,
+                                    name
+                                    + "back"
+                                    + eventid
+                                    + str(self.main_count)
+                                    + ".tif",
+                                ),
+                                raw_patch.astype("float32"),
                             )
-                        else:
-                            binary_mask_patch = mask_patch
-                        binary_mask_patch = binary_mask_patch > 0
-                        imwrite(
-                            os.path.join(
-                                binary_mask_patch_dir,
-                                name
-                                + "back"
-                                + eventid
-                                + str(self.main_count)
-                                + ".tif",
-                            ),
-                            binary_mask_patch.astype("uint16"),
-                        )
-
-                        imwrite(
-                            os.path.join(
-                                real_mask_patch_dir,
-                                name
-                                + "back"
-                                + eventid
-                                + str(self.main_count)
-                                + ".tif",
-                            ),
-                            mask_patch.astype("uint16"),
-                        )
-            if self.ndim == 3:
-                x = index[2]
-                y = index[1]
-                z = index[0]
-                crop_Xminus = x - int(self.patch_size[2] / 2)
-                crop_Xplus = x + int(self.patch_size[2] / 2)
-                crop_Yminus = y - int(self.patch_size[1] / 2)
-                crop_Yplus = y + int(self.patch_size[1] / 2)
-                crop_Zminus = z - int(self.patch_size[0] / 2)
-                crop_Zplus = z + int(self.patch_size[0] / 2)
-                if (
-                    crop_Xminus > 0
-                    and crop_Xplus < rawimage.shape[2]
-                    and crop_Yminus > 0
-                    and crop_Yplus < rawimage.shape[1]
-                    and crop_Zminus > 0
-                    and crop_Zplus < rawimage.shape[0]
-                ):
-                    raw_patch = rawimage[
-                        crop_Zminus:crop_Zplus,
-                        crop_Yminus:crop_Yplus,
-                        crop_Xminus:crop_Xplus,
-                    ]
-                    mask_patch = labelimage[
-                        crop_Zminus:crop_Zplus,
-                        crop_Yminus:crop_Yplus,
-                        crop_Xminus:crop_Xplus,
-                    ]
-                    if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
-                        eventid = datetime.now().strftime(
-                            "%Y%m-%d%H-%M%S-"
-                        ) + str(uuid4())
-
-                        imwrite(
-                            os.path.join(
-                                raw_save_dir,
-                                name
-                                + "back"
-                                + eventid
-                                + str(self.main_count)
-                                + ".tif",
-                            ),
-                            raw_patch.astype("float32"),
-                        )
-                        if self.erosion_iterations > 0:
-                            binary_mask_patch = erode_labels(
-                                mask_patch.astype("uint16"),
-                                self.erosion_iterations,
+                            if self.erosion_iterations > 0:
+                                binary_mask_patch = erode_labels(
+                                    mask_patch.astype("uint16"),
+                                    self.erosion_iterations,
+                                )
+                            else:
+                                binary_mask_patch = mask_patch
+                            binary_mask_patch = binary_mask_patch > 0
+                            imwrite(
+                                os.path.join(
+                                    binary_mask_patch_dir,
+                                    name
+                                    + "back"
+                                    + eventid
+                                    + str(self.main_count)
+                                    + ".tif",
+                                ),
+                                binary_mask_patch.astype("uint16"),
                             )
-                        else:
-                            binary_mask_patch = mask_patch
-                        binary_mask_patch = binary_mask_patch > 0
-                        imwrite(
-                            os.path.join(
-                                binary_mask_patch_dir,
-                                name
-                                + "back"
-                                + eventid
-                                + str(self.main_count)
-                                + ".tif",
-                            ),
-                            binary_mask_patch.astype("uint16"),
-                        )
 
-                        imwrite(
-                            os.path.join(
-                                real_mask_patch_dir,
-                                name
-                                + "back"
-                                + eventid
-                                + str(self.main_count)
-                                + ".tif",
-                            ),
-                            mask_patch.astype("uint16"),
-                        )
+                            imwrite(
+                                os.path.join(
+                                    real_mask_patch_dir,
+                                    name
+                                    + "back"
+                                    + eventid
+                                    + str(self.main_count)
+                                    + ".tif",
+                                ),
+                                mask_patch.astype("uint16"),
+                            )
+                if self.ndim == 3:
+                    x = index[2]
+                    y = index[1]
+                    z = index[0]
+                    crop_Xminus = x - int(self.patch_size[2] / 2)
+                    crop_Xplus = x + int(self.patch_size[2] / 2)
+                    crop_Yminus = y - int(self.patch_size[1] / 2)
+                    crop_Yplus = y + int(self.patch_size[1] / 2)
+                    crop_Zminus = z - int(self.patch_size[0] / 2)
+                    crop_Zplus = z + int(self.patch_size[0] / 2)
+                    if (
+                        crop_Xminus > 0
+                        and crop_Xplus < rawimage.shape[2]
+                        and crop_Yminus > 0
+                        and crop_Yplus < rawimage.shape[1]
+                        and crop_Zminus > 0
+                        and crop_Zplus < rawimage.shape[0]
+                    ):
+                        raw_patch = rawimage[
+                            crop_Zminus:crop_Zplus,
+                            crop_Yminus:crop_Yplus,
+                            crop_Xminus:crop_Xplus,
+                        ]
+                        mask_patch = labelimage[
+                            crop_Zminus:crop_Zplus,
+                            crop_Yminus:crop_Yplus,
+                            crop_Xminus:crop_Xplus,
+                        ]
+                        if np.sum(raw_patch) > 0 and np.sum(mask_patch) == 0:
+                            eventid = datetime.now().strftime(
+                                "%Y%m-%d%H-%M%S-"
+                            ) + str(uuid4())
+
+                            imwrite(
+                                os.path.join(
+                                    raw_save_dir,
+                                    name
+                                    + "back"
+                                    + eventid
+                                    + str(self.main_count)
+                                    + ".tif",
+                                ),
+                                raw_patch.astype("float32"),
+                            )
+                            if self.erosion_iterations > 0:
+                                binary_mask_patch = erode_labels(
+                                    mask_patch.astype("uint16"),
+                                    self.erosion_iterations,
+                                )
+                            else:
+                                binary_mask_patch = mask_patch
+                            binary_mask_patch = binary_mask_patch > 0
+                            imwrite(
+                                os.path.join(
+                                    binary_mask_patch_dir,
+                                    name
+                                    + "back"
+                                    + eventid
+                                    + str(self.main_count)
+                                    + ".tif",
+                                ),
+                                binary_mask_patch.astype("uint16"),
+                            )
+
+                            imwrite(
+                                os.path.join(
+                                    real_mask_patch_dir,
+                                    name
+                                    + "back"
+                                    + eventid
+                                    + str(self.main_count)
+                                    + ".tif",
+                                ),
+                                mask_patch.astype("uint16"),
+                            )
 
     def _label_maker(
         self,
