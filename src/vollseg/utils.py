@@ -18,7 +18,7 @@ from typing import Optional
 import numpy as np
 from numba import jit
 from scipy.optimize import linear_sum_assignment
-from scipy.ndimage import convolve, mean
+from scipy.ndimage import convolve, mean, gaussian_filter
 import cv2
 
 # import matplotlib.pyplot as plt
@@ -74,6 +74,76 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 Boxname = "ImageIDBox"
 GLOBAL_THRESH = 1.0e-2
 GLOBAL_ERODE = 8
+
+
+def canny_edge_detector(image, threshold1, threshold2):
+    # Convert the image to grayscale
+
+    # Apply Gaussian blur to reduce noise
+
+    # Calculate gradients using Sobel filters
+    dx = convolve(image, [[-1, 0, 1]])
+    dy = convolve(image, [[-1], [0], [1]])
+
+    # Calculate gradient magnitude and direction
+    gradient_magnitude = np.hypot(dx, dy)
+    gradient_direction = np.arctan2(dy, dx)
+
+    # Normalize gradient direction to [0, pi)
+    gradient_direction = (gradient_direction + np.pi) % np.pi
+
+    # Non-maximum suppression
+    suppressed = np.zeros_like(gradient_magnitude)
+    for i in range(1, gradient_magnitude.shape[0] - 1):
+        for j in range(1, gradient_magnitude.shape[1] - 1):
+            angle = gradient_direction[i, j]
+
+            # Check the neighboring pixels along the gradient direction
+            if 0 <= angle < np.pi / 8 or 15 * np.pi / 8 <= angle < 2 * np.pi:
+                p1 = gradient_magnitude[i, j + 1]
+                p2 = gradient_magnitude[i, j - 1]
+            elif np.pi / 8 <= angle < 3 * np.pi / 8:
+                p1 = gradient_magnitude[i + 1, j - 1]
+                p2 = gradient_magnitude[i - 1, j + 1]
+            elif 3 * np.pi / 8 <= angle < 5 * np.pi / 8:
+                p1 = gradient_magnitude[i + 1, j]
+                p2 = gradient_magnitude[i - 1, j]
+            else:  # 5 * np.pi / 8 <= angle < 7 * np.pi / 8
+                p1 = gradient_magnitude[i - 1, j - 1]
+                p2 = gradient_magnitude[i + 1, j + 1]
+
+            # Perform non-maximum suppression
+            if (
+                gradient_magnitude[i, j] >= p1
+                and gradient_magnitude[i, j] >= p2
+            ):
+                suppressed[i, j] = gradient_magnitude[i, j]
+
+    # Apply double thresholding and hysteresis
+    strong_edges = suppressed > threshold2
+    weak_edges = (suppressed >= threshold1) & (suppressed <= threshold2)
+    visited = np.zeros_like(suppressed)
+    edge_map = np.zeros_like(suppressed)
+
+    def trace_edge(i, j):
+        if i < 0 or i >= edge_map.shape[0] or j < 0 or j >= edge_map.shape[1]:
+            return
+        if visited[i, j] or not weak_edges[i, j]:
+            return
+
+        visited[i, j] = 1
+        edge_map[i, j] = 1
+
+        for di in range(-1, 2):
+            for dj in range(-1, 2):
+                trace_edge(i + di, j + dj)
+
+    for i in range(edge_map.shape[0]):
+        for j in range(edge_map.shape[1]):
+            if strong_edges[i, j] and not visited[i, j]:
+                trace_edge(i, j)
+    edge_map = gaussian_filter(edge_map, sigma=2)
+    return edge_map
 
 
 class SegCorrect:
@@ -774,6 +844,7 @@ def VollSeg_unet(
     slice_merge=False,
     dounet=True,
     erosion_iterations=15,
+    docanny=False,
 ):
     Finalimage = np.zeros(image.shape, dtype=np.uint16)
     skeleton = np.zeros(image.shape, dtype=np.uint8)
@@ -867,6 +938,18 @@ def VollSeg_unet(
             image = noise_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
             )
+            if docanny:
+                image_min = np.min(image)
+                image_max = np.max(image)
+                threshold1_percentage = 0.01
+                threshold2_percentage = 0.02
+                threshold1 = image_min + threshold1_percentage * (
+                    image_max - image_min
+                )
+                threshold2 = image_min + threshold2_percentage * (
+                    image_max - image_min
+                )
+                image = canny_edge_detector(image, threshold1, threshold2)
             if roi_model is None:
                 pixel_condition = image < 0
                 pixel_replace_condition = 0
@@ -4552,6 +4635,7 @@ def VollSeg(
     Name="Result",
     slice_merge=False,
     RGB=False,
+    docanny=False,
 ):
 
     if len(image.shape) == 2:
@@ -4602,6 +4686,7 @@ def VollSeg(
                 nms_thresh=nms_thresh,
                 slice_merge=slice_merge,
                 dounet=dounet,
+                docanny=docanny,
             )
     if len(image.shape) == 3 and "T" not in axes and RGB is False:
         # this is a 3D image and if stardist model is supplied we use this method
@@ -4646,6 +4731,7 @@ def VollSeg(
                 slice_merge=slice_merge,
                 nms_thresh=nms_thresh,
                 dounet=dounet,
+                docanny=docanny,
             )
     if len(image.shape) == 3 and "T" not in axes and RGB:
         # this is a 3D image and if stardist model is supplied we use this method
@@ -4688,6 +4774,7 @@ def VollSeg(
                 slice_merge=slice_merge,
                 nms_thresh=nms_thresh,
                 dounet=dounet,
+                docanny=docanny,
             )
 
     if len(image.shape) == 3 and "T" in axes:
@@ -4739,6 +4826,7 @@ def VollSeg(
                             slice_merge=slice_merge,
                             nms_thresh=nms_thresh,
                             dounet=dounet,
+                            docanny=docanny,
                         )
                         for _x in tqdm(image)
                     )
