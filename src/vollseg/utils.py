@@ -783,87 +783,6 @@ def VollSeg_unet(
             n_tiles = (n_tiles[-3], n_tiles[-2], n_tiles[-1])
         if model_dim == 2:
             n_tiles = (n_tiles[-2], n_tiles[-1])
-
-    if unet_model is not None:
-        if RGB:
-            if n_tiles is not None:
-                n_tiles = (n_tiles[0], n_tiles[1], 1)
-
-        if noise_model is not None:
-            image = noise_model.predict(
-                image.astype("float32"), axes, n_tiles=n_tiles
-            )
-            pixel_condition = image < 0
-            pixel_replace_condition = 0
-            image = image_conditionals(
-                image, pixel_condition, pixel_replace_condition
-            )
-
-        if dounet and unet_model is not None:
-            Segmented = unet_model.predict(
-                image.astype("float32"), axes, n_tiles=n_tiles
-            )
-        else:
-            Segmented = image
-        if RGB:
-            Segmented = Segmented[:, :, 0]
-
-        try:
-            thresholds = threshold_multiotsu(Segmented, classes=2)
-
-            # Using the threshold values, we generate the three regions.
-            regions = np.digitize(Segmented, bins=thresholds)
-        except ValueError:
-
-            regions = Segmented
-        Binary = regions > 0
-        overall_mask = Binary.copy()
-
-        if model_dim == 3:
-            for i in range(image.shape[0]):
-                overall_mask[i] = binary_dilation(
-                    overall_mask[i], iterations=erosion_iterations
-                )
-                overall_mask[i] = binary_erosion(
-                    overall_mask[i], iterations=erosion_iterations
-                )
-                overall_mask[i] = fill_label_holes(overall_mask[i])
-
-        Binary = label(Binary)
-
-        if model_dim == 2:
-            Binary = remove_small_objects(
-                Binary.astype("uint16"), min_size=min_size_mask
-            )
-            Binary = remove_big_objects(
-                Binary.astype("uint16"), max_size=max_size
-            )
-            Binary = fill_label_holes(Binary)
-            Finalimage = relabel_sequential(Binary)[0]
-            skeleton = Skel(Finalimage, RGB)
-            skeleton = skeleton > 0
-
-        if model_dim == 3:
-            for i in range(image.shape[0]):
-                Binary[i] = label(Binary[i])
-                Binary[i] = remove_small_objects(
-                    Binary[i].astype("uint16"), min_size=min_size_mask
-                )
-                Binary[i] = remove_big_objects(
-                    Binary[i].astype("uint16"), max_size=max_size
-                )
-            Finalimage = relabel_sequential(Binary)[0]
-            skeleton = Skel(Finalimage)
-
-            if ExpandLabels:
-
-                Finalimage, skeleton = VollSeg_label_expansion(
-                    image, overall_mask, Finalimage, skeleton, RGB
-                )
-            if slice_merge:
-                Finalimage = match_labels(Finalimage, nms_thresh=nms_thresh)
-                Finalimage = fill_label_holes(Finalimage)
-
     if roi_model is not None:
 
         if noise_model is not None:
@@ -906,8 +825,6 @@ def VollSeg_unet(
                 s_Binary.astype("uint16"), max_size=max_size
             )
             s_Binary = fill_label_holes(s_Binary)
-            for i in range(image.shape[0]):
-                Finalimage[i] = Finalimage[i] * s_Binary
 
         elif model_dim == len(image.shape):
 
@@ -940,10 +857,100 @@ def VollSeg_unet(
                     s_Binary[i] = remove_big_objects(
                         s_Binary[i].astype("uint16"), max_size=max_size
                     )
-                    Finalimage[i] = Finalimage[i] * s_Binary[i]
-            else:
+
+    if unet_model is not None:
+        if RGB:
+            if n_tiles is not None:
+                n_tiles = (n_tiles[0], n_tiles[1], 1)
+
+        if noise_model is not None:
+            image = noise_model.predict(
+                image.astype("float32"), axes, n_tiles=n_tiles
+            )
+            if roi_model is None:
+                pixel_condition = image < 0
+                pixel_replace_condition = 0
+                image = image_conditionals(
+                    image, pixel_condition, pixel_replace_condition
+                )
+            elif len(s_Binary.shape) == len(image.shape):
+                image = image * s_Binary
+            elif len(s_Binary.shape) == len(image.shape) - 1:
                 for i in range(image.shape[0]):
-                    Finalimage[i] = Finalimage[i] * s_Binary
+                    image[i] = image[i] * s_Binary
+
+        if dounet:
+            Segmented = unet_model.predict(
+                image.astype("float32"), axes, n_tiles=n_tiles
+            )
+        else:
+            Segmented = image
+        if RGB:
+            Segmented = Segmented[:, :, 0]
+
+        try:
+            thresholds = threshold_multiotsu(Segmented, classes=2)
+
+            # Using the threshold values, we generate the three regions.
+            regions = np.digitize(Segmented, bins=thresholds)
+        except ValueError:
+
+            regions = Segmented
+        Binary = regions > 0
+        overall_mask = Binary.copy()
+
+        if model_dim == 3:
+            for i in range(image.shape[0]):
+                overall_mask[i] = binary_dilation(
+                    overall_mask[i], iterations=erosion_iterations
+                )
+                overall_mask[i] = binary_erosion(
+                    overall_mask[i], iterations=erosion_iterations
+                )
+                overall_mask[i] = fill_label_holes(overall_mask[i])
+
+        Binary = label(Binary)
+
+        if model_dim == 2:
+            Binary = remove_small_objects(
+                Binary.astype("uint16"), min_size=min_size_mask
+            )
+            Binary = remove_big_objects(
+                Binary.astype("uint16"), max_size=max_size
+            )
+            Binary = fill_label_holes(Binary)
+            Finalimage = relabel_sequential(Binary)[0]
+            if roi_model is not None:
+                Finalimage = Finalimage * s_Binary
+            skeleton = Skel(Finalimage, RGB)
+            skeleton = skeleton > 0
+
+        if model_dim == 3:
+            for i in range(image.shape[0]):
+                Binary[i] = label(Binary[i])
+                Binary[i] = remove_small_objects(
+                    Binary[i].astype("uint16"), min_size=min_size_mask
+                )
+                Binary[i] = remove_big_objects(
+                    Binary[i].astype("uint16"), max_size=max_size
+                )
+            Finalimage = relabel_sequential(Binary)[0]
+            skeleton = Skel(Finalimage)
+
+            if ExpandLabels:
+
+                Finalimage, skeleton = VollSeg_label_expansion(
+                    image, overall_mask, Finalimage, skeleton, RGB
+                )
+            if slice_merge:
+                Finalimage = match_labels(Finalimage, nms_thresh=nms_thresh)
+                Finalimage = fill_label_holes(Finalimage)
+            if roi_model is not None:
+                if len(s_Binary.shape) == len(image.shape) - 1:
+                    for i in range(image.shape[0]):
+                        Finalimage[i] = Finalimage[i] * s_Binary
+                elif len(s_Binary.shape) == len(image.shape):
+                    Finalimage = Finalimage * s_Binary
 
     if roi_model is None:
         return Finalimage.astype("uint16"), skeleton, image
