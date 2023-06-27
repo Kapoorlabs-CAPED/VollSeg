@@ -783,7 +783,7 @@ def VollSeg_unet(
         if model_dim == 2:
             n_tiles = (n_tiles[-2], n_tiles[-1])
 
-    if roi_model is None:
+    if unet_model is not None:
         if RGB:
             if n_tiles is not None:
                 n_tiles = (n_tiles[0], n_tiles[1], 1)
@@ -863,7 +863,7 @@ def VollSeg_unet(
                 Finalimage = match_labels(Finalimage, nms_thresh=nms_thresh)
                 Finalimage = fill_label_holes(Finalimage)
 
-    elif roi_model is not None:
+    if roi_model is not None:
 
         if noise_model is not None:
             image = noise_model.predict(
