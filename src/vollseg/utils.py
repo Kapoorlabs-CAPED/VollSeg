@@ -949,7 +949,10 @@ def VollSeg_unet(
                 threshold2 = image_min + threshold2_percentage * (
                     image_max - image_min
                 )
-                image = canny_edge_detector(image, threshold1, threshold2)
+                for i in range(image.shape[0]):
+                    image[i] = canny_edge_detector(
+                        image[i], threshold1, threshold2
+                    )
             if roi_model is None:
                 pixel_condition = image < 0
                 pixel_replace_condition = 0
