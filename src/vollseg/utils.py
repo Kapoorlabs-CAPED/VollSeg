@@ -20,6 +20,7 @@ from numba import jit
 from scipy.optimize import linear_sum_assignment
 from scipy.ndimage import convolve, mean, gaussian_filter
 import cv2
+from skimage import feature
 
 # import matplotlib.pyplot as plt
 import pandas as pd
@@ -938,21 +939,7 @@ def VollSeg_unet(
             image = noise_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
             )
-            if docanny:
-                image_min = np.min(image)
-                image_max = np.max(image)
-                threshold1_percentage = 0.01
-                threshold2_percentage = 0.02
-                threshold1 = image_min + threshold1_percentage * (
-                    image_max - image_min
-                )
-                threshold2 = image_min + threshold2_percentage * (
-                    image_max - image_min
-                )
-                for i in range(image.shape[0]):
-                    image[i] = canny_edge_detector(
-                        image[i], threshold1, threshold2
-                    )
+
             if roi_model is None:
                 pixel_condition = image < 0
                 pixel_replace_condition = 0
@@ -967,7 +954,19 @@ def VollSeg_unet(
                 s_Binary = s_Binary > 0
                 for i in range(image.shape[0]):
                     image[i] = image[i] * s_Binary
-
+            if docanny:
+                # image_min = np.min(image)
+                # image_max = np.max(image)
+                # threshold1_percentage = 0.01
+                # threshold2_percentage = 0.02
+                # threshold1 = image_min + threshold1_percentage * (
+                #    image_max - image_min
+                # )
+                # threshold2 = image_min + threshold2_percentage * (
+                #    image_max - image_min
+                # )
+                for i in range(image.shape[0]):
+                    image[i] = feature.canny(image[i], sigma=3)
         if dounet:
             Segmented = unet_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
