@@ -776,6 +776,7 @@ def VollSeg_unet(
     erosion_iterations=15,
 ):
     Finalimage = np.zeros(image.shape, dtype=np.uint16)
+    skeleton = np.zeros(image.shape, dtype=np.uint8)
     model_dim = len(image.shape)
     if len(n_tiles) != model_dim:
         if model_dim == 3:
@@ -904,6 +905,9 @@ def VollSeg_unet(
             s_Binary = remove_big_objects(
                 s_Binary.astype("uint16"), max_size=max_size
             )
+            s_Binary = fill_label_holes(s_Binary)
+            for i in range(image.shape[0]):
+                Finalimage[i] = Finalimage[i] * s_Binary
 
         elif model_dim == len(image.shape):
 
@@ -922,6 +926,7 @@ def VollSeg_unet(
             s_Binary = roi_regions > 0
 
             s_Binary = label(s_Binary)
+            s_Binary = fill_label_holes(s_Binary)
             if len(s_Binary.shape) == 3 and slice_merge:
                 for i in range(image.shape[0]):
                     s_Binary[i] = label(s_Binary[i])
