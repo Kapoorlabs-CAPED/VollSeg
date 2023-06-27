@@ -873,9 +873,12 @@ def VollSeg_unet(
                 image = image_conditionals(
                     image, pixel_condition, pixel_replace_condition
                 )
+
             elif len(s_Binary.shape) == len(image.shape):
+                s_Binary = s_Binary > 0
                 image = image * s_Binary
             elif len(s_Binary.shape) == len(image.shape) - 1:
+                s_Binary = s_Binary > 0
                 for i in range(image.shape[0]):
                     image[i] = image[i] * s_Binary
 
@@ -920,7 +923,9 @@ def VollSeg_unet(
             )
             Binary = fill_label_holes(Binary)
             Finalimage = relabel_sequential(Binary)[0]
+
             if roi_model is not None:
+                s_Binary = s_Binary > 0
                 Finalimage = Finalimage * s_Binary
             skeleton = Skel(Finalimage, RGB)
             skeleton = skeleton > 0
@@ -946,6 +951,7 @@ def VollSeg_unet(
                 Finalimage = match_labels(Finalimage, nms_thresh=nms_thresh)
                 Finalimage = fill_label_holes(Finalimage)
             if roi_model is not None:
+                s_Binary = s_Binary > 0
                 if len(s_Binary.shape) == len(image.shape) - 1:
                     for i in range(image.shape[0]):
                         Finalimage[i] = Finalimage[i] * s_Binary
