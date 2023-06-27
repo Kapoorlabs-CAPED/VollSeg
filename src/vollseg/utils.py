@@ -930,7 +930,7 @@ def VollSeg_unet(
             Binary = roi_regions > 0
 
             Binary = label(Binary)
-            if model_dim == 3 and slice_merge:
+            if len(Binary.shape) == 3 and slice_merge:
                 for i in range(image.shape[0]):
                     Binary[i] = label(Binary[i])
 
