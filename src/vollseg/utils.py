@@ -904,14 +904,6 @@ def VollSeg_unet(
             s_Binary = remove_big_objects(
                 s_Binary.astype("uint16"), max_size=max_size
             )
-            s_skeleton = fill_label_holes(s_Binary)
-
-            s_skeleton = relabel_sequential(s_Binary)[0]
-
-            skeleton = np.zeros_like(image)
-            for i in range(0, image.shape[0]):
-
-                skeleton[i] = s_skeleton
 
         elif model_dim == len(image.shape):
 
@@ -927,26 +919,31 @@ def VollSeg_unet(
 
                 roi_regions = roi_Segmented
 
-            Binary = roi_regions > 0
+            s_Binary = roi_regions > 0
 
-            Binary = label(Binary)
-            if len(Binary.shape) == 3 and slice_merge:
+            s_Binary = label(s_Binary)
+            if len(s_Binary.shape) == 3 and slice_merge:
                 for i in range(image.shape[0]):
-                    Binary[i] = label(Binary[i])
+                    s_Binary[i] = label(s_Binary[i])
 
-                Binary = match_labels(Binary, nms_thresh=nms_thresh)
-                Binary = fill_label_holes(Binary)
+                s_Binary = match_labels(s_Binary, nms_thresh=nms_thresh)
+                s_Binary = fill_label_holes(s_Binary)
                 for i in range(image.shape[0]):
-                    Binary[i] = remove_small_objects(
-                        Binary[i].astype("uint16"), min_size=min_size_mask
+                    s_Binary[i] = remove_small_objects(
+                        s_Binary[i].astype("uint16"), min_size=min_size_mask
                     )
-                    Binary[i] = remove_big_objects(
-                        Binary[i].astype("uint16"), max_size=max_size
+                    s_Binary[i] = remove_big_objects(
+                        s_Binary[i].astype("uint16"), max_size=max_size
                     )
+                    Finalimage[i] = Finalimage[i] * s_Binary[i]
+            else:
+                for i in range(image.shape[0]):
+                    Finalimage[i] = Finalimage[i] * s_Binary
 
-            skeleton = relabel_sequential(Binary)[0]
-
-    return Finalimage.astype("uint16"), skeleton, image
+    if roi_model is None:
+        return Finalimage.astype("uint16"), skeleton, image
+    else:
+        return Finalimage.astype("uint16"), skeleton, image, s_Binary
 
 
 def _cellpose_3D_time_block(
@@ -4835,8 +4832,7 @@ def VollSeg(
         and noise_model is not None
     ):
 
-        instance_labels, roi_image, image = res
-        skeleton = Skel(instance_labels)
+        instance_labels, skeleton, image, roi_image = res
 
     if (
         star_model is None
@@ -4873,8 +4869,7 @@ def VollSeg(
         and noise_model is not None
     ):
 
-        instance_labels, roi_image, image = res
-        skeleton = Skel(instance_labels)
+        instance_labels, skeleton, image, roi_image = res
 
     if (
         star_model is None
@@ -4883,8 +4878,7 @@ def VollSeg(
         and noise_model is None
     ):
 
-        instance_labels, roi_image, image = res
-        skeleton = Skel(instance_labels)
+        instance_labels, skeleton, image, roi_image = res
 
     if save_dir is not None:
         print("Saving Results ...")
