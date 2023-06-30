@@ -239,6 +239,91 @@ class SegCorrect:
                 )
 
 
+class ProjSegCreate:
+    def __init__(self, imagedir, segmentationdir):
+
+        self.imagedir = imagedir
+        self.segmentationdir = segmentationdir
+        self.acceptable_formats = [".tif", ".TIFF", ".TIF", ".png"]
+
+    def showNapari(self):
+        from qtpy.QtWidgets import QComboBox, QPushButton
+
+        self.viewer = napari.Viewer()
+        X = os.listdir(self.imagedir)
+        Imageids = []
+        for imagename in X:
+            if any(imagename.endswith(f) for f in self.acceptable_formats):
+                Imageids.append(imagename)
+
+        imageidbox = QComboBox()
+        imageidbox.addItem(Boxname)
+        savebutton = QPushButton(" Save Segmentation")
+
+        for i in range(0, len(Imageids)):
+
+            imageidbox.addItem(str(Imageids[i]))
+
+        imageidbox.currentIndexChanged.connect(
+            lambda trackid=imageidbox: self.image_add(
+                imageidbox.currentText(),
+                Path(Path(self.imagedir, imageidbox.currentText())),
+                False,
+            )
+        )
+
+        savebutton.clicked.connect(
+            lambda trackid=imageidbox: self.image_add(
+                imageidbox.currentText(),
+                Path(Path(self.imagedir, imageidbox.currentText())),
+                True,
+            )
+        )
+
+        self.viewer.window.add_dock_widget(
+            imageidbox, name="Image", area="bottom"
+        )
+        self.viewer.window.add_dock_widget(
+            savebutton, name="Save Segmentations", area="bottom"
+        )
+
+        napari.run()
+
+    def image_add(
+        self,
+        imagename: str,
+        image_toread: Path,
+        save=False,
+    ):
+        if not save:
+            for layer in list(self.viewer.layers):
+
+                if "Image" in layer.name or layer.name in "Image":
+
+                    self.viewer.layers.remove(layer)
+
+            self.image = imread(image_toread)
+            self.segimage = np.zeros(
+                [self.image.shape[1], self.image.shape[2]]
+            )
+
+            self.viewer.add_image(self.image, name="Image" + imagename)
+            self.viewer.add_labels(
+                self.segimage, name="Image" + "Integer_Labels" + imagename
+            )
+
+        if save:
+
+            ModifiedArraySeg = self.viewer.layers[
+                "Image" + "Integer_Labels" + imagename
+            ].data
+            ModifiedArraySeg = ModifiedArraySeg.astype("uint16")
+            imwrite(
+                (os.path.join(self.segmentationdir, imagename)),
+                ModifiedArraySeg,
+            )
+
+
 def BinaryLabel(BinaryImageOriginal, max_size=15000):
 
     BinaryImageOriginal = BinaryImageOriginal.astype("uint16")
