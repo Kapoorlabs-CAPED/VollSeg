@@ -239,7 +239,7 @@ class SegCorrect:
                 )
 
 
-# Create a new segmentation
+# Create a new segmentations
 class ProjSegCreate:
     def __init__(self, imagedir, segmentationdir):
 
