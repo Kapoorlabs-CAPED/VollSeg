@@ -234,7 +234,7 @@ class ProjSegCreate:
 
             self.image = imread(image_toread)
             self.segimage = np.zeros(
-                [self.image.shape[1], self.image.shape[2]]
+                [self.image.shape[1], self.image.shape[2]], dtype=np.uint16
             )
 
             self.viewer.add_image(self.image, name="Image" + imagename)
