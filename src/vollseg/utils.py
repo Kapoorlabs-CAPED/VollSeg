@@ -964,18 +964,9 @@ def VollSeg_unet(
                 for i in range(image.shape[0]):
                     image[i] = image[i] * s_Binary
             if docanny:
-                # image_min = np.min(image)
-                # image_max = np.max(image)
-                # threshold1_percentage = 0.01
-                # threshold2_percentage = 0.02
-                # threshold1 = image_min + threshold1_percentage * (
-                #    image_max - image_min
-                # )
-                # threshold2 = image_min + threshold2_percentage * (
-                #    image_max - image_min
-                # )
+
                 for i in range(image.shape[0]):
-                    image[i] = feature.canny(image[i], sigma=3)
+                    image[i] = feature.canny(image[i], sigma=3) * image[i]
         if dounet:
             Segmented = unet_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
