@@ -20,7 +20,6 @@ from numba import jit
 from scipy.optimize import linear_sum_assignment
 from scipy.ndimage import convolve, mean
 import cv2
-from skimage import feature
 
 # import matplotlib.pyplot as plt
 import pandas as pd
@@ -860,7 +859,6 @@ def VollSeg_unet(
     slice_merge=False,
     dounet=True,
     erosion_iterations=2,
-    docanny=False,
 ):
     Finalimage = np.zeros(image.shape, dtype=np.uint16)
     skeleton = np.zeros(image.shape, dtype=np.uint8)
@@ -963,14 +961,7 @@ def VollSeg_unet(
                 s_Binary = s_Binary > 0
                 for i in range(image.shape[0]):
                     image[i] = image[i] * s_Binary
-            if docanny:
 
-                for i in range(image.shape[0]):
-                    image[i] = (
-                        feature.canny(image[i], sigma=3)
-                        * (np.max(image[i]) - np.min(image[i]))
-                        + image[i]
-                    )
         if dounet:
             Segmented = unet_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
@@ -4643,7 +4634,6 @@ def VollSeg(
     Name="Result",
     slice_merge=False,
     RGB=False,
-    docanny=False,
 ):
 
     if len(image.shape) == 2:
@@ -4694,7 +4684,6 @@ def VollSeg(
                 nms_thresh=nms_thresh,
                 slice_merge=slice_merge,
                 dounet=dounet,
-                docanny=docanny,
             )
     if len(image.shape) == 3 and "T" not in axes and RGB is False:
         # this is a 3D image and if stardist model is supplied we use this method
@@ -4739,7 +4728,6 @@ def VollSeg(
                 slice_merge=slice_merge,
                 nms_thresh=nms_thresh,
                 dounet=dounet,
-                docanny=docanny,
             )
     if len(image.shape) == 3 and "T" not in axes and RGB:
         # this is a 3D image and if stardist model is supplied we use this method
@@ -4782,7 +4770,6 @@ def VollSeg(
                 slice_merge=slice_merge,
                 nms_thresh=nms_thresh,
                 dounet=dounet,
-                docanny=docanny,
             )
 
     if len(image.shape) == 3 and "T" in axes:
@@ -4834,7 +4821,6 @@ def VollSeg(
                             slice_merge=slice_merge,
                             nms_thresh=nms_thresh,
                             dounet=dounet,
-                            docanny=docanny,
                         )
                         for _x in tqdm(image)
                     )
