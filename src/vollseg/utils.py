@@ -966,7 +966,7 @@ def VollSeg_unet(
             if docanny:
 
                 for i in range(image.shape[0]):
-                    image[i] = feature.canny(image[i], sigma=3) * image[i]
+                    image[i] = feature.canny(image[i], sigma=3) + image[i]
         if dounet:
             Segmented = unet_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
