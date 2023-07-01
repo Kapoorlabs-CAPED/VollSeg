@@ -956,19 +956,6 @@ def VollSeg_unet(
                 image.astype("float32"), axes, n_tiles=n_tiles
             )
 
-            pixel_condition = image > 0.05 * np.min(image)
-            pixel_replace_condition = 1
-            image = image_addition_conditionals(
-                image, pixel_condition, pixel_replace_condition
-            )
-            image = normalizeFloat(image, 1, 100)
-
-            pixel_condition = image < 0.75 * np.max(image)
-            pixel_replace_condition = 0
-            image = image_conditionals(
-                image, pixel_condition, pixel_replace_condition
-            )
-
             if len(s_Binary.shape) == len(image.shape):
                 s_Binary = s_Binary > 0
                 image = image * s_Binary
