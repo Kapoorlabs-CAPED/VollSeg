@@ -955,11 +955,15 @@ def VollSeg_unet(
                 image.astype("float32"), axes, n_tiles=n_tiles
             )
 
+            pixel_condition = s_Binary > 0
+            pixel_replace_condition = 1
+            s_Binary = image_conditionals(
+                s_Binary, pixel_condition, pixel_replace_condition
+            )
+
             if len(s_Binary.shape) == len(image.shape):
-                s_Binary = s_Binary > 0
                 image = image * s_Binary
             if len(s_Binary.shape) == len(image.shape) - 1:
-                s_Binary = s_Binary > 0
                 for i in range(image.shape[0]):
                     image[i] = image[i] * s_Binary
 
