@@ -859,7 +859,7 @@ def VollSeg_unet(
     nms_thresh=0.3,
     slice_merge=False,
     dounet=True,
-    erosion_iterations=15,
+    erosion_iterations=10,
     docanny=False,
 ):
     Finalimage = np.zeros(image.shape, dtype=np.uint16)
@@ -931,6 +931,7 @@ def VollSeg_unet(
 
             s_Binary = label(s_Binary)
             s_Binary = fill_label_holes(s_Binary)
+            s_Binary = binary_dilation(s_Binary, iterations=erosion_iterations)
             if len(s_Binary.shape) == 3 and slice_merge:
                 for i in range(image.shape[0]):
                     s_Binary[i] = label(s_Binary[i])
