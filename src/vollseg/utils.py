@@ -2203,7 +2203,6 @@ def VollCellPose3D(
         instance_labels = roi_image
 
     if save_dir is not None:
-        print("Saving Results ...")
         Path(save_dir).mkdir(exist_ok=True)
 
         if cellpose_model_3D_pretrained_file is not None:
@@ -3294,7 +3293,6 @@ def MembraneSeg(
         )
 
     if save_dir is not None:
-        print("Saving Results ...")
         Path(save_dir).mkdir(exist_ok=True)
 
         if cellpose_model_path is not None:
@@ -4219,7 +4217,6 @@ def VollCellSeg(
         instance_labels_nuclei = roi_image_nuclei
 
     if save_dir is not None:
-        print("Saving Results ...")
         Path(save_dir).mkdir(exist_ok=True)
 
         if cellpose_model_path is not None:
@@ -4986,7 +4983,6 @@ def VollSeg(
         instance_labels, skeleton, image, roi_image = res
 
     if save_dir is not None:
-        print("Saving Results ...")
         Path(save_dir).mkdir(exist_ok=True)
 
         if roi_model is not None:
@@ -5624,7 +5620,6 @@ def VollSam(
         )
 
     if save_dir is not None:
-        print("Saving Results ...")
         Path(save_dir).mkdir(exist_ok=True)
 
         nuclei_results = Path(save_dir) / "NucleiSAM"
