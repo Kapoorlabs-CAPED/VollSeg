@@ -20,6 +20,7 @@ from numba import jit
 from scipy.optimize import linear_sum_assignment
 from scipy.ndimage import convolve, mean
 import cv2
+from skimage.segmentation import clear_border
 
 # import matplotlib.pyplot as plt
 import pandas as pd
@@ -1023,7 +1024,7 @@ def VollSeg_unet(
                 )
             Finalimage = relabel_sequential(Binary)[0]
             skeleton = Skel(Finalimage)
-
+            Finalimage = clear_border(Finalimage)
             if ExpandLabels:
 
                 Finalimage, skeleton = VollSeg_label_expansion(
