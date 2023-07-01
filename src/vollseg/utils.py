@@ -1019,7 +1019,7 @@ def VollSeg_unet(
             for i in range(image.shape[0]):
                 Binary[i] = binary_erosion(Binary[i], iterations=2)
                 Binary[i] = label(Binary[i])
-                Binary[i] = dilate_label_holes(Binary[i], max_iter=2)
+                Binary[i] = dilate_label_holes(Binary[i], iterations=2)
                 Binary[i] = remove_small_objects(
                     Binary[i].astype("uint16"), min_size=min_size_mask
                 )
