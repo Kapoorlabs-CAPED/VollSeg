@@ -35,14 +35,22 @@ class SmartPatches:
         create_for_channel="both",
         lower_ratio_fore_to_back=0.5,
         upper_ratio_fore_to_back=0.9,
-        max_patches_per_image=np.inf,
+        max_foreground_patches_per_image=np.inf,
+        max_background_patches_per_image=np.inf,
         create_background_only=False,
+        create_foreground_only=False,
     ):
 
-        self.max_patches_per_image = max_patches_per_image
+        self.max_foreground_patches_per_image = (
+            max_foreground_patches_per_image
+        )
+        self.max_background_patches_per_image = (
+            max_background_patches_per_image
+        )
         self.base_membrane_dir = base_membrane_dir
         self.base_nuclei_dir = base_nuclei_dir
         self.create_background_only = create_background_only
+        self.create_foreground_only = create_foreground_only
         self.raw_membrane_dir = os.path.join(
             self.base_membrane_dir, raw_membrane_dir
         )
@@ -91,8 +99,9 @@ class SmartPatches:
 
         if self.create_background_only:
             self._create_background_patches()
+        elif self.create_foreground_only:
+            self._create_smart_patches()
         else:
-
             self._create_smart_patches()
             self._create_background_patches()
 
@@ -265,7 +274,7 @@ class SmartPatches:
         self.main_count = 0
         for index in zero_indices:
 
-            if self.main_count < self.max_patches_per_image:
+            if self.main_count < self.max_background_patches_per_image:
                 name = os.path.splitext(fname)[0]
                 if self.ndim == 2:
                     x = index[1]
@@ -575,7 +584,10 @@ class SmartPatches:
     ):
 
         self._region_selector()
-        if self.valid and self.main_count < self.max_patches_per_image:
+        if (
+            self.valid
+            and self.main_count < self.max_foreground_patches_per_image
+        ):
             self.main_count += 1
             if self.erosion_iterations > 0:
                 self.eroded_crop_labelimage = erode_labels(
