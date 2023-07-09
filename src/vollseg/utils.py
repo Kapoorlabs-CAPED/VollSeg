@@ -4690,6 +4690,8 @@ def VollOne(
             nuclei_skeleton,
         ) = nuclei_res
 
+        nuclei_markers = np.asarray(nuclei_markers)
+
         membrane_res = tuple(
             zip(
                 *tuple(
@@ -4727,6 +4729,28 @@ def VollOne(
 
             membrane_seg, membrane_skeleton, membrane_denoised = membrane_res
 
+        membrane_denoised = np.asarray(membrane_denoised)
+        membrane_mask = np.asarray(membrane_mask)
+        nuclei_membrane_seg = np.zeros_like(membrane_denoised)
+        for i in range(nuclei_markers.shape[0]):
+            properties = measure.regionprops(nuclei_star_labels[i])
+            Coordinates = [prop.centroid for prop in properties]
+            Coordinates.append((0, 0, 0))
+
+            Coordinates = np.asarray(Coordinates)
+            coordinates_int = np.round(Coordinates).astype(int)
+
+            markers_raw = np.zeros_like(membrane_denoised)
+            markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(
+                len(Coordinates)
+            )
+            markers = morphology.dilation(
+                markers_raw.astype("uint16"), morphology.ball(2)
+            )
+            nuclei_membrane_seg[i] = watershed(
+                -membrane_denoised, markers, mask=membrane_mask
+            )
+
     if len(image.shape) == 4 and "T" not in axes:
         image_membrane = image[:, channel_membrane, :, :]
         image_nuclei = image[:, channel_nuclei, :, :]
@@ -4760,6 +4784,9 @@ def VollOne(
             nuclei_skeleton,
         ) = nuclei_res
 
+        nuclei_markers = np.asarray(nuclei_markers)
+        nuclei_star_labels = np.asarray(nuclei_star_labels)
+
         membrane_res = VollSeg(
             image_membrane,
             unet_model=unet_model_membrane,
@@ -4789,11 +4816,30 @@ def VollOne(
 
             membrane_seg, membrane_skeleton, membrane_denoised = membrane_res
 
+        membrane_denoised = np.asarray(membrane_denoised)
+        membrane_mask = np.asarray(membrane_mask)
+
+        properties = measure.regionprops(nuclei_star_labels)
+        Coordinates = [prop.centroid for prop in properties]
+        Coordinates.append((0, 0, 0))
+
+        Coordinates = np.asarray(Coordinates)
+        coordinates_int = np.round(Coordinates).astype(int)
+
+        markers_raw = np.zeros_like(membrane_denoised)
+        markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+        markers = morphology.dilation(
+            markers_raw.astype("uint16"), morphology.ball(2)
+        )
+        nuclei_membrane_seg = watershed(
+            -membrane_denoised, markers, mask=membrane_mask
+        )
+
 
 def VollSeg(
-    image,
-    unet_model=None,
-    star_model=None,
+    image: np.ndarray,
+    unet_model: Union[UNET, None] = None,
+    star_model: Union[StarDist3D, None] = None,
     roi_model=None,
     axes="ZYX",
     noise_model=None,
