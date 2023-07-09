@@ -4839,9 +4839,9 @@ def VollOne(
     if save_dir is not None:
         Path(save_dir).mkdir(exist_ok=True)
         if star_model_nuclei is not None and noise_model_membrane is not None:
-            nuclei_labels = Path(save_dir) / "NucleiSeg"
-            membrane_labels = Path(save_dir) / "MembraneSeg"
-            membrane_denoised_labels = Path(save_dir) / "MembraneDenoised"
+            nuclei_labels = Path(save_dir) / "nuclei_labels"
+            membrane_labels = Path(save_dir) / "membrane_labels"
+            membrane_denoised_labels = Path(save_dir) / "membrane_denoised"
             nuclei_labels.mkdir(exist_ok=True)
             membrane_labels.mkdir(exist_ok=True)
             membrane_denoised_labels.mkdir(exist_ok=True)
@@ -4860,7 +4860,7 @@ def VollOne(
                 membrane_denoised.astype("float32"),
             )
             if unet_model_membrane is not None:
-                membrane_seg_labels = Path(save_dir) / "PureMembraneSeg"
+                membrane_seg_labels = Path(save_dir) / "pure_membrane_labels"
                 membrane_seg_labels.mkdir(exist_ok=True)
                 imwrite(
                     os.path.join(
@@ -4870,7 +4870,7 @@ def VollOne(
                 )
 
             if roi_model is not None:
-                membrane_mask_labels = Path(save_dir) / "MembraneMask"
+                membrane_mask_labels = Path(save_dir) / "region_of_interest"
                 membrane_mask_labels.mkdir(exist_ok=True)
                 imwrite(
                     os.path.join(
