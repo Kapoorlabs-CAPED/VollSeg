@@ -53,7 +53,7 @@ from skimage.segmentation import (
 from skimage.util import invert as invertimage
 from tifffile import imread, imwrite
 from tqdm import tqdm
-
+from typing import Union
 from .StarDist3D import StarDist3D
 from .UNET import UNET
 from .CARE import CARE
@@ -68,6 +68,7 @@ from .Tiles_3D import VolumeSlicer
 from torch.utils.data import DataLoader
 from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 from numba import njit
+from csbdeep.models import ProjectionCARE
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -4610,6 +4611,183 @@ def _cellpose_block(
         voll_cell_seg = np.asarray(voll_cell_seg_time)
 
     return voll_cell_seg
+
+
+def VollOne(
+    image: np.ndarray,
+    channel_membrane: int = 0,
+    channel_nuclei: int = 1,
+    star_model_nuclei: Union[StarDist3D, None] = None,
+    unet_model_nuclei: Union[UNET, None] = None,
+    unet_model_membrane: Union[UNET, None] = None,
+    noise_model_membrane: Union[CARE, None] = None,
+    roi_model: Union[MASKUNET, ProjectionCARE, None] = None,
+    prob_thresh: float = None,
+    ExpandLabels: bool = False,
+    nms_thresh: float = None,
+    slice_merge_nuclei: bool = False,
+    slice_merge_membrane: bool = True,
+    min_size_mask: int = 10,
+    min_size: int = 10,
+    max_size: int = 10000,
+    n_tiles: tuple = (1, 1, 1),
+    UseProbability: bool = True,
+    donormalize: bool = True,
+    lower_perc: float = 1.0,
+    upper_perc: float = 99.8,
+    dounet: bool = True,
+    seedpool: bool = True,
+    save_dir: str = None,
+    Name: str = "Result",
+    axes: str = "ZYX",
+):
+
+    if prob_thresh is None and nms_thresh is None:
+        prob_thresh = star_model_nuclei.thresholds.prob
+        nms_thresh = star_model_nuclei.thresholds.nms
+
+    if len(image.shape) > 4 and "T" in axes:
+
+        if len(n_tiles) == 4:
+            n_tiles = (n_tiles[1], n_tiles[2], n_tiles[3])
+
+        image_membrane = image[:, :, channel_membrane, :, :]
+        image_nuclei = image[:, :, channel_nuclei, :, :]
+        nuclei_res = tuple(
+            zip(
+                *tuple(
+                    VollSeg(
+                        image_nuclei[i],
+                        unet_model=unet_model_nuclei,
+                        star_model=star_model_nuclei,
+                        axes=axes,
+                        prob_thresh=prob_thresh,
+                        nms_thresh=nms_thresh,
+                        min_size_mask=min_size_mask,
+                        min_size=min_size,
+                        max_size=max_size,
+                        n_tiles=n_tiles,
+                        UseProbability=UseProbability,
+                        donormalize=donormalize,
+                        lower_perc=lower_perc,
+                        upper_perc=upper_perc,
+                        dounet=dounet,
+                        seedpool=seedpool,
+                        save_dir=save_dir,
+                        Name=Name,
+                        slice_merge=slice_merge_nuclei,
+                    )
+                    for i in tqdm(range(image_nuclei.shape[0]))
+                )
+            )
+        )
+        (
+            nuclei_sized_smart_seeds,
+            muclei_instance_labels,
+            nuclei_star_labels,
+            nuclei_probability_map,
+            nuclei_markers,
+            nuclei_skeleton,
+        ) = nuclei_res
+
+        membrane_res = tuple(
+            zip(
+                *tuple(
+                    VollSeg(
+                        image_membrane[i],
+                        unet_model=unet_model_membrane,
+                        noise_model=noise_model_membrane,
+                        roi_model=roi_model,
+                        axes=axes,
+                        min_size_mask=min_size_mask,
+                        min_size=min_size,
+                        max_size=max_size,
+                        n_tiles=n_tiles,
+                        ExpandLabels=ExpandLabels,
+                        donormalize=donormalize,
+                        save_dir=save_dir,
+                        Name=Name,
+                        slice_merge=slice_merge_membrane,
+                    )
+                    for i in tqdm(range(image_nuclei.shape[0]))
+                )
+            )
+        )
+
+        if roi_model is not None:
+
+            (
+                membrane_seg,
+                membrane_skeleton,
+                membrane_denoised,
+                membrane_mask,
+            ) = membrane_res
+
+        if roi_model is None and noise_model_membrane is not None:
+
+            membrane_seg, membrane_skeleton, membrane_denoised = membrane_res
+
+    if len(image.shape) == 4 and "T" not in axes:
+        image_membrane = image[:, channel_membrane, :, :]
+        image_nuclei = image[:, channel_nuclei, :, :]
+        nuclei_res = VollSeg(
+            image_nuclei,
+            unet_model=unet_model_nuclei,
+            star_model=star_model_nuclei,
+            axes=axes,
+            prob_thresh=prob_thresh,
+            nms_thresh=nms_thresh,
+            min_size_mask=min_size_mask,
+            min_size=min_size,
+            max_size=max_size,
+            n_tiles=n_tiles,
+            UseProbability=UseProbability,
+            donormalize=donormalize,
+            lower_perc=lower_perc,
+            upper_perc=upper_perc,
+            dounet=dounet,
+            seedpool=seedpool,
+            save_dir=save_dir,
+            Name=Name,
+            slice_merge=slice_merge_nuclei,
+        )
+        (
+            nuclei_sized_smart_seeds,
+            muclei_instance_labels,
+            nuclei_star_labels,
+            nuclei_probability_map,
+            nuclei_markers,
+            nuclei_skeleton,
+        ) = nuclei_res
+
+        membrane_res = VollSeg(
+            image_membrane,
+            unet_model=unet_model_membrane,
+            noise_model=noise_model_membrane,
+            roi_model=roi_model,
+            axes=axes,
+            min_size_mask=min_size_mask,
+            min_size=min_size,
+            max_size=max_size,
+            n_tiles=n_tiles,
+            ExpandLabels=ExpandLabels,
+            donormalize=donormalize,
+            save_dir=save_dir,
+            Name=Name,
+            slice_merge=slice_merge_membrane,
+        )
+        if roi_model is not None and noise_model_membrane is not None:
+
+            (
+                membrane_seg,
+                membrane_skeleton,
+                membrane_denoised,
+                membrane_mask,
+            ) = membrane_res
+
+        if roi_model is None and noise_model_membrane is not None:
+
+            membrane_seg, membrane_skeleton, membrane_denoised = membrane_res
 
 
 def VollSeg(
