@@ -4818,7 +4818,8 @@ def VollOne(
 
         membrane_denoised = np.asarray(membrane_denoised)
         membrane_mask = np.asarray(membrane_mask)
-
+        membrane_seg = np.asarray(membrane_seg)
+        membrane_mask = np.asarray(membrane_mask)
         properties = measure.regionprops(nuclei_star_labels)
         Coordinates = [prop.centroid for prop in properties]
         Coordinates.append((0, 0, 0))
@@ -4834,6 +4835,51 @@ def VollOne(
         nuclei_membrane_seg = watershed(
             -membrane_denoised, markers, mask=membrane_mask
         )
+
+    if save_dir is not None:
+        Path(save_dir).mkdir(exist_ok=True)
+        if star_model_nuclei is not None and noise_model_membrane is not None:
+            nuclei_labels = Path(save_dir) / "NucleiSeg"
+            membrane_labels = Path(save_dir) / "MembraneSeg"
+            membrane_denoised_labels = Path(save_dir) / "MembraneDenoised"
+            nuclei_labels.mkdir(exist_ok=True)
+            membrane_labels.mkdir(exist_ok=True)
+            membrane_denoised_labels.mkdir(exist_ok=True)
+            imwrite(
+                os.path.join(nuclei_labels.as_posix(), Name + ".tif"),
+                nuclei_star_labels.astype("uint16"),
+            )
+            imwrite(
+                os.path.join(membrane_labels.as_posix(), Name + ".tif"),
+                nuclei_membrane_seg.astype("uint16"),
+            )
+            imwrite(
+                os.path.join(
+                    membrane_denoised_labels.as_posix(), Name + ".tif"
+                ),
+                membrane_denoised.astype("float32"),
+            )
+            if unet_model_membrane is not None:
+                membrane_seg_labels = Path(save_dir) / "PureMembraneSeg"
+                membrane_seg_labels.mkdir(exist_ok=True)
+                imwrite(
+                    os.path.join(
+                        membrane_seg_labels.as_posix(), Name + ".tif"
+                    ),
+                    membrane_seg.astype("float32"),
+                )
+
+            if roi_model is not None:
+                membrane_mask_labels = Path(save_dir) / "MembraneMask"
+                membrane_mask_labels.mkdir(exist_ok=True)
+                imwrite(
+                    os.path.join(
+                        membrane_mask_labels.as_posix(), Name + ".tif"
+                    ),
+                    membrane_mask.astype("float32"),
+                )
+
+    return nuclei_res, membrane_res
 
 
 def VollSeg(
