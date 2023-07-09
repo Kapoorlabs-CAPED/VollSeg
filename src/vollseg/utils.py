@@ -4639,9 +4639,10 @@ def VollOne(
     seedpool: bool = True,
     save_dir: str = None,
     Name: str = "Result",
-    axes: str = "ZYX",
+    axes: str = "CZYX",
 ):
 
+    channel_index = axes.index("C")
     if prob_thresh is None and nms_thresh is None:
         prob_thresh = star_model_nuclei.thresholds.prob
         nms_thresh = star_model_nuclei.thresholds.nms
@@ -4651,8 +4652,8 @@ def VollOne(
         if len(n_tiles) == 4:
             n_tiles = (n_tiles[1], n_tiles[2], n_tiles[3])
 
-        image_membrane = image[:, :, channel_membrane, :, :]
-        image_nuclei = image[:, :, channel_nuclei, :, :]
+        image_membrane = np.take(image, channel_membrane, axis=channel_index)
+        image_nuclei = np.take(image, channel_nuclei, axis=channel_index)
         nuclei_res = tuple(
             zip(
                 *tuple(
@@ -4752,8 +4753,8 @@ def VollOne(
             )
 
     if len(image.shape) == 4 and "T" not in axes:
-        image_membrane = image[:, channel_membrane, :, :]
-        image_nuclei = image[:, channel_nuclei, :, :]
+        image_membrane = np.take(image, channel_membrane, axis=channel_index)
+        image_nuclei = np.take(image, channel_nuclei, axis=channel_index)
         nuclei_res = VollSeg(
             image_nuclei,
             unet_model=unet_model_nuclei,
