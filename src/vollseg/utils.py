@@ -873,6 +873,8 @@ def VollSeg_unet(
     if roi_model is not None:
 
         if noise_model is not None:
+            if isinstance(noise_model, ProjectionCARE):
+                n_tiles = (1, n_tiles[-2], n_tiles[-1])
             image = noise_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
             )
@@ -952,6 +954,8 @@ def VollSeg_unet(
                 n_tiles = (n_tiles[0], n_tiles[1], 1)
 
         if noise_model is not None:
+            if isinstance(noise_model, ProjectionCARE):
+                n_tiles = (1, n_tiles[-2], n_tiles[-1])
             image = noise_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
             )
