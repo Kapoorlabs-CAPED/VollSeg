@@ -4661,7 +4661,7 @@ def VollOne(
                         image_nuclei[i],
                         unet_model=unet_model_nuclei,
                         star_model=star_model_nuclei,
-                        axes=axes,
+                        axes=axes.replace("C", ""),
                         prob_thresh=prob_thresh,
                         nms_thresh=nms_thresh,
                         min_size_mask=min_size_mask,
@@ -4701,7 +4701,7 @@ def VollOne(
                         unet_model=unet_model_membrane,
                         noise_model=noise_model_membrane,
                         roi_model=roi_model,
-                        axes=axes,
+                        axes=axes.replace("C", ""),
                         min_size_mask=min_size_mask,
                         min_size=min_size,
                         max_size=max_size,
@@ -4759,7 +4759,7 @@ def VollOne(
             image_nuclei,
             unet_model=unet_model_nuclei,
             star_model=star_model_nuclei,
-            axes=axes,
+            axes=axes.replace("C", ""),
             prob_thresh=prob_thresh,
             nms_thresh=nms_thresh,
             min_size_mask=min_size_mask,
@@ -4793,7 +4793,7 @@ def VollOne(
             unet_model=unet_model_membrane,
             noise_model=noise_model_membrane,
             roi_model=roi_model,
-            axes=axes,
+            axes=axes.replace("C", ""),
             min_size_mask=min_size_mask,
             min_size=min_size,
             max_size=max_size,
@@ -4836,7 +4836,10 @@ def VollOne(
         nuclei_membrane_seg = watershed(
             -membrane_denoised, markers, mask=membrane_mask
         )
-
+    else:
+        raise NotImplementedError(
+            'Please provide a 4D/5D image with axes "TCZYX"'
+        )
     if save_dir is not None:
         Path(save_dir).mkdir(exist_ok=True)
         if star_model_nuclei is not None and noise_model_membrane is not None:
