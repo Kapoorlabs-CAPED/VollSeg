@@ -4628,14 +4628,13 @@ def check_and_update_mask(mask, image):
                 image.shape[0],
                 image.shape[1],
                 image.shape[2],
-                image.shape[3],
             ],
             dtype="uint8",
         )
         for i in range(0, update_mask.shape[0]):
             for j in range(0, update_mask.shape[1]):
 
-                update_mask[i, j, :, :] = mask[i, :, :]
+                update_mask[i, j, :] = mask[i, :]
     else:
         update_mask = mask
 
