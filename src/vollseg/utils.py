@@ -4796,7 +4796,6 @@ def VollOne(
             roi_model=roi_model,
             axes=axes.replace("C", ""),
             min_size_mask=min_size_mask,
-            min_size=min_size,
             max_size=max_size,
             n_tiles=n_tiles,
             ExpandLabels=ExpandLabels,
