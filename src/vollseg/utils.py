@@ -892,6 +892,8 @@ def VollSeg_unet(
             else:
                 tiles = n_tiles
             maximage = np.amax(image, axis=0)
+            if isinstance(roi_model, ProjectionCARE):
+                n_tiles = (1, n_tiles[-2], n_tiles[-1])
             roi_Segmented = roi_model.predict(
                 maximage.astype("float32"), "YX", n_tiles=tiles
             )
@@ -916,7 +918,8 @@ def VollSeg_unet(
             s_Binary = fill_label_holes(s_Binary)
 
         elif model_dim == len(image.shape):
-
+            if isinstance(roi_model, ProjectionCARE):
+                n_tiles = (1, n_tiles[-2], n_tiles[-1])
             roi_Segmented = roi_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
             )
