@@ -4620,6 +4620,28 @@ def _cellpose_block(
     return voll_cell_seg
 
 
+def check_and_update_mask(mask, image):
+
+    if len(mask.shape) < len(image.shape):
+        update_mask = np.zeros(
+            [
+                image.shape[0],
+                image.shape[1],
+                image.shape[2],
+                image.shape[3],
+            ],
+            dtype="uint8",
+        )
+        for i in range(0, update_mask.shape[0]):
+            for j in range(0, update_mask.shape[1]):
+
+                update_mask[i, j, :, :] = mask[i, :, :]
+    else:
+        update_mask = mask
+
+    return update_mask
+
+
 def VollOne(
     image: np.ndarray,
     channel_membrane: int = 0,
@@ -4735,6 +4757,7 @@ def VollOne(
 
         membrane_denoised = np.asarray(membrane_denoised)
         membrane_mask = np.asarray(membrane_mask)
+        membrane_mask = check_and_update_mask(membrane_mask, image_membrane)
         nuclei_membrane_seg = np.zeros_like(membrane_denoised)
         for i in range(nuclei_markers.shape[0]):
             properties = measure.regionprops(nuclei_star_labels[i])
@@ -4818,6 +4841,7 @@ def VollOne(
         membrane_mask = np.asarray(membrane_mask)
         membrane_seg = np.asarray(membrane_seg)
         membrane_mask = np.asarray(membrane_mask)
+        membrane_mask = check_and_update_mask(membrane_mask, image_membrane)
         properties = measure.regionprops(nuclei_star_labels)
         Coordinates = [prop.centroid for prop in properties]
         Coordinates.append((0, 0, 0))
