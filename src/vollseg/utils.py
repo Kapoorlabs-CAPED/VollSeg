@@ -4681,8 +4681,6 @@ def VollOne(
                         upper_perc=upper_perc,
                         dounet=dounet,
                         seedpool=seedpool,
-                        save_dir=save_dir,
-                        Name=Name,
                         slice_merge=slice_merge_nuclei,
                     )
                     for i in tqdm(range(image_nuclei.shape[0]))
@@ -4715,8 +4713,6 @@ def VollOne(
                         n_tiles=n_tiles,
                         ExpandLabels=ExpandLabels,
                         donormalize=donormalize,
-                        save_dir=save_dir,
-                        Name=Name,
                         slice_merge=slice_merge_membrane,
                     )
                     for i in tqdm(range(image_nuclei.shape[0]))
@@ -4779,8 +4775,6 @@ def VollOne(
             upper_perc=upper_perc,
             dounet=dounet,
             seedpool=seedpool,
-            save_dir=save_dir,
-            Name=Name,
             slice_merge=slice_merge_nuclei,
         )
         (
@@ -4795,7 +4789,7 @@ def VollOne(
         nuclei_markers = np.asarray(nuclei_markers)
         nuclei_star_labels = np.asarray(nuclei_star_labels)
 
-        membrane_res = VollSeg(
+        membrane_res = VollSeg_unet(
             image_membrane,
             unet_model=unet_model_membrane,
             noise_model=noise_model_membrane,
@@ -4806,9 +4800,6 @@ def VollOne(
             max_size=max_size,
             n_tiles=n_tiles,
             ExpandLabels=ExpandLabels,
-            donormalize=donormalize,
-            save_dir=save_dir,
-            Name=Name,
             slice_merge=slice_merge_membrane,
         )
         if roi_model is not None and noise_model_membrane is not None:
