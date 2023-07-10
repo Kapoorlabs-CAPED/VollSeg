@@ -18,7 +18,7 @@ with open(
 setup(
     name="vollseg",
     version=__version__,
-    author="Varun Kapoor,Claudia Carabana Garcia,Mari Tolonen",
+    author="Varun Kapoor,Claudia Carabana Garcia,Mari Tolonen, Jakub Sedzinski",
     author_email="randomaccessiblekapoor@gmail.com",
     url="https://github.com/Kapoorlabs-CAPED/VollSeg/",
     description="Segmentation tool for biological cells of irregular size and shape in 3D and 2D, using \
