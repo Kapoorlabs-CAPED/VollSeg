@@ -4763,11 +4763,13 @@ def VollOne(
             membrane_seg, membrane_skeleton, membrane_denoised = membrane_res
 
         membrane_denoised = np.asarray(membrane_denoised)
-        membrane_mask = np.asarray(membrane_mask)
 
         nuclei_membrane_seg = np.zeros_like(membrane_denoised)
         for i in range(nuclei_markers.shape[0]):
             properties = measure.regionprops(nuclei_star_labels[i])
+            membrane_mask = np.asarray(membrane_mask[i])
+            membrane_prop = measure.regionprops(membrane_mask)
+            membrane_area = np.sum([prop.area for prop in membrane_prop])
             membrane_mask[i] = check_and_update_mask(
                 membrane_mask[i], image_membrane[i]
             )
@@ -4788,6 +4790,10 @@ def VollOne(
             nuclei_membrane_seg[i] = (
                 watershed(membrane_denoised[i], markers) * membrane_mask[i]
             )
+            for k in range(nuclei_membrane_seg.shape[0]):
+                nuclei_membrane_seg[k] = remove_big_objects(
+                    nuclei_membrane_seg[k], max_size=0.5 * membrane_area
+                )
 
     if len(image.shape) == 4 and "T" not in axes:
         image_membrane = np.take(image, channel_membrane, axis=channel_index)
@@ -4853,6 +4859,9 @@ def VollOne(
         membrane_mask = np.asarray(membrane_mask)
         membrane_seg = np.asarray(membrane_seg)
         membrane_mask = np.asarray(membrane_mask)
+
+        membrane_prop = measure.regionprops(membrane_mask)
+        membrane_area = np.sum([prop.area for prop in membrane_prop])
         membrane_mask = check_and_update_mask(membrane_mask, image_membrane)
         properties = measure.regionprops(nuclei_star_labels)
         Coordinates = [prop.centroid for prop in properties]
@@ -4870,6 +4879,10 @@ def VollOne(
         nuclei_membrane_seg = (
             watershed(membrane_denoised, markers) * membrane_mask
         )
+        for i in range(nuclei_membrane_seg.shape[0]):
+            nuclei_membrane_seg[i] = remove_big_objects(
+                nuclei_membrane_seg[i], max_size=0.5 * membrane_area
+            )
     else:
         raise NotImplementedError(
             'Please provide a 4D/5D image with axes "TCZYX"'
