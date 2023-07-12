@@ -4766,15 +4766,19 @@ def VollOne(
             Coordinates = np.asarray(Coordinates)
             coordinates_int = np.round(Coordinates).astype(int)
 
-            markers_raw = np.zeros_like(membrane_denoised)
+            markers_raw = np.zeros_like(membrane_denoised[i])
             markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(
                 len(Coordinates)
             )
             markers = morphology.dilation(
                 markers_raw.astype("uint16"), morphology.ball(2)
             )
+
+            membrane_denoised_binary = membrane_denoised[i] > 0
+            distance_map = distance_transform_edt(membrane_denoised_binary)
+
             nuclei_membrane_seg[i] = watershed(
-                -membrane_denoised, markers, mask=membrane_mask
+                -distance_map, markers, mask=membrane_mask
             )
 
     if len(image.shape) == 4 and "T" not in axes:
@@ -4853,8 +4857,10 @@ def VollOne(
         markers = morphology.dilation(
             markers_raw.astype("uint16"), morphology.ball(2)
         )
+        membrane_denoised_binary = membrane_denoised > 0
+        distance_map = distance_transform_edt(membrane_denoised_binary)
         nuclei_membrane_seg = watershed(
-            -membrane_denoised, markers, mask=membrane_mask
+            -distance_map, markers, mask=membrane_mask
         )
     else:
         raise NotImplementedError(
