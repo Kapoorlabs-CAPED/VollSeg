@@ -4792,11 +4792,21 @@ def VollOne(
             nuclei_membrane_seg[i] = (
                 watershed(membrane_denoised[i], markers) * membrane_mask[i]
             )
-            for k in range(nuclei_membrane_seg.shape[0]):
-                nuclei_membrane_seg[k] = remove_big_objects(
-                    nuclei_membrane_seg[k], max_size=0.5 * membrane_area
-                )
+            remove_labels = []
+            current_nuclei_membrane_seg = nuclei_membrane_seg[i]
+            for k in range(current_nuclei_membrane_seg.shape[0]):
 
+                nuclei_membrane_props = measure.regionprops(
+                    current_nuclei_membrane_seg[k]
+                )
+                for prop in nuclei_membrane_props:
+                    if prop.area > 0.5 * membrane_area:
+                        remove_labels.append(prop.label)
+            for remove_label in remove_labels:
+                current_nuclei_membrane_seg[
+                    current_nuclei_membrane_seg == remove_label
+                ] = 0
+            nuclei_membrane_seg[i] = current_nuclei_membrane_seg
     if len(image.shape) == 4 and "T" not in axes:
         image_membrane = np.take(image, channel_membrane, axis=channel_index)
         image_nuclei = np.take(image, channel_nuclei, axis=channel_index)
@@ -4881,10 +4891,16 @@ def VollOne(
         nuclei_membrane_seg = (
             watershed(membrane_denoised, markers) * membrane_mask
         )
+        remove_labels = []
         for i in range(nuclei_membrane_seg.shape[0]):
-            nuclei_membrane_seg[i] = remove_big_objects(
-                nuclei_membrane_seg[i], max_size=0.5 * membrane_area
-            )
+
+            nuclei_membrane_props = measure.regionprops(nuclei_membrane_seg[i])
+            for prop in nuclei_membrane_props:
+                if prop.area > 0.5 * membrane_area:
+                    remove_labels.append(prop.label)
+        for remove_label in remove_labels:
+            nuclei_membrane_seg[nuclei_membrane_seg == remove_label] = 0
+
     else:
         raise NotImplementedError(
             'Please provide a 4D/5D image with axes "TCZYX"'
