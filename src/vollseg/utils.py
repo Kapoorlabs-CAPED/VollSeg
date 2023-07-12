@@ -4632,9 +4632,7 @@ def check_and_update_mask(mask, image):
             dtype="uint8",
         )
         for i in range(0, update_mask.shape[0]):
-            for j in range(0, update_mask.shape[1]):
-
-                update_mask[i, j, :] = mask[i, :]
+            update_mask[i, :, :] = mask
     else:
         update_mask = mask
 
@@ -4722,21 +4720,19 @@ def VollOne(
         membrane_res = tuple(
             zip(
                 *tuple(
-                    VollSeg(
+                    VollSeg_unet(
                         image_membrane[i],
                         unet_model=unet_model_membrane,
                         noise_model=noise_model_membrane,
                         roi_model=roi_model,
                         axes=axes.replace("C", ""),
                         min_size_mask=min_size_mask,
-                        min_size=min_size,
                         max_size=max_size,
                         n_tiles=n_tiles,
                         ExpandLabels=ExpandLabels,
-                        donormalize=donormalize,
                         slice_merge=slice_merge_membrane,
                     )
-                    for i in tqdm(range(image_nuclei.shape[0]))
+                    for i in tqdm(range(image_membrane.shape[0]))
                 )
             )
         )
@@ -4775,7 +4771,11 @@ def VollOne(
             )
 
             membrane_denoised_binary = membrane_denoised[i] > 0
-            distance_map = distance_transform_edt(membrane_denoised_binary)
+            distance_map = np.zeros_like(membrane_denoised[i])
+            for j in range(membrane_denoised_binary.shape[0]):
+                distance_map[j] = distance_transform_edt(
+                    membrane_denoised_binary[j]
+                )
 
             nuclei_membrane_seg[i] = watershed(
                 -distance_map, markers, mask=membrane_mask
@@ -4844,7 +4844,9 @@ def VollOne(
         membrane_mask = np.asarray(membrane_mask)
         membrane_seg = np.asarray(membrane_seg)
         membrane_mask = np.asarray(membrane_mask)
-        membrane_mask = check_and_update_mask(membrane_mask, image_membrane)
+        membrane_mask_enlarged = check_and_update_mask(
+            membrane_mask, image_membrane
+        )
         properties = measure.regionprops(nuclei_star_labels)
         Coordinates = [prop.centroid for prop in properties]
         Coordinates.append((0, 0, 0))
@@ -4858,9 +4860,13 @@ def VollOne(
             markers_raw.astype("uint16"), morphology.ball(2)
         )
         membrane_denoised_binary = membrane_denoised > 0
-        distance_map = distance_transform_edt(membrane_denoised_binary)
+        distance_map = np.zeros_like(membrane_denoised)
+        for j in range(membrane_denoised.shape[0]):
+            distance_map[j] = distance_transform_edt(
+                membrane_denoised_binary[j]
+            )
         nuclei_membrane_seg = watershed(
-            -distance_map, markers, mask=membrane_mask
+            -distance_map, markers, mask=membrane_mask_enlarged
         )
     else:
         raise NotImplementedError(
