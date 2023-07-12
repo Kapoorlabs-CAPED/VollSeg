@@ -4760,12 +4760,14 @@ def VollOne(
 
         membrane_denoised = np.asarray(membrane_denoised)
         membrane_mask = np.asarray(membrane_mask)
-        membrane_mask = check_and_update_mask(membrane_mask, image_membrane)
+
         nuclei_membrane_seg = np.zeros_like(membrane_denoised)
         for i in range(nuclei_markers.shape[0]):
             properties = measure.regionprops(nuclei_star_labels[i])
+            membrane_mask[i] = check_and_update_mask(
+                membrane_mask[i], image_membrane[i]
+            )
             Coordinates = [prop.centroid for prop in properties]
-            Coordinates.append((0, 0, 0))
 
             Coordinates = np.asarray(Coordinates)
             coordinates_int = np.round(Coordinates).astype(int)
@@ -4777,9 +4779,9 @@ def VollOne(
             markers = morphology.dilation(
                 markers_raw.astype("uint16"), morphology.ball(2)
             )
-
+            membrane_denoised[i] = membrane_denoised[i] * membrane_mask[i]
             nuclei_membrane_seg[i] = watershed(
-                membrane_denoised[i], markers, mask=membrane_mask
+                membrane_denoised[i], markers, mask=membrane_mask[i]
             )
 
     if len(image.shape) == 4 and "T" not in axes:
@@ -4848,7 +4850,6 @@ def VollOne(
         membrane_mask = check_and_update_mask(membrane_mask, image_membrane)
         properties = measure.regionprops(nuclei_star_labels)
         Coordinates = [prop.centroid for prop in properties]
-        Coordinates.append((0, 0, 0))
 
         Coordinates = np.asarray(Coordinates)
         coordinates_int = np.round(Coordinates).astype(int)
@@ -4858,7 +4859,7 @@ def VollOne(
         markers = morphology.dilation(
             markers_raw.astype("uint16"), morphology.ball(2)
         )
-
+        membrane_denoised = membrane_denoised * membrane_mask
         nuclei_membrane_seg = watershed(
             membrane_denoised, markers, mask=membrane_mask
         )
