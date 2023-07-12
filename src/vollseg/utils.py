@@ -4792,15 +4792,8 @@ def VollOne(
                 markers_raw.astype("uint16"), morphology.ball(2)
             )
 
-            membrane_denoised_binary = membrane_denoised[i] > 0
-            distance_map = np.zeros_like(membrane_denoised[i])
-            for j in range(membrane_denoised_binary.shape[0]):
-                distance_map[j] = distance_transform_edt(
-                    membrane_denoised_binary[j]
-                )
-
             nuclei_membrane_seg[i] = watershed(
-                -distance_map, markers, mask=membrane_mask
+                membrane_denoised[i], markers, mask=membrane_mask
             )
 
     if len(image.shape) == 4 and "T" not in axes:
@@ -4879,14 +4872,9 @@ def VollOne(
         markers = morphology.dilation(
             markers_raw.astype("uint16"), morphology.ball(2)
         )
-        membrane_denoised_binary = membrane_denoised > 0
-        distance_map = np.zeros_like(membrane_denoised)
-        for j in range(membrane_denoised.shape[0]):
-            distance_map[j] = distance_transform_edt(
-                membrane_denoised_binary[j]
-            )
+
         nuclei_membrane_seg = watershed(
-            -distance_map, markers, mask=membrane_mask
+            membrane_denoised, markers, mask=membrane_mask
         )
     else:
         raise NotImplementedError(
@@ -4896,15 +4884,13 @@ def VollOne(
         Path(save_dir).mkdir(exist_ok=True)
         if star_model_nuclei is not None and noise_model_membrane is not None:
             nuclei_labels = Path(save_dir) / "nuclei_labels"
-            nuclei_markers = Path(save_dir) / "nuclei_markers"
+            nuclei_markers_labels = Path(save_dir) / "nuclei_markers"
             membrane_labels = Path(save_dir) / "membrane_labels"
             membrane_denoised_labels = Path(save_dir) / "membrane_denoised"
-            distance_map_labels = Path(save_dir) / "distance_map"
             nuclei_labels.mkdir(exist_ok=True)
-            nuclei_markers.mkdir(exist_ok=True)
+            nuclei_markers_labels.mkdir(exist_ok=True)
             membrane_labels.mkdir(exist_ok=True)
             membrane_denoised_labels.mkdir(exist_ok=True)
-            distance_map_labels.mkdir(exist_ok=True)
 
             imwrite(
                 os.path.join(nuclei_labels.as_posix(), Name + ".tif"),
@@ -4912,25 +4898,22 @@ def VollOne(
             )
 
             imwrite(
-                os.path.join(nuclei_markers.as_posix(), Name + ".tif"),
+                os.path.join(nuclei_markers_labels.as_posix(), Name + ".tif"),
                 nuclei_markers.astype("uint16"),
             )
 
             imwrite(
-                os.path.join(distance_map_labels.as_posix(), Name + ".tif"),
-                distance_map.astype("float32"),
+                os.path.join(
+                    membrane_denoised_labels.as_posix(), Name + ".tif"
+                ),
+                membrane_denoised.astype("float32"),
             )
 
             imwrite(
                 os.path.join(membrane_labels.as_posix(), Name + ".tif"),
                 nuclei_membrane_seg.astype("uint16"),
             )
-            imwrite(
-                os.path.join(
-                    membrane_denoised_labels.as_posix(), Name + ".tif"
-                ),
-                distance_map.astype("float32"),
-            )
+
             if unet_model_membrane is not None:
                 membrane_seg_labels = Path(save_dir) / "pure_membrane_labels"
                 membrane_seg_labels.mkdir(exist_ok=True)
