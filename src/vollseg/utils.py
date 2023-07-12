@@ -4768,7 +4768,9 @@ def VollOne(
         for i in range(nuclei_markers.shape[0]):
             properties = measure.regionprops(nuclei_star_labels[i])
             membrane_mask = np.asarray(membrane_mask[i])
-            membrane_prop = measure.regionprops(membrane_mask)
+            membrane_prop = measure.regionprops(
+                membrane_mask.astype(np.uint16)
+            )
             membrane_area = np.sum([prop.area for prop in membrane_prop])
             membrane_mask[i] = check_and_update_mask(
                 membrane_mask[i], image_membrane[i]
@@ -4860,7 +4862,7 @@ def VollOne(
         membrane_seg = np.asarray(membrane_seg)
         membrane_mask = np.asarray(membrane_mask)
 
-        membrane_prop = measure.regionprops(membrane_mask)
+        membrane_prop = measure.regionprops(membrane_mask.astype(np.uint16))
         membrane_area = np.sum([prop.area for prop in membrane_prop])
         membrane_mask = check_and_update_mask(membrane_mask, image_membrane)
         properties = measure.regionprops(nuclei_star_labels)
