@@ -969,11 +969,19 @@ def VollSeg_unet(
                 s_Binary, pixel_condition, pixel_replace_condition
             )
 
+            pixel_condition = s_Binary == 0
+            pixel_replace_condition = 0
+
             if len(s_Binary.shape) == len(image.shape):
-                image = image * s_Binary
+
+                image = image_conditionals(
+                    image, pixel_condition, pixel_replace_condition
+                )
             if len(s_Binary.shape) == len(image.shape) - 1:
                 for i in range(image.shape[0]):
-                    image[i] = image[i] * s_Binary
+                    image[i] = image_conditionals(
+                        image[i], pixel_condition, pixel_replace_condition
+                    )
 
         if dounet:
             Segmented = unet_model.predict(
@@ -1019,7 +1027,11 @@ def VollSeg_unet(
 
             if roi_model is not None:
                 s_Binary = s_Binary > 0
-                Finalimage = Finalimage * s_Binary
+                pixel_condition = s_Binary == 0
+                pixel_replace_condition = 0
+                Finalimage = image_conditionals(
+                    Finalimage, pixel_condition, pixel_replace_condition
+                )
             skeleton = Skel(Finalimage, RGB)
             skeleton = skeleton > 0
 
@@ -1047,11 +1059,20 @@ def VollSeg_unet(
                 Finalimage = fill_label_holes(Finalimage)
             if roi_model is not None:
                 s_Binary = s_Binary > 0
+                pixel_condition = s_Binary == 0
+                pixel_replace_condition = 0
                 if len(s_Binary.shape) == len(image.shape) - 1:
                     for i in range(image.shape[0]):
-                        Finalimage[i] = Finalimage[i] * s_Binary
+                        Finalimage[i] = image_conditionals(
+                            Finalimage[i],
+                            pixel_condition,
+                            pixel_replace_condition,
+                        )
+
                 elif len(s_Binary.shape) == len(image.shape):
-                    Finalimage = Finalimage * s_Binary
+                    Finalimage = image_conditionals(
+                        Finalimage, pixel_condition, pixel_replace_condition
+                    )
 
     if roi_model is None:
         return Finalimage.astype("uint16"), skeleton, image
@@ -4716,6 +4737,7 @@ def VollOne(
         ) = nuclei_res
 
         nuclei_markers = np.asarray(nuclei_markers)
+        nuclei_star_labels = np.asarray(nuclei_star_labels)
 
         membrane_res = tuple(
             zip(
@@ -4844,9 +4866,7 @@ def VollOne(
         membrane_mask = np.asarray(membrane_mask)
         membrane_seg = np.asarray(membrane_seg)
         membrane_mask = np.asarray(membrane_mask)
-        membrane_mask_enlarged = check_and_update_mask(
-            membrane_mask, image_membrane
-        )
+        membrane_mask = check_and_update_mask(membrane_mask, image_membrane)
         properties = measure.regionprops(nuclei_star_labels)
         Coordinates = [prop.centroid for prop in properties]
         Coordinates.append((0, 0, 0))
@@ -4866,7 +4886,7 @@ def VollOne(
                 membrane_denoised_binary[j]
             )
         nuclei_membrane_seg = watershed(
-            -distance_map, markers, mask=membrane_mask_enlarged
+            -distance_map, markers, mask=membrane_mask
         )
     else:
         raise NotImplementedError(
@@ -4876,15 +4896,31 @@ def VollOne(
         Path(save_dir).mkdir(exist_ok=True)
         if star_model_nuclei is not None and noise_model_membrane is not None:
             nuclei_labels = Path(save_dir) / "nuclei_labels"
+            nuclei_markers = Path(save_dir) / "nuclei_markers"
             membrane_labels = Path(save_dir) / "membrane_labels"
             membrane_denoised_labels = Path(save_dir) / "membrane_denoised"
+            distance_map_labels = Path(save_dir) / "distance_map"
             nuclei_labels.mkdir(exist_ok=True)
+            nuclei_markers.mkdir(exist_ok=True)
             membrane_labels.mkdir(exist_ok=True)
             membrane_denoised_labels.mkdir(exist_ok=True)
+            distance_map_labels.mkdir(exist_ok=True)
+
             imwrite(
                 os.path.join(nuclei_labels.as_posix(), Name + ".tif"),
                 nuclei_star_labels.astype("uint16"),
             )
+
+            imwrite(
+                os.path.join(nuclei_markers.as_posix(), Name + ".tif"),
+                nuclei_markers.astype("uint16"),
+            )
+
+            imwrite(
+                os.path.join(distance_map_labels.as_posix(), Name + ".tif"),
+                distance_map.astype("float32"),
+            )
+
             imwrite(
                 os.path.join(membrane_labels.as_posix(), Name + ".tif"),
                 nuclei_membrane_seg.astype("uint16"),
@@ -4893,7 +4929,7 @@ def VollOne(
                 os.path.join(
                     membrane_denoised_labels.as_posix(), Name + ".tif"
                 ),
-                membrane_denoised.astype("float32"),
+                distance_map.astype("float32"),
             )
             if unet_model_membrane is not None:
                 membrane_seg_labels = Path(save_dir) / "pure_membrane_labels"
