@@ -36,7 +36,7 @@ from scipy.ndimage import (
 from scipy.ndimage.measurements import find_objects
 from scipy.ndimage.morphology import binary_fill_holes
 from skimage import measure, morphology
-from skimage.filters import threshold_multiotsu, threshold_otsu
+from skimage.filters import threshold_multiotsu
 from skimage.measure import label, regionprops
 from skimage.morphology import (
     dilation,
@@ -4784,14 +4784,9 @@ def VollOne(
                 markers_raw.astype("uint16"), morphology.ball(2)
             )
             membrane_denoised[i] = membrane_denoised[i] * membrane_mask[i]
-            threshold = threshold_otsu(membrane_denoised[i])
-            pixel_condition = membrane_denoised[i] < threshold
-            pixel_replace_condition = 0
-            membrane_denoised[i] = image_conditionals(
-                membrane_denoised[i], pixel_condition, pixel_replace_condition
-            )
-            nuclei_membrane_seg[i] = watershed(
-                membrane_denoised[i], markers, mask=membrane_mask[i]
+
+            nuclei_membrane_seg[i] = (
+                watershed(membrane_denoised[i], markers) * membrane_mask[i]
             )
 
     if len(image.shape) == 4 and "T" not in axes:
@@ -4871,14 +4866,9 @@ def VollOne(
             markers_raw.astype("uint16"), morphology.ball(2)
         )
         membrane_denoised = membrane_denoised * membrane_mask
-        threshold = threshold_otsu(membrane_denoised)
-        pixel_condition = membrane_denoised < threshold
-        pixel_replace_condition = 0
-        membrane_denoised = image_conditionals(
-            membrane_denoised, pixel_condition, pixel_replace_condition
-        )
-        nuclei_membrane_seg = watershed(
-            membrane_denoised, markers, mask=membrane_mask
+
+        nuclei_membrane_seg = (
+            watershed(membrane_denoised, markers) * membrane_mask
         )
     else:
         raise NotImplementedError(
