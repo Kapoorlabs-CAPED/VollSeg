@@ -969,20 +969,6 @@ def VollSeg_unet(
                 s_Binary, pixel_condition, pixel_replace_condition
             )
 
-            pixel_condition = s_Binary == 0
-            pixel_replace_condition = 0
-
-            if len(s_Binary.shape) == len(image.shape):
-
-                image = image_conditionals(
-                    image, pixel_condition, pixel_replace_condition
-                )
-            if len(s_Binary.shape) == len(image.shape) - 1:
-                for i in range(image.shape[0]):
-                    image[i] = image_conditionals(
-                        image[i], pixel_condition, pixel_replace_condition
-                    )
-
         if dounet:
             Segmented = unet_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
