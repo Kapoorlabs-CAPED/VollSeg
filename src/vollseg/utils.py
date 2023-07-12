@@ -36,7 +36,7 @@ from scipy.ndimage import (
 from scipy.ndimage.measurements import find_objects
 from scipy.ndimage.morphology import binary_fill_holes
 from skimage import measure, morphology
-from skimage.filters import threshold_multiotsu
+from skimage.filters import threshold_multiotsu, threshold_otsu
 from skimage.measure import label, regionprops
 from skimage.morphology import (
     dilation,
@@ -4723,7 +4723,11 @@ def VollOne(
         ) = nuclei_res
 
         nuclei_markers = np.asarray(nuclei_markers)
+
         nuclei_star_labels = np.asarray(nuclei_star_labels)
+
+        for i in range(nuclei_markers.shape[0]):
+            nuclei_markers[i] = clear_border(nuclei_markers[i])
 
         membrane_res = tuple(
             zip(
@@ -4780,6 +4784,12 @@ def VollOne(
                 markers_raw.astype("uint16"), morphology.ball(2)
             )
             membrane_denoised[i] = membrane_denoised[i] * membrane_mask[i]
+            threshold = threshold_otsu(membrane_denoised[i])
+            pixel_condition = membrane_denoised[i] < threshold
+            pixel_replace_condition = 0
+            membrane_denoised[i] = image_conditionals(
+                membrane_denoised[i], pixel_condition, pixel_replace_condition
+            )
             nuclei_membrane_seg[i] = watershed(
                 membrane_denoised[i], markers, mask=membrane_mask[i]
             )
@@ -4816,6 +4826,7 @@ def VollOne(
         ) = nuclei_res
 
         nuclei_markers = np.asarray(nuclei_markers)
+        nuclei_markers = clear_border(nuclei_markers)
         nuclei_star_labels = np.asarray(nuclei_star_labels)
 
         membrane_res = VollSeg_unet(
@@ -4860,6 +4871,12 @@ def VollOne(
             markers_raw.astype("uint16"), morphology.ball(2)
         )
         membrane_denoised = membrane_denoised * membrane_mask
+        threshold = threshold_otsu(membrane_denoised)
+        pixel_condition = membrane_denoised < threshold
+        pixel_replace_condition = 0
+        membrane_denoised = image_conditionals(
+            membrane_denoised, pixel_condition, pixel_replace_condition
+        )
         nuclei_membrane_seg = watershed(
             membrane_denoised, markers, mask=membrane_mask
         )
