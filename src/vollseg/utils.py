@@ -1003,13 +1003,6 @@ def VollSeg_unet(
             Binary = fill_label_holes(Binary)
             Finalimage = relabel_sequential(Binary)[0]
 
-            if roi_model is not None:
-                s_Binary = s_Binary > 0
-                pixel_condition = s_Binary == 0
-                pixel_replace_condition = 0
-                Finalimage = image_conditionals(
-                    Finalimage, pixel_condition, pixel_replace_condition
-                )
             skeleton = Skel(Finalimage, RGB)
             skeleton = skeleton > 0
 
@@ -1035,22 +1028,6 @@ def VollSeg_unet(
             if slice_merge:
                 Finalimage = match_labels(Finalimage, nms_thresh=nms_thresh)
                 Finalimage = fill_label_holes(Finalimage)
-            if roi_model is not None:
-                s_Binary = s_Binary > 0
-                pixel_condition = s_Binary == 0
-                pixel_replace_condition = 0
-                if len(s_Binary.shape) == len(image.shape) - 1:
-                    for i in range(image.shape[0]):
-                        Finalimage[i] = image_conditionals(
-                            Finalimage[i],
-                            pixel_condition,
-                            pixel_replace_condition,
-                        )
-
-                elif len(s_Binary.shape) == len(image.shape):
-                    Finalimage = image_conditionals(
-                        Finalimage, pixel_condition, pixel_replace_condition
-                    )
 
     if roi_model is None:
         return Finalimage.astype("uint16"), skeleton, image
@@ -4753,11 +4730,12 @@ def VollOne(
         nuclei_membrane_seg = np.zeros_like(membrane_denoised)
         for i in range(nuclei_markers.shape[0]):
             properties = measure.regionprops(nuclei_star_labels[i])
-            membrane_mask = np.asarray(membrane_mask[i])
+            membrane_mask[i] = np.asarray(membrane_mask[i])
             membrane_prop = measure.regionprops(
-                membrane_mask.astype(np.uint16)
+                membrane_mask[i].astype(np.uint16)
             )
             membrane_area = np.sum([prop.area for prop in membrane_prop])
+            membrane_mask[i] = binary_dilation(membrane_mask[i], iterations=2)
             membrane_mask[i] = check_and_update_mask(
                 membrane_mask[i], image_membrane[i]
             )
@@ -4860,7 +4838,9 @@ def VollOne(
                 membrane_mask.astype(np.uint16)
             )
             membrane_area = np.sum([prop.area for prop in membrane_prop])
+
             membrane_mask = np.asarray(membrane_mask)
+            membrane_mask = binary_dilation(membrane_mask, iterations=2)
             membrane_mask = check_and_update_mask(
                 membrane_mask, image_membrane
             )
