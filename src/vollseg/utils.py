@@ -4854,13 +4854,15 @@ def VollOne(
             membrane_seg, membrane_skeleton, membrane_denoised = membrane_res
 
         membrane_denoised = np.asarray(membrane_denoised)
-        membrane_mask = np.asarray(membrane_mask)
         membrane_seg = np.asarray(membrane_seg)
-        membrane_mask = np.asarray(membrane_mask)
 
         membrane_prop = measure.regionprops(membrane_mask.astype(np.uint16))
         membrane_area = np.sum([prop.area for prop in membrane_prop])
-        membrane_mask = check_and_update_mask(membrane_mask, image_membrane)
+        if roi_model is not None:
+            membrane_mask = np.asarray(membrane_mask)
+            membrane_mask = check_and_update_mask(
+                membrane_mask, image_membrane
+            )
         properties = measure.regionprops(nuclei_star_labels)
         Coordinates = [prop.centroid for prop in properties]
 
@@ -4872,11 +4874,14 @@ def VollOne(
         markers = morphology.dilation(
             markers_raw.astype("uint16"), morphology.ball(2)
         )
-        membrane_denoised = membrane_denoised * membrane_mask
+        if roi_model is not None:
+            membrane_denoised = membrane_denoised * membrane_mask
 
-        nuclei_membrane_seg = (
-            watershed(membrane_denoised, markers) * membrane_mask
-        )
+            nuclei_membrane_seg = (
+                watershed(membrane_denoised, markers) * membrane_mask
+            )
+        else:
+            nuclei_membrane_seg = watershed(membrane_denoised, markers)
         remove_labels = []
         for i in range(nuclei_membrane_seg.shape[0]):
 
