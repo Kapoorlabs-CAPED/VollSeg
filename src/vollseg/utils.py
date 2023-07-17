@@ -954,12 +954,12 @@ def VollSeg_unet(
             image = noise_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
             )
-
-            pixel_condition = s_Binary > 0
-            pixel_replace_condition = 1
-            s_Binary = image_conditionals(
-                s_Binary, pixel_condition, pixel_replace_condition
-            )
+            if roi_model is not None:
+                pixel_condition = s_Binary > 0
+                pixel_replace_condition = 1
+                s_Binary = image_conditionals(
+                    s_Binary, pixel_condition, pixel_replace_condition
+                )
 
         if dounet:
             Segmented = unet_model.predict(
