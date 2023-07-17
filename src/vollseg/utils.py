@@ -5843,7 +5843,7 @@ def VollSeg3D(
         and star_model is None
         and unet_model is None
     ):
-        return instance_labels.astype("uint16"), skeleton, image
+        return image
 
     if (
         noise_model is None
