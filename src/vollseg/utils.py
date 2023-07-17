@@ -4855,10 +4855,11 @@ def VollOne(
 
         membrane_denoised = np.asarray(membrane_denoised)
         membrane_seg = np.asarray(membrane_seg)
-
-        membrane_prop = measure.regionprops(membrane_mask.astype(np.uint16))
-        membrane_area = np.sum([prop.area for prop in membrane_prop])
         if roi_model is not None:
+            membrane_prop = measure.regionprops(
+                membrane_mask.astype(np.uint16)
+            )
+            membrane_area = np.sum([prop.area for prop in membrane_prop])
             membrane_mask = np.asarray(membrane_mask)
             membrane_mask = check_and_update_mask(
                 membrane_mask, image_membrane
@@ -4881,16 +4882,21 @@ def VollOne(
                 watershed(membrane_denoised, markers) * membrane_mask
             )
         else:
-            nuclei_membrane_seg = watershed(membrane_denoised, markers)
-        remove_labels = []
-        for i in range(nuclei_membrane_seg.shape[0]):
 
-            nuclei_membrane_props = measure.regionprops(nuclei_membrane_seg[i])
-            for prop in nuclei_membrane_props:
-                if prop.area > 0.5 * membrane_area:
-                    remove_labels.append(prop.label)
-        for remove_label in remove_labels:
-            nuclei_membrane_seg[nuclei_membrane_seg == remove_label] = 0
+            nuclei_membrane_seg = watershed(membrane_denoised, markers)
+
+        if roi_model is not None:
+            remove_labels = []
+            for i in range(nuclei_membrane_seg.shape[0]):
+
+                nuclei_membrane_props = measure.regionprops(
+                    nuclei_membrane_seg[i]
+                )
+                for prop in nuclei_membrane_props:
+                    if prop.area > 0.5 * membrane_area:
+                        remove_labels.append(prop.label)
+            for remove_label in remove_labels:
+                nuclei_membrane_seg[nuclei_membrane_seg == remove_label] = 0
 
     else:
         raise NotImplementedError(
