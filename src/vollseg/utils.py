@@ -12,7 +12,6 @@ from pathlib import Path
 import torch
 import napari
 import gc
-import time as cputime
 from skimage.transform import resize
 from typing import Optional
 import numpy as np
@@ -438,8 +437,6 @@ def CreateTrackMate_CSV(Label, Name, savedir):
     YList = []
     TrackIDList = []
     QualityList = []
-    print("Image has shape:", Label.shape)
-    print("Image Dimensions:", len(Label.shape))
 
     CurrentSegimage = Label.astype("uint16")
     properties = measure.regionprops(CurrentSegimage)
@@ -564,8 +561,6 @@ def VollSeg2D(
     seedpool=True,
 ):
 
-    print("Generating SmartSeed results")
-
     if star_model is not None:
         nms_thresh = star_model.thresholds[1]
     elif nms_thresh is not None:
@@ -580,7 +575,6 @@ def VollSeg2D(
         if RGB:
             axes = "YXC"
     if noise_model is not None:
-        print("Denoising Image")
 
         image = noise_model.predict(
             image.astype("float32"), axes=axes, n_tiles=n_tiles
@@ -645,7 +639,6 @@ def VollSeg2D(
     if dounet:
 
         if unet_model is not None:
-            print("UNET segmentation on Image")
 
             Segmented = unet_model.predict(
                 image.astype("float32"), axes, n_tiles=n_tiles
@@ -693,7 +686,6 @@ def VollSeg2D(
         Mask = Region_embedding(image, roi_bbox, Mask, dtype=np.uint8, RGB=RGB)
         Mask_patch = Mask.copy()
     # Smart Seed prediction
-    print("Stardist segmentation on Image")
     if RGB:
         axis = (0, 1, 2)
     else:
@@ -1550,7 +1542,6 @@ def _apply_cellpose_network_3D(
         "network_type": network_type,
     }
 
-    start = cputime.time()
     gc.collect()
     if network_type == "unet":
         model = CellPose3DModel(hparams=hparams)
@@ -1625,9 +1616,6 @@ def _apply_cellpose_network_3D(
 
     # Save the predicted image
     predicted_img = predicted_img.astype(np.float32)
-    print(
-        f"cellpose in 3D done, {predicted_img.shape}, took {cputime.time() - start} seconds"
-    )
 
     foreground_map = predicted_img[0, ...]
     try:
@@ -1643,7 +1631,6 @@ def _apply_cellpose_network_3D(
     projection_axis = 0
     flow_img = np.amax(predicted_img, axis=projection_axis)
 
-    print("returning cellpose map", flow_img.shape)
     gc.collect()
 
     return foreground_map, flow_img
@@ -4567,7 +4554,6 @@ def _cellpose_3D_block(
     axes, sized_smart_seeds, foreground, flows, nms_thresh, z_thresh=1
 ):
 
-    print("Invoking StarDist seeds on Membrane map")
     if "T" not in axes:
 
         voll_cell_seg = CellPose3DWater(
@@ -5517,7 +5503,6 @@ def VollSeg3D(
     slice_merge=False,
 ):
 
-    print("Generating VollSeg results")
     sizeZ = image.shape[0]
     sizeY = image.shape[1]
     sizeX = image.shape[2]
@@ -5535,7 +5520,6 @@ def VollSeg3D(
     Mask_patch = None
     roi_image = None
     if noise_model is not None:
-        print("Denoising Image")
 
         image = noise_model.predict(
             image.astype("float32"), axes=axes, n_tiles=n_tiles
@@ -5548,7 +5532,6 @@ def VollSeg3D(
 
     if roi_model is not None:
 
-        print("Creating overall mask for the tissue")
         model_dim = roi_model.config.n_dim
         if model_dim < len(image.shape):
             if len(n_tiles) >= len(image.shape):
@@ -5659,7 +5642,6 @@ def VollSeg3D(
 
         gc.collect()
         if unet_model is not None:
-            print("UNET segmentation on Image", patch.shape)
 
             Mask = UNETPrediction3D(
                 patch,
@@ -5720,7 +5702,6 @@ def VollSeg3D(
         instance_labels[:, : Mask.shape[1], : Mask.shape[2]] = Mask
 
     if star_model is not None:
-        print("Stardist segmentation on Image")
         if donormalize:
 
             patch_star = normalize(
@@ -5740,7 +5721,6 @@ def VollSeg3D(
             prob_thresh=prob_thresh,
             nms_thresh=nms_thresh,
         )
-        print("Removing small/large objects")
         for i in tqdm(range(0, smart_seeds.shape[0])):
             smart_seeds[i] = remove_small_objects(
                 smart_seeds[i, :].astype("uint16"), min_size=min_size
@@ -6098,7 +6078,6 @@ def SuperVollSeg(
     slice_merge: bool = False,
 ):
 
-    print("Generating VollSeg results")
     sizeZ = image_nuclei.shape[0]
     sizeY = image_nuclei.shape[1]
     sizeX = image_nuclei.shape[2]
@@ -6128,7 +6107,6 @@ def SuperVollSeg(
     Mask_membrane_patch = None
     roi_image = None
     if noise_model is not None:
-        print("Denoising Image")
 
         image_nuclei = noise_model.predict(
             image_nuclei.astype("float32"), axes=axes, n_tiles=n_tiles
@@ -6141,7 +6119,6 @@ def SuperVollSeg(
 
     if roi_model_nuclei is not None:
 
-        print("Creating overall mask for the tissue")
         model_dim = roi_model_nuclei.config.n_dim
         if model_dim < len(image_nuclei.shape):
             if len(n_tiles) >= len(image_nuclei.shape):
@@ -6255,7 +6232,6 @@ def SuperVollSeg(
 
         gc.collect()
         if unet_model_nuclei is not None:
-            print("UNET segmentation on Nuclei Image", patch_nuclei.shape)
 
             Mask_nuclei = UNETPrediction3D(
                 patch_nuclei,
@@ -6289,8 +6265,6 @@ def SuperVollSeg(
             ] = Mask_nuclei
 
         if unet_model_membrane is not None:
-
-            print("UNET segmentation on Membrane Image", patch_membrane.shape)
 
             Mask_membrane = UNETPrediction3D(
                 patch_membrane,
@@ -6400,7 +6374,6 @@ def SuperVollSeg(
         ] = Mask_membrane
 
     if star_model_nuclei is not None:
-        print("Stardist segmentation on Nuclei Image")
         if donormalize:
 
             patch_star_nuclei = normalize(
@@ -6425,7 +6398,6 @@ def SuperVollSeg(
             prob_thresh=prob_thresh_nuclei,
             nms_thresh=nms_thresh_nuclei,
         )
-        print("Removing small/large objects")
         for i in tqdm(range(0, smart_seeds_nuclei.shape[0])):
             smart_seeds_nuclei[i] = remove_small_objects(
                 smart_seeds_nuclei[i, :].astype("uint16"), min_size=min_size
@@ -6471,7 +6443,6 @@ def SuperVollSeg(
         skeleton_nuclei = skeleton_nuclei > 0
 
     if star_model_membrane is not None:
-        print("Stardist segmentation on Membrane Image")
         if donormalize:
 
             patch_star_membrane = normalize(
@@ -6496,7 +6467,6 @@ def SuperVollSeg(
             prob_thresh=prob_thresh_membrane,
             nms_thresh=nms_thresh_membrane,
         )
-        print("Removing small/large objects")
         for i in tqdm(range(0, smart_seeds_membrane.shape[0])):
             smart_seeds_membrane[i] = remove_small_objects(
                 smart_seeds_membrane[i, :].astype("uint16"), min_size=min_size
@@ -7796,15 +7766,9 @@ def STARPrediction3D(
     copymodel = model
 
     grid = copymodel.config.grid
-    print("Predicting Instances")
     if prob_thresh is None and nms_thresh is None:
         prob_thresh = model.thresholds.prob
         nms_thresh = model.thresholds.nms
-    if prob_thresh is not None and nms_thresh is not None:
-
-        print(
-            f"Using user choice of prob_thresh = {prob_thresh} and nms_thresh = {nms_thresh}"
-        )
 
     (star_labels, SmallProbability, SmallDistance,) = model.predict_vollseg(
         image.astype("float32"),
@@ -7814,7 +7778,6 @@ def STARPrediction3D(
         nms_thresh=nms_thresh,
     )
 
-    print("Predictions Done")
     if unet_mask is not None:
         if UseProbability is False:
 
@@ -7850,7 +7813,6 @@ def STARPrediction3D(
 
         if UseProbability:
 
-            print("Using Probability maps")
             MaxProjectDistance = Probability[
                 : star_labels.shape[0],
                 : star_labels.shape[1],
@@ -7859,14 +7821,11 @@ def STARPrediction3D(
 
         else:
 
-            print("Using Distance maps")
             MaxProjectDistance = Distance[
                 : star_labels.shape[0],
                 : star_labels.shape[1],
                 : star_labels.shape[2],
             ]
-
-        print("Doing Watershedding")
 
         if unet_mask is None:
             unet_mask = star_labels > 0
@@ -7929,7 +7888,6 @@ def STARPrediction3D(
 
         if UseProbability:
 
-            print("Using Probability maps")
             MaxProjectDistance = Probability[
                 : star_labels.shape[0],
                 : star_labels.shape[1],
@@ -7938,7 +7896,6 @@ def STARPrediction3D(
 
         else:
 
-            print("Using Distance maps")
             MaxProjectDistance = Distance[
                 : star_labels.shape[0],
                 : star_labels.shape[1],
@@ -8025,7 +7982,6 @@ def CellPose3DWater(
     starproperties = measure.regionprops(CopyMasks)
     KeepCoordinates = [prop.centroid for prop in starproperties]
     KeepCoordinates = np.asarray(KeepCoordinates)
-    print("Nuclei seeds", len(KeepCoordinates))
     coordinates_int = np.round(KeepCoordinates).astype(int)
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
@@ -8034,7 +7990,6 @@ def CellPose3DWater(
         markers_raw.astype("uint16"), morphology.ball(2)
     )
     watershed_image_nuclei = watershed(Copyflows, markers, mask=foreground)
-    print("Nuclei to Membrane watershed complete")
 
     relabeled = NMSLabel(
         watershed_image_nuclei, nms_thresh, z_thresh=z_thresh
