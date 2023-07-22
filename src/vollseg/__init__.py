@@ -16,12 +16,13 @@ from .StarDist3D import StarDist3D
 from .Projection3D import Projection3D
 from .CARE import CARE
 from .SmartPatches import SmartPatches
+from .SimplePatches import SimplePatches
 from csbdeep.utils.tf import keras_import
 from .CellPose import CellPose
 from .PredictTiledLoader import PredictTiled
 from .CellPose3D import CellPose3DModel, CellPose3DTrain, CellPose3DPredict
 from .TrainTiledLoader import TrainTiled
-from .unet3d import AbstractUNet, UNet3D, ResidualUNet3D
+from .UNet3D import AbstractUNet, UNet3D, ResidualUNet3D
 from .se import ChannelSELayer3D, ChannelSpatialSELayer3D, SpatialSELayer3D
 from .Tiles_3D import VolumeSlicer
 from .utils import (
@@ -72,6 +73,7 @@ __all__ = (
     "StarDist2D",
     "StarDist3D",
     "Projection3D",
+    "SimplePatches",
     "CARE",
     "SmartPatches",
     "CellPose",
