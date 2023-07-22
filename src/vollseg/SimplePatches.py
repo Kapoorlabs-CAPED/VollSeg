@@ -146,9 +146,9 @@ class SimplePatches:
         self._region_selector()
         if (
             self.valid
-            and self.main_count < self.max_foreground_patches_per_image
+            
         ):
-            self.main_count += 1
+           
             
             self.eroded_crop_labelimage = self.crop_labelimage
             eventid = datetime.now().strftime("%Y%m-%d%H-%M%S-") + str(uuid4())
