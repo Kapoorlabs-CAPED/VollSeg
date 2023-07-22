@@ -20,22 +20,11 @@ class SimplePatches:
         pattern=".tif",
         lower_ratio_fore_to_back=0.5,
         upper_ratio_fore_to_back=0.9,
-        max_foreground_patches_per_image=np.inf,
-        max_background_patches_per_image=np.inf,
-        create_background_only=False,
-        create_foreground_only=False,
     ):
 
-        self.max_foreground_patches_per_image = (
-            max_foreground_patches_per_image
-        )
-        self.max_background_patches_per_image = (
-            max_background_patches_per_image
-        )
+       
         self.base_dir = base_dir
         self.real_mask_dir = os.path.join(base_dir, real_mask_dir)
-        self.create_background_only = create_background_only
-        self.create_foreground_only = create_foreground_only
         self.real_mask_patch_dir = os.path.join(
             self.base_dir, real_mask_patch_dir
         )
@@ -55,7 +44,6 @@ class SimplePatches:
         files = os.listdir(self.real_mask_dir)
         for fname in files:
             if any(fname.endswith(f) for f in self.acceptable_formats):
-                    self.main_count = 0
                     label_image_membrane = imread(
                         os.path.join(
                             self.real_mask_dir, fname
