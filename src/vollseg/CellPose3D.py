@@ -5,7 +5,7 @@ from .cellposeutils3D import (
 )
 from .TrainTiledLoader import TrainTiled
 from torch.utils.data import DataLoader
-from .UNet3D import ResidualUNet3D, UNet3D
+from .unet3d import ResidualUNet3D, UNet3D
 import torch
 import torch.nn.functional as F
 from torch import optim
