@@ -4772,7 +4772,7 @@ def VollOne(
                 for k in range(current_nuclei_membrane_seg.shape[0]):
 
                     nuclei_membrane_props = measure.regionprops(
-                        current_nuclei_membrane_seg[k]
+                        current_nuclei_membrane_seg[k].astype(np.uint16)
                     )
                     for prop in nuclei_membrane_props:
                         if prop.area > 0.5 * membrane_area:
