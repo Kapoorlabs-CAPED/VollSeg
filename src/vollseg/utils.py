@@ -4726,7 +4726,7 @@ def VollOne(
             membrane_seg, membrane_skeleton, membrane_denoised = membrane_res
 
         membrane_denoised = np.asarray(membrane_denoised)
-
+        membrane_mask = np.asarray(membrane_mask)
         nuclei_membrane_seg = np.zeros_like(membrane_denoised)
         for i in range(nuclei_markers.shape[0]):
 
