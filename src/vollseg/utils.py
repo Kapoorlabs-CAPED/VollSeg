@@ -4657,7 +4657,7 @@ def VollOne(
                         image_nuclei[i],
                         unet_model=unet_model_nuclei,
                         star_model=star_model_nuclei,
-                        axes=axes.replace("C", ""),
+                        axes=(axes.replace("C", "")).replace("T", ""),
                         prob_thresh=prob_thresh,
                         nms_thresh=nms_thresh,
                         min_size_mask=min_size_mask,
@@ -4700,7 +4700,7 @@ def VollOne(
                         unet_model=unet_model_membrane,
                         noise_model=noise_model_membrane,
                         roi_model=roi_model,
-                        axes=axes.replace("C", ""),
+                        axes=(axes.replace("C", "")).replace("T", ""),
                         min_size_mask=min_size_mask,
                         max_size=max_size,
                         n_tiles=n_tiles,
@@ -4729,16 +4729,20 @@ def VollOne(
 
         nuclei_membrane_seg = np.zeros_like(membrane_denoised)
         for i in range(nuclei_markers.shape[0]):
+
+            if roi_model is not None:
+                membrane_mask[i] = np.asarray(membrane_mask[i])
+                membrane_prop = measure.regionprops(
+                    membrane_mask[i].astype(np.uint16)
+                )
+                membrane_area = np.sum([prop.area for prop in membrane_prop])
+                membrane_mask[i] = binary_dilation(
+                    membrane_mask[i], iterations=8
+                )
+                membrane_mask[i] = check_and_update_mask(
+                    membrane_mask[i], image_membrane[i]
+                )
             properties = measure.regionprops(nuclei_star_labels[i])
-            membrane_mask[i] = np.asarray(membrane_mask[i])
-            membrane_prop = measure.regionprops(
-                membrane_mask[i].astype(np.uint16)
-            )
-            membrane_area = np.sum([prop.area for prop in membrane_prop])
-            membrane_mask[i] = binary_dilation(membrane_mask[i], iterations=2)
-            membrane_mask[i] = check_and_update_mask(
-                membrane_mask[i], image_membrane[i]
-            )
             Coordinates = [prop.centroid for prop in properties]
 
             Coordinates = np.asarray(Coordinates)
@@ -4751,26 +4755,32 @@ def VollOne(
             markers = morphology.dilation(
                 markers_raw.astype("uint16"), morphology.ball(2)
             )
-            membrane_denoised[i] = membrane_denoised[i] * membrane_mask[i]
+            if roi_model is not None:
+                membrane_denoised[i] = membrane_denoised[i] * membrane_mask[i]
 
-            nuclei_membrane_seg[i] = (
-                watershed(membrane_denoised[i], markers) * membrane_mask[i]
-            )
-            remove_labels = []
-            current_nuclei_membrane_seg = nuclei_membrane_seg[i]
-            for k in range(current_nuclei_membrane_seg.shape[0]):
-
-                nuclei_membrane_props = measure.regionprops(
-                    current_nuclei_membrane_seg[k]
+                nuclei_membrane_seg[i] = (
+                    watershed(membrane_denoised[i], markers) * membrane_mask[i]
                 )
-                for prop in nuclei_membrane_props:
-                    if prop.area > 0.5 * membrane_area:
-                        remove_labels.append(prop.label)
-            for remove_label in remove_labels:
-                current_nuclei_membrane_seg[
-                    current_nuclei_membrane_seg == remove_label
-                ] = 0
-            nuclei_membrane_seg[i] = current_nuclei_membrane_seg
+            else:
+                nuclei_membrane_seg[i] = watershed(
+                    membrane_denoised[i], markers
+                )
+            if roi_model is not None:
+                remove_labels = []
+                current_nuclei_membrane_seg = nuclei_membrane_seg[i]
+                for k in range(current_nuclei_membrane_seg.shape[0]):
+
+                    nuclei_membrane_props = measure.regionprops(
+                        current_nuclei_membrane_seg[k]
+                    )
+                    for prop in nuclei_membrane_props:
+                        if prop.area > 0.5 * membrane_area:
+                            remove_labels.append(prop.label)
+                for remove_label in remove_labels:
+                    current_nuclei_membrane_seg[
+                        current_nuclei_membrane_seg == remove_label
+                    ] = 0
+                nuclei_membrane_seg[i] = current_nuclei_membrane_seg
     if len(image.shape) == 4 and "T" not in axes:
         image_membrane = np.take(image, channel_membrane, axis=channel_index)
         image_nuclei = np.take(image, channel_nuclei, axis=channel_index)
@@ -4840,7 +4850,7 @@ def VollOne(
             membrane_area = np.sum([prop.area for prop in membrane_prop])
 
             membrane_mask = np.asarray(membrane_mask)
-            membrane_mask = binary_dilation(membrane_mask, iterations=2)
+            membrane_mask = binary_dilation(membrane_mask, iterations=8)
             membrane_mask = check_and_update_mask(
                 membrane_mask, image_membrane
             )
