@@ -4889,7 +4889,7 @@ def VollOne(
             for remove_label in remove_labels:
                 nuclei_membrane_seg[nuclei_membrane_seg == remove_label] = 0
 
-    else:
+    if len(image.shape) > 5:
         raise NotImplementedError(
             'Please provide a 4D/5D image with axes "TCZYX"'
         )
