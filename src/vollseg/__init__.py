@@ -22,7 +22,7 @@ from .CellPose import CellPose
 from .PredictTiledLoader import PredictTiled
 from .CellPose3D import CellPose3DModel, CellPose3DTrain, CellPose3DPredict
 from .TrainTiledLoader import TrainTiled
-from .UNet3D import AbstractUNet, UNet3D, ResidualUNet3D
+from .unet3d import AbstractUNet, UNet3D, ResidualUNet3D
 from .se import ChannelSELayer3D, ChannelSpatialSELayer3D, SpatialSELayer3D
 from .Tiles_3D import VolumeSlicer
 from .utils import (
