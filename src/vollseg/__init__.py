@@ -52,10 +52,6 @@ from .utils import (
     VollOne,
 )
 
-try:
-    from ._version import version as __version__
-except ImportError:
-    __version__ = "unknown"
 
 get_file = keras_import("utils", "get_file")
 

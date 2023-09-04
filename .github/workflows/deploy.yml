@@ -2,14 +2,12 @@
 # For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
 
 name: vollseg_deploy
-
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
-
+  workflow_dispatch:
+    inputs:
+      name:
+        description: "Hello KapoorLabs Lab member"
+        default: "Ready to dispach your code to PyPi"
 
 jobs:
 
