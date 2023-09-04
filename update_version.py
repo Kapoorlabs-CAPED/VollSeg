@@ -8,9 +8,9 @@ def update_version_file():
         .decode()
         .strip()
     )
-
+    tag = tag.lstrip("v")
     # Update _version.py
-    with open("_version.py", "w") as version_file:
+    with open("src/vollseg/_version.py", "w") as version_file:
         version_file.write(f'__version__ = "{tag}"\n')
 
 
