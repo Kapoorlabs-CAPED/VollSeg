@@ -5,14 +5,10 @@ name: vollseg_test_deploy
 
 on:
   workflow_dispatch:
-    branches:
-      - main
-    tags:
-      - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
-  pull_request:
-    branches:
-      - main
-  workflow_dispatch:
+    inputs:
+      name:
+        description: "Hello KapoorLabs Lab member"
+        default: "Test your code on multiple OS and python versions"
 
 jobs:
   test:
