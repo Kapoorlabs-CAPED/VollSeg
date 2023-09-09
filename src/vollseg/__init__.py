@@ -23,7 +23,6 @@ from .PredictTiledLoader import PredictTiled
 from .TrainTiledLoader import TrainTiled
 from .Tiles_3D import VolumeSlicer
 from .utils import (
-    VollCellPose3D,
     VollCellSeg,
     VollSeg,
     VollSeg2D,
@@ -79,7 +78,6 @@ __all__ = (
     "UNet3D",
     "CellPose3DPredict",
     "VolumeSlicer",
-    "VollCellPose3D",
     "VollCellSeg",
     "VollSeg",
     "VollSeg2D",
