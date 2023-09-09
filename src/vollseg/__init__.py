@@ -20,10 +20,7 @@ from .SimplePatches import SimplePatches
 from csbdeep.utils.tf import keras_import
 from .CellPose import CellPose
 from .PredictTiledLoader import PredictTiled
-from .CellPose3D import CellPose3DModel, CellPose3DTrain, CellPose3DPredict
 from .TrainTiledLoader import TrainTiled
-from .unet3d import AbstractUNet, UNet3D, ResidualUNet3D
-from .se import ChannelSELayer3D, ChannelSpatialSELayer3D, SpatialSELayer3D
 from .Tiles_3D import VolumeSlicer
 from .utils import (
     VollCellPose3D,
@@ -80,9 +77,6 @@ __all__ = (
     "CellPose3DTrain",
     "AbstractUNet",
     "UNet3D",
-    "ChannelSELayer3D",
-    "ChannelSpatialSELayer3D",
-    "SpatialSELayer3D",
     "CellPose3DPredict",
     "VolumeSlicer",
     "VollCellPose3D",
