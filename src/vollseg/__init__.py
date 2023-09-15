@@ -22,6 +22,7 @@ from .CellPose import CellPose
 from .PredictTiledLoader import PredictTiled
 from .TrainTiledLoader import TrainTiled
 from .Tiles_3D import VolumeSlicer
+from .SmartNucleiPatches import SmartNucleiPatches
 from .utils import (
     VollCellSeg,
     VollSeg,
@@ -101,6 +102,7 @@ __all__ = (
     "CleanCellPose",
     "CleanMask",
     "VollOne",
+    "SmartNucleiPatches"
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
