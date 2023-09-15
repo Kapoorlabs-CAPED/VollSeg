@@ -1544,11 +1544,11 @@ def _cellpose_star_block(
     return cellres, res
 
 
+
 def MembraneSeg(
     image: np.ndarray,
     diameter_cellpose: float = 34.6,
     stitch_threshold: float = 0.5,
-    channel_nuclei: int = 1,
     flow_threshold: float = 0.4,
     cellprob_threshold: float = 0.0,
     anisotropy=None,
