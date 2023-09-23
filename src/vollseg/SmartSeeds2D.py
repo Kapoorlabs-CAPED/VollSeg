@@ -233,8 +233,7 @@ class SmartSeeds2D:
             Path(real_mask_path).mkdir(exist_ok=True)
             real_mask = os.listdir(real_mask_path)
 
-        print("Instance segmentation masks:", len(real_mask))
-        print("Semantic segmentation masks:", len(mask))
+        
         if self.binary_mask_dir is not None and self.train_star and len(mask) > 0 and len(real_mask) < len(mask):
 
             print("Making labels")
