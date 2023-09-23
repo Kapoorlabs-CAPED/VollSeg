@@ -18,7 +18,7 @@ from csbdeep.models import Config, CARE
 import concurrent
 from csbdeep.utils import normalize
 from .utils import plot_train_history
-
+import glob
 # from IPython.display import clear_output
 from stardist.models import Config2D, StarDist2D
 from tensorflow.keras.utils import Sequence
@@ -213,92 +213,81 @@ class SmartSeeds2D:
     def Train(self):
 
         nthreads = os.cpu_count()
-        Raw_path = Path(self.base_dir + self.raw_dir)
-        Raw = list(Raw_path.glob(self.search_pattern))
+        raw_path = os.path.join(self.base_dir, self.raw_dir)
+        raw = os.listdir(raw_path)
+        if self.load_data_sequence:
+            val_raw_path = os.path.join(self.base_dir, self.val_raw_dir)
+            val_raw = os.listdir(val_raw_path)
+            val_real_mask_path = os.path.join(
+                self.base_dir, self.val_real_mask_dir
+            )
 
-        Val_Raw_path = Path(self.base_dir + self.val_raw_dir)
-        ValRaw = list(Val_Raw_path.glob(self.search_pattern))
+            Path(val_real_mask_path).mkdir(exist_ok=True)
+            val_real_mask = os.listdir(val_real_mask_path)
 
-        Mask_path = Path(self.base_dir + self.binary_mask_dir)
-        Mask_path.mkdir(exist_ok=True)
-        Mask = list(Mask_path.glob(self.search_pattern))
+        mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
+        Path(mask_path).mkdir(exist_ok=True)
+        mask = os.listdir(mask_path)
 
-        Real_Mask_path = Path(self.base_dir + self.real_mask_dir)
-        Real_Mask_path.mkdir(exist_ok=True)
-        RealMask = list(Real_Mask_path.glob(self.search_pattern))
+        real_mask_path = os.path.join(self.base_dir, self.real_mask_dir)
+        Path(real_mask_path).mkdir(exist_ok=True)
+        real_mask = os.listdir(real_mask_path)
 
-        Val_Real_Mask_path = Path(self.base_dir + self.val_real_mask_dir)
-        Val_Real_Mask_path.mkdir(exist_ok=True)
-        ValRealMask = list(Val_Real_Mask_path.glob(self.search_pattern))
-
-        Erode_Mask_path = Path(self.base_dir + self.binary_erode_mask_dir)
-        Erode_Mask_path.mkdir(exist_ok=True)
-        ErodeMask = list(Erode_Mask_path.glob(self.search_pattern))
-
-        print("Instance segmentation masks:", len(RealMask))
-        print("Semantic segmentation masks:", len(Mask))
-        if self.train_star and len(Mask) > 0 and len(RealMask) < len(Mask):
+        print("Instance segmentation masks:", len(real_mask))
+        print("Semantic segmentation masks:", len(mask))
+        if self.train_star and len(mask) > 0 and len(real_mask) < len(mask):
 
             print("Making labels")
-            for fname in Mask:
-
-                image = imread(fname)
-
-                Name = os.path.basename(os.path.splitext(fname)[0])
-                if np.max(image) == 1:
-                    image = image * 255
-                Binaryimage = label(image)
-
-                imwrite(
-                    (self.base_dir + self.real_mask_dir + Name + self.pattern),
-                    Binaryimage,
+            mask = sorted(
+                glob.glob(
+                    self.base_dir + self.binary_mask_dir + "*" + self.pattern
                 )
+            )
 
-        if len(RealMask) > 0 and len(ErodeMask) < len(RealMask):
-            print("Generating Eroded Binary images")
+            for fname in mask:
+                if any(fname.endswith(f) for f in self.acceptable_formats):
+                    image = imread(os.path.join(self.base_dir, fname))
 
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=nthreads
-            ) as executor:
-                futures = []
-                for fname in RealMask:
-                    futures.append(
-                        executor.submit(eroder, fname, self.erosion_iterations)
+                    Name = os.path.basename(os.path.splitext(fname)[0])
+                    if np.max(image) == 1:
+                        image = image * 255
+                    binary_image = label(image)
+
+                    imwrite(
+                        (
+                            os.path.join(
+                                self.base_dir,
+                                self.real_mask_dir + Name + self.pattern,
+                            )
+                        ),
+                        binary_image.astype("uint16"),
                     )
-                for future in concurrent.futures.as_completed(futures):
-                    newimage, name = future.result()
-                    if newimage is not None:
-                        imwrite(
-                            (
-                                self.base_dir
-                                + self.binary_erode_mask_dir
-                                + name
-                                + self.pattern
-                            ),
-                            newimage.astype("uint16"),
-                        )
 
-        if len(RealMask) > 0 and len(Mask) < len(RealMask):
+        if len(real_mask) > 0 and len(mask) < len(real_mask):
             print("Generating Binary images")
 
-            with concurrent.futures.ThreadPoolExecutor(
-                max_workers=nthreads
-            ) as executor:
-                futures = []
-                for fname in RealMask:
-                    futures.append(executor.submit(binarer, fname))
-                for future in concurrent.futures.as_completed(futures):
-                    newimage, name = future.result()
-                    if newimage is not None:
-                        imwrite(
-                            (
-                                self.base_dir
-                                + self.binary_mask_dir
-                                + name
-                                + self.pattern
-                            ),
-                            newimage.astype("uint16"),
+            real_files_mask = os.listdir(real_mask_path)
+
+            for fname in real_files_mask:
+                if any(fname.endswith(f) for f in self.acceptable_formats):
+                    image = imread(os.path.join(real_mask_path, fname))
+                    if self.erosion_iterations > 0:
+                        image = erode_labels(
+                            image.astype("uint16"), self.erosion_iterations
                         )
+                    Name = os.path.basename(os.path.splitext(fname)[0])
+
+                    binary_image = image > 0
+
+                    imwrite(
+                        (
+                            os.path.join(
+                                self.base_dir,
+                                self.binary_mask_dir + Name + self.pattern,
+                            )
+                        ),
+                        binary_image.astype("uint16"),
+                    )
 
         if self.generate_npz:
             if self.RGB:
