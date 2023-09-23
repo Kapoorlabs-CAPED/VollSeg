@@ -105,12 +105,12 @@ class SmartSeeds2D:
         model_dir,
         npz_filename=None,
         n_patches_per_image=1,
-        raw_dir="/Raw/",
-        real_mask_dir="/real_mask/",
-        binary_mask_dir="/binary_mask/",
-        binary_erode_mask_dir="/binary_erode_mask/",
-        val_raw_dir="/val_raw/",
-        val_real_mask_dir="/val_real_mask/",
+        raw_dir=None,
+        real_mask_dir=None,
+        binary_mask_dir=None,
+        binary_erode_mask_dir=None,
+        val_raw_dir=None,
+        val_real_mask_dir=None,
         def_shape=None,
         def_label_shape=None,
         downsample_factor=1,
@@ -215,7 +215,7 @@ class SmartSeeds2D:
         nthreads = os.cpu_count()
         raw_path = os.path.join(self.base_dir, self.raw_dir)
         raw = os.listdir(raw_path)
-        if self.load_data_sequence:
+        if self.load_data_sequence and self.val_raw_dir is not None:
             val_raw_path = os.path.join(self.base_dir, self.val_raw_dir)
             val_raw = os.listdir(val_raw_path)
             val_real_mask_path = os.path.join(
@@ -224,18 +224,18 @@ class SmartSeeds2D:
 
             Path(val_real_mask_path).mkdir(exist_ok=True)
             val_real_mask = os.listdir(val_real_mask_path)
-
-        mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
-        Path(mask_path).mkdir(exist_ok=True)
-        mask = os.listdir(mask_path)
-
-        real_mask_path = os.path.join(self.base_dir, self.real_mask_dir)
-        Path(real_mask_path).mkdir(exist_ok=True)
-        real_mask = os.listdir(real_mask_path)
+        if self.binary_mask_dir is not None:
+            mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
+            Path(mask_path).mkdir(exist_ok=True)
+            mask = os.listdir(mask_path)
+        if self.real_mask_dir is not None:
+            real_mask_path = os.path.join(self.base_dir, self.real_mask_dir)
+            Path(real_mask_path).mkdir(exist_ok=True)
+            real_mask = os.listdir(real_mask_path)
 
         print("Instance segmentation masks:", len(real_mask))
         print("Semantic segmentation masks:", len(mask))
-        if self.train_star and len(mask) > 0 and len(real_mask) < len(mask):
+        if self.binary_mask_dir is not None and self.train_star and len(mask) > 0 and len(real_mask) < len(mask):
 
             print("Making labels")
             mask = sorted(
@@ -252,18 +252,18 @@ class SmartSeeds2D:
                     if np.max(image) == 1:
                         image = image * 255
                     binary_image = label(image)
+                    if self.real_mask_dir is not None:
+                        imwrite(
+                            (
+                                os.path.join(
+                                    self.base_dir,
+                                    self.real_mask_dir + Name + self.pattern,
+                                )
+                            ),
+                            binary_image.astype("uint16"),
+                        )
 
-                    imwrite(
-                        (
-                            os.path.join(
-                                self.base_dir,
-                                self.real_mask_dir + Name + self.pattern,
-                            )
-                        ),
-                        binary_image.astype("uint16"),
-                    )
-
-        if len(real_mask) > 0 and len(mask) < len(real_mask):
+        if self.real_mask_dir is not None and len(real_mask) > 0 and len(mask) < len(real_mask):
             print("Generating Binary images")
 
             real_files_mask = os.listdir(real_mask_path)
@@ -278,16 +278,16 @@ class SmartSeeds2D:
                     Name = os.path.basename(os.path.splitext(fname)[0])
 
                     binary_image = image > 0
-
-                    imwrite(
-                        (
-                            os.path.join(
-                                self.base_dir,
-                                self.binary_mask_dir + Name + self.pattern,
-                            )
-                        ),
-                        binary_image.astype("uint16"),
-                    )
+                    if self.binary_mask_dir is not None:
+                        imwrite(
+                            (
+                                os.path.join(
+                                    self.base_dir,
+                                    self.binary_mask_dir + Name + self.pattern,
+                                )
+                            ),
+                            binary_image.astype("uint16"),
+                        )
 
         if self.generate_npz:
             if self.RGB:
