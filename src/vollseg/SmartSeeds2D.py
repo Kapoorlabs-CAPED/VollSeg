@@ -15,10 +15,10 @@ from scipy.ndimage import find_objects
 from csbdeep.data import RawData, create_patches, create_patches_reduced_target
 from csbdeep.io import load_training_data
 from csbdeep.models import Config, CARE
-import concurrent
 from csbdeep.utils import normalize
 from .utils import plot_train_history
 import glob
+
 # from IPython.display import clear_output
 from stardist.models import Config2D, StarDist2D
 from tensorflow.keras.utils import Sequence
@@ -27,10 +27,6 @@ from skimage.measure import label, regionprops
 from scipy import ndimage
 from pathlib import Path
 from scipy.ndimage import zoom
-
-
-def _raise(e):
-    raise e
 
 
 def fill_label_holes(lbl_img, **kwargs):
@@ -212,15 +208,12 @@ class SmartSeeds2D:
 
     def Train(self):
 
-        nthreads = os.cpu_count()
         raw_path = os.path.join(self.base_dir, self.raw_dir)
         raw = os.listdir(raw_path)
         if self.load_data_sequence and self.val_raw_dir is not None:
             val_raw_path = os.path.join(self.base_dir, self.val_raw_dir)
             val_raw = os.listdir(val_raw_path)
-            val_real_mask_path = os.path.join(
-                self.base_dir, self.val_real_mask_dir
-            )
+            val_real_mask_path = os.path.join(self.base_dir, self.val_real_mask_dir)
 
             Path(val_real_mask_path).mkdir(exist_ok=True)
             val_real_mask = os.listdir(val_real_mask_path)
@@ -233,14 +226,16 @@ class SmartSeeds2D:
             Path(real_mask_path).mkdir(exist_ok=True)
             real_mask = os.listdir(real_mask_path)
 
-        
-        if self.binary_mask_dir is not None and self.train_star and len(mask) > 0 and len(real_mask) < len(mask):
+        if (
+            self.binary_mask_dir is not None
+            and self.train_star
+            and len(mask) > 0
+            and len(real_mask) < len(mask)
+        ):
 
             print("Making labels")
             mask = sorted(
-                glob.glob(
-                    self.base_dir + self.binary_mask_dir + "*" + self.pattern
-                )
+                glob.glob(self.base_dir + self.binary_mask_dir + "*" + self.pattern)
             )
 
             for fname in mask:
@@ -262,7 +257,11 @@ class SmartSeeds2D:
                             binary_image.astype("uint16"),
                         )
 
-        if self.real_mask_dir is not None and len(real_mask) > 0 and len(mask) < len(real_mask):
+        if (
+            self.real_mask_dir is not None
+            and len(real_mask) > 0
+            and len(mask) < len(real_mask)
+        ):
             print("Generating Binary images")
 
             real_files_mask = os.listdir(real_mask_path)
@@ -506,13 +505,13 @@ class SmartSeeds2D:
             self.axis_norm = (0, 1)  # normalize channels independently
 
             if self.load_data_sequence is False:
-                assert len(Raw) > 1, "not enough training data"
-                print(len(Raw))
+                assert len(raw) > 1, "not enough training data"
+                print(len(raw))
                 rng = np.random.RandomState(42)
-                ind = rng.permutation(len(Raw))
+                ind = rng.permutation(len(raw))
 
-                X_train = list(map(ReadFloat, Raw))
-                Y_train = list(map(read_int, RealMask))
+                X_train = list(map(ReadFloat, raw))
+                Y_train = list(map(read_int, real_mask))
 
                 self.Y = [
                     label(DownsampleData(y, self.downsample_factor))
@@ -544,17 +543,17 @@ class SmartSeeds2D:
 
             if self.load_data_sequence:
                 self.X_trn = self.DataSequencer(
-                    Raw, self.axis_norm, Normalize=True, labelMe=False
+                    raw, self.axis_norm, Normalize=True, labelMe=False
                 )
                 self.Y_trn = self.DataSequencer(
-                    RealMask, self.axis_norm, Normalize=False, labelMe=True
+                    real_mask, self.axis_norm, Normalize=False, labelMe=True
                 )
 
                 self.X_val = self.DataSequencer(
-                    ValRaw, self.axis_norm, Normalize=True, labelMe=False
+                    val_raw, self.axis_norm, Normalize=True, labelMe=False
                 )
                 self.Y_val = self.DataSequencer(
-                    ValRealMask, self.axis_norm, Normalize=False, labelMe=True
+                    val_real_mask, self.axis_norm, Normalize=False, labelMe=True
                 )
                 self.train_sample_cache = False
 

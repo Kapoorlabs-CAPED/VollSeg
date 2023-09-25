@@ -150,9 +150,7 @@ class SmartSeeds3D:
 
         def __getitem__(self, idx):
 
-            batch_x = self.filesraw[
-                idx * self.batch_size : (idx + 1) * self.batch_size
-            ]
+            batch_x = self.filesraw[idx * self.batch_size : (idx + 1) * self.batch_size]
             batch_y = self.filesmask[
                 idx * self.batch_size : (idx + 1) * self.batch_size
             ]
@@ -214,33 +212,32 @@ class SmartSeeds3D:
 
         raw_path = os.path.join(self.base_dir, self.raw_dir)
         raw = os.listdir(raw_path)
-        if self.load_data_sequence:
+        if self.load_data_sequence and self.val_real_mask_dir is not None:
             val_raw_path = os.path.join(self.base_dir, self.val_raw_dir)
             val_raw = os.listdir(val_raw_path)
-            val_real_mask_path = os.path.join(
-                self.base_dir, self.val_real_mask_dir
-            )
+            val_real_mask_path = os.path.join(self.base_dir, self.val_real_mask_dir)
 
             Path(val_real_mask_path).mkdir(exist_ok=True)
             val_real_mask = os.listdir(val_real_mask_path)
+        if self.binary_mask_dir is not None:
+            mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
+            Path(mask_path).mkdir(exist_ok=True)
+            mask = os.listdir(mask_path)
+        if self.real_mask_dir is not None:
+            real_mask_path = os.path.join(self.base_dir, self.real_mask_dir)
+            Path(real_mask_path).mkdir(exist_ok=True)
+            real_mask = os.listdir(real_mask_path)
 
-        mask_path = os.path.join(self.base_dir, self.binary_mask_dir)
-        Path(mask_path).mkdir(exist_ok=True)
-        mask = os.listdir(mask_path)
-
-        real_mask_path = os.path.join(self.base_dir, self.real_mask_dir)
-        Path(real_mask_path).mkdir(exist_ok=True)
-        real_mask = os.listdir(real_mask_path)
-
-        print("Instance segmentation masks:", len(real_mask))
-        print("Semantic segmentation masks:", len(mask))
-        if self.train_star and len(mask) > 0 and len(real_mask) < len(mask):
+        if (
+            self.binary_mask_dir is not None
+            and self.train_star
+            and len(mask) > 0
+            and len(real_mask) < len(mask)
+        ):
 
             print("Making labels")
             mask = sorted(
-                glob.glob(
-                    self.base_dir + self.binary_mask_dir + "*" + self.pattern
-                )
+                glob.glob(self.base_dir + self.binary_mask_dir + "*" + self.pattern)
             )
 
             for fname in mask:
@@ -251,18 +248,22 @@ class SmartSeeds3D:
                     if np.max(image) == 1:
                         image = image * 255
                     binary_image = label(image)
+                    if self.real_mask_dir is not None:
+                        imwrite(
+                            (
+                                os.path.join(
+                                    self.base_dir,
+                                    self.real_mask_dir + Name + self.pattern,
+                                )
+                            ),
+                            binary_image.astype("uint16"),
+                        )
 
-                    imwrite(
-                        (
-                            os.path.join(
-                                self.base_dir,
-                                self.real_mask_dir + Name + self.pattern,
-                            )
-                        ),
-                        binary_image.astype("uint16"),
-                    )
-
-        if len(real_mask) > 0 and len(mask) < len(real_mask):
+        if (
+            self.real_mask_dir is not None
+            and len(real_mask) > 0
+            and len(mask) < len(real_mask)
+        ):
             print("Generating Binary images")
 
             real_files_mask = os.listdir(real_mask_path)
@@ -277,16 +278,16 @@ class SmartSeeds3D:
                     Name = os.path.basename(os.path.splitext(fname)[0])
 
                     binary_image = image > 0
-
-                    imwrite(
-                        (
-                            os.path.join(
-                                self.base_dir,
-                                self.binary_mask_dir + Name + self.pattern,
-                            )
-                        ),
-                        binary_image.astype("uint16"),
-                    )
+                    if self.binary_mask_dir is not None:
+                        imwrite(
+                            (
+                                os.path.join(
+                                    self.base_dir,
+                                    self.binary_mask_dir + Name + self.pattern,
+                                )
+                            ),
+                            binary_image.astype("uint16"),
+                        )
 
         if self.generate_npz:
 
@@ -302,9 +303,7 @@ class SmartSeeds3D:
                 raw_data=raw_data,
                 patch_size=self.patch_size,
                 n_patches_per_image=self.n_patches_per_image,
-                save_file=os.path.join(
-                    self.base_dir, self.npz_filename + ".npz"
-                ),
+                save_file=os.path.join(self.base_dir, self.npz_filename + ".npz"),
             )
 
         # Training UNET model
@@ -312,9 +311,7 @@ class SmartSeeds3D:
             print("Training UNET model")
 
             if not self.load_data_sequence:
-                load_path = os.path.join(
-                    self.base_dir, self.npz_filename + ".npz"
-                )
+                load_path = os.path.join(self.base_dir, self.npz_filename + ".npz")
                 (X, Y), (X_val, Y_val), axes = load_training_data(
                     load_path,
                     validation_split=self.validation_split,
@@ -329,9 +326,7 @@ class SmartSeeds3D:
                 val_raw_path_list = []
                 for fname in val_raw:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
-                        val_raw_path_list.append(
-                            os.path.join(val_raw_path, fname)
-                        )
+                        val_raw_path_list.append(os.path.join(val_raw_path, fname))
 
                 mask_path_list = []
                 for fname in mask:
@@ -376,9 +371,7 @@ class SmartSeeds3D:
             print(config)
             vars(config)
 
-            model = CARE(
-                config, name=self.unet_model_name, basedir=self.unet_model_dir
-            )
+            model = CARE(config, name=self.unet_model_name, basedir=self.unet_model_dir)
 
             if os.path.exists(
                 os.path.join(
@@ -445,9 +438,7 @@ class SmartSeeds3D:
             print(sorted(list(history.history.keys())))
 
         if self.train_star:
-            print(
-                "Training StarDistModel model with", self.backbone, "backbone"
-            )
+            print("Training StarDistModel model with", self.backbone, "backbone")
 
             real_files_mask = os.listdir(real_mask_path)
             if not self.load_data_sequence:
@@ -457,15 +448,11 @@ class SmartSeeds3D:
                 self.X = []
                 for fname in real_files_mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
-                        self.Y.append(
-                            read_int(os.path.join(real_mask_path, fname))
-                        )
+                        self.Y.append(read_int(os.path.join(real_mask_path, fname)))
 
                 for fname in raw:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
-                        self.X.append(
-                            read_float(os.path.join(raw_path, fname))
-                        )
+                        self.X.append(read_float(os.path.join(raw_path, fname)))
 
                 n_val = max(1, int(round(self.validation_split * len(ind))))
                 ind_train, ind_val = ind[:-n_val], ind[-n_val:]
@@ -484,9 +471,7 @@ class SmartSeeds3D:
 
                 extents = calculate_extents(self.Y_trn)
                 self.annisotropy = tuple(np.max(extents) / extents)
-                rays = Rays_GoldenSpiral(
-                    self.n_rays, anisotropy=self.annisotropy
-                )
+                rays = Rays_GoldenSpiral(self.n_rays, anisotropy=self.annisotropy)
             if self.load_data_sequence:
                 rays = self.n_rays
                 self.annisotropy = None
@@ -497,9 +482,7 @@ class SmartSeeds3D:
                 val_raw_path_list = []
                 for fname in val_raw:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
-                        val_raw_path_list.append(
-                            os.path.join(val_raw_path, fname)
-                        )
+                        val_raw_path_list.append(os.path.join(val_raw_path, fname))
 
                 self.X_trn = self.DataSequencer(
                     raw_path_list,
@@ -510,9 +493,7 @@ class SmartSeeds3D:
                 real_mask_path_list = []
                 for fname in real_mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
-                        real_mask_path_list.append(
-                            os.path.join(real_mask_path, fname)
-                        )
+                        real_mask_path_list.append(os.path.join(real_mask_path, fname))
                 val_real_mask_path_list = []
                 for fname in val_real_mask:
                     if any(fname.endswith(f) for f in self.acceptable_formats):
@@ -550,9 +531,7 @@ class SmartSeeds3D:
                     train_epochs=self.epochs,
                     train_learning_rate=self.learning_rate,
                     resnet_n_blocks=self.depth,
-                    train_checkpoint=self.star_model_dir
-                    + self.star_model_name
-                    + ".h5",
+                    train_checkpoint=self.star_model_dir + self.star_model_name + ".h5",
                     resnet_kernel_size=(
                         self.kern_size,
                         self.kern_size,
@@ -576,9 +555,7 @@ class SmartSeeds3D:
                     train_epochs=self.epochs,
                     train_learning_rate=self.learning_rate,
                     unet_n_depth=self.depth,
-                    train_checkpoint=self.star_model_dir
-                    + self.star_model_name
-                    + ".h5",
+                    train_checkpoint=self.star_model_dir + self.star_model_name + ".h5",
                     unet_kernel_size=(
                         self.kern_size,
                         self.kern_size,
