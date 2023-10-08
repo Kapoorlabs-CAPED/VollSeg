@@ -23,6 +23,7 @@ from .PredictTiledLoader import PredictTiled
 from .TrainTiledLoader import TrainTiled
 from .Tiles_3D import VolumeSlicer
 from .SmartNucleiPatches import SmartNucleiPatches
+import os
 from .utils import (
     VollCellSeg,
     VollSeg,
@@ -102,7 +103,7 @@ __all__ = (
     "CleanCellPose",
     "CleanMask",
     "VollOne",
-    "SmartNucleiPatches"
+    "SmartNucleiPatches",
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
@@ -246,3 +247,23 @@ def test_image_carcinoma_3dt():
     hash = "713911848cf5263393e479d5cb3e5d59"
     img = imread(abspath(get_file(fname="Carcinoma", origin=url, file_hash=hash)))
     return img
+
+
+def test_microtubule_kymographs():
+    url = "https://zenodo.org/record/8418654/files/example_microtubule_kymographs.zip"
+    hash = "2ad963d222870c494ed1ccaef42a0f82"
+    current_directory = os.getcwd()
+    parent_directory = os.path.dirname(current_directory)
+    abspath(
+        get_file(
+            fname="example_microtubule_kymographs.zip",
+            origin=url,
+            file_hash=hash,
+            extract=True,
+            archive_format="zip",
+            cache_subdir=parent_directory,
+        )
+    )
+    extracted_folder = os.path.join(parent_directory, "microtubule_kymographs")
+
+    return extracted_folder
