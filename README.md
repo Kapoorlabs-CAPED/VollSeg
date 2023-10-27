@@ -4,8 +4,6 @@
 [![PyPI version](https://img.shields.io/pypi/v/vollseg.svg?maxAge=2591000)](https://pypi.org/project/vollseg/)
 [![License](https://img.shields.io/pypi/l/napari-metroid.svg?color=green)](https://github.com/kapoorlab/napari-vollseg/raw/main/LICENSE)
 [![Twitter Badge](https://badgen.net/badge/icon/twitter?icon=twitter&label)](https://twitter.com/entracod)
-
-3D segmentation tool for irregular shaped cells
 ![Segmentation](https://github.com/kapoorlab/VollSeg/blob/main/images/Seg_compare-big.png)
 
 VollSeg is more than just a single segmentation algorithm; it is a meticulously designed modular segmentation tool tailored to diverse model organisms and imaging methods. While a U-Net might suffice for certain image samples, others might benefit from utilizing StarDist, and some could require a blend of both, potentially coupled with denoising or region of interest models. The pivotal decision left to make is how to select the most appropriate VollSeg configuration for your dataset, a question we comprehensively address in our [documentation website](https://kapoorlabs-caped.github.io/vollseg-napari/).
@@ -13,10 +11,7 @@ VollSeg is more than just a single segmentation algorithm; it is a meticulously 
 ## Installation
 This package can be installed by 
 
-
 `pip install  vollseg`
-
-`mamba install pytorch torchvision torchaudio pytorch-cuda=11.6 -c pytorch -c nvidia`
 
 If you are building this from the source, clone the repository and install via
 
