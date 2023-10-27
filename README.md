@@ -25,9 +25,8 @@ pip install -e .
 
 ```
 
-
+![Algorithm](https://github.com/kapoorlab/VollSeg/blob/main/images/Seg_pipe-git.png)
 - **Algorithm**
-  - ![Algorithm](https://github.com/kapoorlab/VollSeg/blob/main/images/Seg_pipe-git.png)
   - Schematic representation showing the segmentation approach used in VollSeg.
   - First, we input the raw fluorescent image in 3D (A) and preprocess it to remove noise.
   - Next, we obtain the star convex approximation to the cells using Stardist (B) and the U-Net prediction labeled via connected components (C).
