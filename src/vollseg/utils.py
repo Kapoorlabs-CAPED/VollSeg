@@ -6538,9 +6538,8 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, sigma=2):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     watershedImage = watershed(-blurred_boundaries_image, markers, mask=mask.copy())
-    relabeled = relabel_sequential(watershedImage)
 
-    return relabeled
+    return watershedImage
 
 
 def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh=1):
