@@ -6527,32 +6527,13 @@ def CleanCellPose(cellpose_mask, nms_thresh, z_thresh=1):
     return cellpose_mask_copy
 
 
-def CellPose3DWater(sized_smart_seeds, foreground, flows, nms_thresh, z_thresh=1):
-
-    Copyflows = flows.copy()
-    CopyMasks = sized_smart_seeds.copy()
-    starproperties = measure.regionprops(CopyMasks)
-    KeepCoordinates = [prop.centroid for prop in starproperties]
-    KeepCoordinates = np.asarray(KeepCoordinates)
-    coordinates_int = np.round(KeepCoordinates).astype(int)
-    markers_raw = np.zeros_like(sized_smart_seeds)
-    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(KeepCoordinates))
-
-    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
-    watershed_image_nuclei = watershed(Copyflows, markers, mask=foreground)
-
-    relabeled = NMSLabel(
-        watershed_image_nuclei, nms_thresh, z_thresh=z_thresh
-    ).supressregions()
-    relabeled = fill_label_holes(relabeled)
-    return relabeled
 
 
 def CellPoseWater(cellpose_mask, sized_smart_seeds, sigma = 2):
 
     cellpose_mask_copy = cellpose_mask.copy()
     mask = cellpose_mask_copy > 0
-    boundaries = find_boundaries(cellpose_mask_copy) 
+    boundaries = find_boundaries(cellpose_mask_copy).astype(np.float32) 
     blurred_boundaries_image = gaussian_filter(boundaries, sigma=sigma)
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
