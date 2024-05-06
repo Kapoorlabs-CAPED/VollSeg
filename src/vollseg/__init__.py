@@ -42,7 +42,6 @@ from .utils import (
     SuperSTARPrediction,
     SuperUNETPrediction,
     SuperWatershedwithMask,
-    CellPose3DWater,
     CCLabels,
     CellPoseWater,
     CleanCellPose,
