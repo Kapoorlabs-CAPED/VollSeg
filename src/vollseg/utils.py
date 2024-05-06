@@ -65,6 +65,7 @@ from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 from numba import njit
 from csbdeep.models import ProjectionCARE
 from scipy.ndimage import gaussian_filter
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -1542,7 +1543,6 @@ def _cellpose_star_block(
             )
 
     return cellres, res
-
 
 
 def MembraneSeg(
@@ -3256,10 +3256,7 @@ def _cellpose_block(axes, sized_smart_seeds, cellpose_labels, nms_thresh, z_thre
 
     if "T" not in axes:
 
-        voll_cell_seg = CellPoseWater(
-            cellpose_labels,
-            sized_smart_seeds
-        )
+        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds)
     if "T" in axes:
 
         voll_cell_seg = []
@@ -3267,8 +3264,7 @@ def _cellpose_block(axes, sized_smart_seeds, cellpose_labels, nms_thresh, z_thre
             cellpose_labels_time = cellpose_labels[time]
             sized_smart_seeds_time = sized_smart_seeds[time]
             voll_cell_seg_time = CellPoseWater(
-                cellpose_labels_time,
-                sized_smart_seeds_time
+                cellpose_labels_time, sized_smart_seeds_time
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -6527,13 +6523,11 @@ def CleanCellPose(cellpose_mask, nms_thresh, z_thresh=1):
     return cellpose_mask_copy
 
 
-
-
-def CellPoseWater(cellpose_mask, sized_smart_seeds, sigma = 2):
+def CellPoseWater(cellpose_mask, sized_smart_seeds, sigma=2):
 
     cellpose_mask_copy = cellpose_mask.copy()
     mask = cellpose_mask_copy > 0
-    boundaries = find_boundaries(cellpose_mask_copy).astype(np.float32) 
+    boundaries = find_boundaries(cellpose_mask_copy).astype(np.float32)
     blurred_boundaries_image = gaussian_filter(boundaries, sigma=sigma)
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
@@ -6545,8 +6539,6 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, sigma = 2):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     watershedImage = watershed(-blurred_boundaries_image, markers, mask=mask.copy())
     relabeled = relabel_sequential(watershedImage)
-    relabeled = fill_label_holes(relabeled)
-
 
     return relabeled
 
