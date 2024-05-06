@@ -64,7 +64,7 @@ from vollseg.unetstarmask import UnetStarMask
 from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 from numba import njit
 from csbdeep.models import ProjectionCARE
-
+from scipy.ndimage import gaussian_filter
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -1551,6 +1551,7 @@ def MembraneSeg(
     stitch_threshold: float = 0.5,
     flow_threshold: float = 0.4,
     cellprob_threshold: float = 0.0,
+    nuclei_seg_image: np.ndarray = None,
     anisotropy=None,
     unet_model=None,
     star_model=None,
@@ -3257,9 +3258,7 @@ def _cellpose_block(axes, sized_smart_seeds, cellpose_labels, nms_thresh, z_thre
 
         voll_cell_seg = CellPoseWater(
             cellpose_labels,
-            sized_smart_seeds,
-            nms_thresh,
-            z_thresh=z_thresh,
+            sized_smart_seeds
         )
     if "T" in axes:
 
@@ -3269,9 +3268,7 @@ def _cellpose_block(axes, sized_smart_seeds, cellpose_labels, nms_thresh, z_thre
             sized_smart_seeds_time = sized_smart_seeds[time]
             voll_cell_seg_time = CellPoseWater(
                 cellpose_labels_time,
-                sized_smart_seeds_time,
-                nms_thresh,
-                z_thresh=z_thresh,
+                sized_smart_seeds_time
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -6551,19 +6548,25 @@ def CellPose3DWater(sized_smart_seeds, foreground, flows, nms_thresh, z_thresh=1
     return relabeled
 
 
-def CellPoseWater(cellpose_mask, sized_smart_seeds, nms_thresh, z_thresh=1):
+def CellPoseWater(cellpose_mask, sized_smart_seeds, sigma = 2):
 
     cellpose_mask_copy = cellpose_mask.copy()
-
-    empy_region_indices = zip(*np.where(cellpose_mask_copy == 0))
-    for index in empy_region_indices:
-        cellpose_mask_copy[index] = sized_smart_seeds[index]
-
-    cellpose_mask_copy = label(cellpose_mask_copy)
-    relabeled = NMSLabel(
-        cellpose_mask_copy, nms_thresh, z_thresh=z_thresh
-    ).supressregions()
+    mask = cellpose_mask_copy > 0
+    boundaries = find_boundaries(cellpose_mask_copy) 
+    blurred_boundaries_image = gaussian_filter(boundaries, sigma=sigma)
+    properties = measure.regionprops(sized_smart_seeds)
+    Coordinates = [prop.centroid for prop in properties]
+    Coordinates.append((0, 0, 0))
+    Coordinates = np.asarray(Coordinates)
+    coordinates_int = np.round(Coordinates).astype(int)
+    markers_raw = np.zeros_like(sized_smart_seeds)
+    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
+    watershedImage = watershed(-blurred_boundaries_image, markers, mask=mask.copy())
+    relabeled = relabel_sequential(watershedImage)
     relabeled = fill_label_holes(relabeled)
+
+
     return relabeled
 
 
