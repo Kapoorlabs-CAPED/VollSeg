@@ -326,22 +326,23 @@ def fill_label_holes(lbl_img, **kwargs):
         lbl_img_filled[sl][mask_filled] = i
     return lbl_img_filled
 
-
 def dilate_label_holes(lbl_img, iterations):
-    lbl_img_filled = np.zeros_like(lbl_img)
-    for lb in range(np.min(lbl_img), np.max(lbl_img) + 1):
-        mask = lbl_img == lb
-        mask_filled = binary_dilation(mask, iterations=iterations)
-        lbl_img_filled[mask_filled] = lb
-    return lbl_img_filled
+    labels = np.unique(lbl_img)
+    dilated = np.zeros_like(lbl_img)
+    for label in labels:
+        mask = lbl_img == label
+        dilated[mask] = binary_dilation(mask, iterations=iterations)[mask]
+    return dilated
 
 def erode_label_regions(lbl_img, iterations):
-    lbl_img_eroded = np.zeros_like(lbl_img)
-    for lb in range(np.min(lbl_img), np.max(lbl_img) + 1):
-        mask = lbl_img == lb
-        mask_eroded = binary_erosion(mask, iterations=iterations)
-        lbl_img_eroded[mask_eroded] = lb
-    return lbl_img_eroded
+    labels = np.unique(lbl_img)
+    eroded = np.zeros_like(lbl_img)
+    for label in labels:
+        mask = lbl_img == label
+        eroded[mask] = binary_erosion(mask, iterations=iterations)[mask]
+    return eroded
+
+
 
 def match_labels(ys: np.ndarray, nms_thresh=0.5):
 
@@ -6517,6 +6518,7 @@ def CleanCellPose(cellpose_mask, nms_thresh, z_thresh=1):
 
 def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=2):
 
+    print('In cell pose watershed routine')
     cellpose_mask_copy = cellpose_mask.copy()
     contracted_Cellpose = erode_label_regions(cellpose_mask_copy, iterations)
     mask = contracted_Cellpose > 0
@@ -6531,6 +6533,8 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=2):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     watershedImage = watershed(-distance_transformed_image, markers, mask=mask.copy())
     watershedImage = dilate_label_holes(watershedImage, iterations)
+    print('Done cell pose watershed routine')
+
     return watershedImage
 
 
