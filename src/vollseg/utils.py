@@ -326,22 +326,37 @@ def fill_label_holes(lbl_img, **kwargs):
         lbl_img_filled[sl][mask_filled] = i
     return lbl_img_filled
 
+
+
 def dilate_label_holes(lbl_img, iterations):
-    labels = np.unique(lbl_img)
-    dilated = np.zeros_like(lbl_img)
-    for label in labels:
-        mask = lbl_img == label
-        dilated[mask] = binary_dilation(mask, iterations=iterations)[mask]
-    return dilated
+    lbl_img_filled = np.zeros_like(lbl_img)
+    for lb in range(np.min(lbl_img), np.max(lbl_img) + 1):
+        mask = lbl_img == lb
+        mask_filled = binary_dilation(mask, iterations=iterations)
+        lbl_img_filled[mask_filled] = lb
+    return lbl_img_filled
 
-def erode_label_regions(lbl_img, iterations):
-    labels = np.unique(lbl_img)
-    eroded = np.zeros_like(lbl_img)
-    for label in labels:
-        mask = lbl_img == label
-        eroded[mask] = binary_erosion(mask, iterations=iterations)[mask]
-    return eroded
 
+
+
+def erode_label_regions(segmentation, erosion_iterations=2):
+    regions = regionprops(segmentation)
+    erode = np.zeros(segmentation.shape)
+
+    def erode_mask(segmentation_labels, label_id, erosion_iterations):
+
+        only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
+        eroded = binary_erosion(
+            only_current_label_id, iterations=erosion_iterations
+        )
+        relabeled_eroded = np.where(eroded == 1, label_id, 0)
+        return relabeled_eroded
+
+    for i in range(len(regions)):
+        label_id = regions[i].label
+        erode = erode + erode_mask(segmentation, label_id, erosion_iterations)
+
+    return erode
 
 
 def match_labels(ys: np.ndarray, nms_thresh=0.5):
@@ -6532,7 +6547,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=2):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     watershedImage = watershed(-distance_transformed_image, markers, mask=mask.copy())
-    watershedImage = dilate_label_holes(watershedImage, iterations)
+    watershedImage = expand_labels(watershedImage, distance = iterations)
     print('Done cell pose watershed routine')
 
     return watershedImage
