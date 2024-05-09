@@ -258,6 +258,32 @@ def BinaryLabel(BinaryImageOriginal, max_size=15000):
     return AugmentedLabel
 
 
+
+
+def contract_labels(label_image, distance=1):
+    labels_out = np.zeros_like(label_image)
+    
+    unique_labels = np.unique(label_image)
+    unique_labels = unique_labels[unique_labels != 0]  
+    
+    for label in unique_labels:
+        label_mask = label_image == label
+        
+        distances, nearest_label_coords = distance_transform_edt(
+            np.logical_and(label_image != 0, label_image != label),
+            return_indices=True
+        )
+        
+        erode_mask = distances <= distance
+        
+        masked_nearest_label_coords = [
+            dimension_indices[erode_mask] for dimension_indices in nearest_label_coords
+        ]
+        nearest_labels = label_image[tuple(masked_nearest_label_coords)]
+        labels_out[erode_mask] = nearest_labels
+        
+    return labels_out
+
 def expand_labels(label_image, distance=1):
 
     distances, nearest_label_coords = distance_transform_edt(
@@ -265,9 +291,7 @@ def expand_labels(label_image, distance=1):
     )
     labels_out = np.zeros_like(label_image)
     dilate_mask = distances <= distance
-    # build the coordinates to find nearest labels,
-    # in contrast to [1] this implementation supports label arrays
-    # of any dimension
+   
     masked_nearest_label_coords = [
         dimension_indices[dilate_mask] for dimension_indices in nearest_label_coords
     ]
@@ -6526,9 +6550,9 @@ def CleanCellPose(cellpose_mask, nms_thresh, z_thresh=1):
 def CellPoseWater(cellpose_mask, sized_smart_seeds, sigma=2):
 
     cellpose_mask_copy = cellpose_mask.copy()
-    mask = cellpose_mask_copy > 0
-    boundaries = find_boundaries(cellpose_mask_copy).astype(np.float32)
-    blurred_boundaries_image = gaussian_filter(boundaries, sigma=sigma)
+    contracted_Cellpose = contract_labels(cellpose_mask_copy, sigma)
+    mask = contracted_Cellpose > 0
+    distance_transformed_image = distance_transform_edt(mask)
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
     Coordinates.append((0, 0, 0))
@@ -6537,7 +6561,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, sigma=2):
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
-    watershedImage = watershed(-blurred_boundaries_image, markers, mask=mask.copy())
+    watershedImage = watershed(-distance_transformed_image, markers, mask=mask.copy())
 
     return watershedImage
 
