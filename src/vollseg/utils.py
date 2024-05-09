@@ -1124,66 +1124,7 @@ def _super_star_time_block(
     return res
 
 
-def _star_time_block(
-    image_nuclei,
-    unet_model,
-    star_model,
-    roi_model,
-    ExpandLabels,
-    axes,
-    noise_model,
-    prob_thresh,
-    nms_thresh,
-    donormalize,
-    n_tiles,
-    UseProbability,
-    dounet,
-    seedpool,
-    slice_merge,
-    lower_perc,
-    upper_perc,
-    min_size_mask,
-    min_size,
-    max_size,
-):
 
-    if star_model is not None:
-        if "T" in axes:
-            axes = axes.replace("T", "")
-        if prob_thresh is None and nms_thresh is None:
-            prob_thresh = star_model.thresholds.prob
-            nms_thresh = star_model.thresholds.nms
-        res = tuple(
-            zip(
-                *tuple(
-                    VollSeg3D(
-                        image_nuclei[i],
-                        unet_model,
-                        star_model,
-                        axes=axes,
-                        noise_model=noise_model,
-                        roi_model=roi_model,
-                        ExpandLabels=ExpandLabels,
-                        prob_thresh=prob_thresh,
-                        nms_thresh=nms_thresh,
-                        donormalize=donormalize,
-                        lower_perc=lower_perc,
-                        upper_perc=upper_perc,
-                        min_size_mask=min_size_mask,
-                        min_size=min_size,
-                        max_size=max_size,
-                        n_tiles=n_tiles,
-                        UseProbability=UseProbability,
-                        dounet=dounet,
-                        seedpool=seedpool,
-                        slice_merge=slice_merge,
-                    )
-                    for i in tqdm(range(image_nuclei.shape[0]))
-                )
-            )
-        )
-
-    return res
 
 
 def _cellpose_star_time_block(
