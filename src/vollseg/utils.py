@@ -64,7 +64,6 @@ from vollseg.unetstarmask import UnetStarMask
 from segment_anything import SamAutomaticMaskGenerator, sam_model_registry
 from numba import njit
 from csbdeep.models import ProjectionCARE
-from scipy.ndimage import gaussian_filter
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -258,31 +257,30 @@ def BinaryLabel(BinaryImageOriginal, max_size=15000):
     return AugmentedLabel
 
 
-
-
 def contract_labels(label_image, distance=1):
     labels_out = np.zeros_like(label_image)
-    
+
     unique_labels = np.unique(label_image)
-    unique_labels = unique_labels[unique_labels != 0]  
-    
-    for label in unique_labels:
-        label_mask = label_image == label
-        
+    unique_labels = unique_labels[unique_labels != 0]
+
+    for u_label in unique_labels:
+        label_mask = label_image == u_label
+
+        # Calculate distance transform from foreground pixels excluding current label
         distances, nearest_label_coords = distance_transform_edt(
-            np.logical_and(label_image != 0, label_image != label),
-            return_indices=True
+            np.logical_not(label_mask), return_indices=True
         )
-        
+
         erode_mask = distances <= distance
-        
+
         masked_nearest_label_coords = [
             dimension_indices[erode_mask] for dimension_indices in nearest_label_coords
         ]
         nearest_labels = label_image[tuple(masked_nearest_label_coords)]
         labels_out[erode_mask] = nearest_labels
-        
+
     return labels_out
+
 
 def expand_labels(label_image, distance=1):
 
@@ -291,7 +289,7 @@ def expand_labels(label_image, distance=1):
     )
     labels_out = np.zeros_like(label_image)
     dilate_mask = distances <= distance
-   
+
     masked_nearest_label_coords = [
         dimension_indices[dilate_mask] for dimension_indices in nearest_label_coords
     ]
@@ -6562,7 +6560,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, sigma=2):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     watershedImage = watershed(-distance_transformed_image, markers, mask=mask.copy())
-
+    watershedImage = expand_labels(watershedImage, sigma)
     return watershedImage
 
 
