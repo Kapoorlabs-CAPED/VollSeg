@@ -5715,14 +5715,7 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh=1)
     return watershedImage, markers
 
 
-def CleanCellPose(cellpose_mask, nms_thresh, z_thresh=1):
 
-    cellpose_mask_copy = cellpose_mask.copy()
-    cellpose_mask_copy = NMSLabel(
-        cellpose_mask_copy, nms_thresh, z_thresh=z_thresh
-    ).supressregions()
-
-    return cellpose_mask_copy
 
 
 def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=1):
@@ -5732,7 +5725,6 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=1):
     mask = cellpose_mask_copy > 0
     contracted_Cellpose = erode_label_regions(cellpose_mask_copy, iterations)
     
-    distance_transformed_image = distance_transform_edt(contracted_Cellpose > 0)
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
     Coordinates.append((0, 0, 0))
@@ -5741,7 +5733,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=1):
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
-    watershedImage = watershed(-distance_transformed_image, markers, mask=mask.copy())
+    watershedImage = watershed(contracted_Cellpose > 0, markers, mask=mask.copy())
     print('Done cell pose watershed routine')
 
     return watershedImage
