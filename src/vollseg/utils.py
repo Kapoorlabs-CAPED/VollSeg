@@ -5556,7 +5556,6 @@ def STARPrediction3D(
             nms_thresh=nms_thresh,
             seedpool=seedpool,
         )
-        Watershed = fill_label_holes(Watershed.astype("uint16"))
     else:
 
         Watershed = star_labels
