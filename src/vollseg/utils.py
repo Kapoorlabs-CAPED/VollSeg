@@ -1469,6 +1469,124 @@ def _cellpose_star_block(
     return cellres, res
 
 
+
+
+def CellPoseSeg(
+    image: np.ndarray,
+    diameter_cellpose: float = 34.6,
+    stitch_threshold: float = 0.5,
+    flow_threshold: float = 0.4,
+    cellprob_threshold: float = 0.0,
+    anisotropy=None,
+    cellpose_model_path: str = None,
+    gpu: bool = False,
+    axes: str = "ZYX",
+    save_dir: str = None,
+    Name: str = "Result",
+    do_3D: bool = False,
+    channels = [0,0]
+):
+
+
+    if len(image.shape) == 3 and "T" not in axes:
+
+        cellpose_model = models.CellposeModel(
+            gpu=gpu, pretrained_model=cellpose_model_path
+        )
+        if anisotropy is not None:
+            cellres = cellpose_model.eval(
+                image,
+                diameter=diameter_cellpose,
+                channels = channels,
+                flow_threshold=flow_threshold,
+                cellprob_threshold=cellprob_threshold,
+                stitch_threshold=stitch_threshold,
+                anisotropy=anisotropy,
+                tile=True,
+                do_3D=do_3D,
+            )
+        else:
+            cellres = cellpose_model.eval(
+                image,
+                diameter=diameter_cellpose,
+                channels = channels,
+                flow_threshold=flow_threshold,
+                cellprob_threshold=cellprob_threshold,
+                stitch_threshold=stitch_threshold,
+                tile=True,
+                do_3D=do_3D,
+            )
+
+        
+
+    if len(image.shape) == 4 and "T" in axes:
+
+        
+
+        cellpose_model = models.CellposeModel(
+            gpu=gpu, pretrained_model=cellpose_model_path
+        )
+        if anisotropy is not None:
+            cellres = tuple(
+                zip(
+                    *tuple(
+                        cellpose_model.eval(
+                            _x,
+                            diameter=diameter_cellpose,
+                            channels = channels,
+                            flow_threshold=flow_threshold,
+                            cellprob_threshold=cellprob_threshold,
+                            stitch_threshold=stitch_threshold,
+                            anisotropy=anisotropy,
+                            tile=True,
+                            do_3D=do_3D,
+                        )
+                        for _x in tqdm(image)
+                    )
+                )
+            )
+        else:
+            cellres = tuple(
+                zip(
+                    *tuple(
+                        cellpose_model.eval(
+                            _x,
+                            diameter=diameter_cellpose,
+                            channels = channels,
+                            flow_threshold=flow_threshold,
+                            cellprob_threshold=cellprob_threshold,
+                            stitch_threshold=stitch_threshold,
+                            tile=True,
+                            do_3D=do_3D,
+                        )
+                        for _x in tqdm(image)
+                    )
+                )
+            )    
+       
+
+    if cellpose_model_path is not None:
+        cellpose_labels = cellres[0]
+        cellpose_labels = np.asarray(cellpose_labels)
+    
+
+    if save_dir is not None:
+        Path(save_dir).mkdir(exist_ok=True)
+
+        if cellpose_model_path is not None:
+            cellpose_results = Path(save_dir) / "CellPose"
+            Path(cellpose_results).mkdir(exist_ok=True)
+            imwrite(
+                (os.path.join(cellpose_results.as_posix(), Name + ".tif")),
+                np.asarray(cellpose_labels).astype("uint16"),
+            )
+
+           
+    return cellpose_labels
+           
+
+
+
 def MembraneSeg(
     image: np.ndarray,
     diameter_cellpose: float = 34.6,

@@ -46,6 +46,7 @@ from .utils import (
     CellPoseWater,
     CleanMask,
     VollOne,
+    CellPoseSeg,
 )
 
 
@@ -101,6 +102,7 @@ __all__ = (
     "CleanMask",
     "VollOne",
     "SmartNucleiPatches",
+    "CellPoseSeg",
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
