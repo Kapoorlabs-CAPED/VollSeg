@@ -1159,13 +1159,8 @@ def _cellpose_star_time_block(
     do_3D,
 ):
 
-    futures = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-
-        futures.append(
-            executor.submit(
-                _super_star_time_block(
+        res = _super_star_time_block(
                     image_nuclei,
                     image_membrane,
                     unet_model_nuclei,
@@ -1188,12 +1183,9 @@ def _cellpose_star_time_block(
                     upper_perc,
                     slice_merge,
                 )
-            )
-        )
+           
 
-        futures.append(
-            executor.submit(
-                _cellpose_time_block,
+        cellres = _cellpose_time_block(
                 image_membrane,
                 diameter_cellpose,
                 flow_threshold,
@@ -1202,14 +1194,11 @@ def _cellpose_star_time_block(
                 anisotropy,
                 cellpose_model_path,
                 gpu,
-                do_3D,
-            )
+                do_3D
         )
-    results = [r.result() for r in futures]
+           
 
-    res, cellres = results
-
-    return cellres, res
+        return cellres, res
 
 
 def collate_fn(data):
@@ -1342,13 +1331,8 @@ def _membrane_time_block(
     do_3D,
 ):
 
-    futures = []
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-
-        futures.append(
-            executor.submit(
-                VollSeg(
+        res = VollSeg(
                     image,
                     unet_model=unet_model,
                     star_model=star_model,
@@ -1369,12 +1353,8 @@ def _membrane_time_block(
                     dounet=dounet,
                     seedpool=seedpool,
                 )
-            )
-        )
-
-        futures.append(
-            executor.submit(
-                _cellpose_time_block,
+            
+        cellres = _cellpose_time_block(
                 image,
                 diameter_cellpose,
                 flow_threshold,
@@ -1383,14 +1363,11 @@ def _membrane_time_block(
                 anisotropy,
                 cellpose_model_path,
                 gpu,
-                do_3D,
+                do_3D
             )
-        )
-    results = [r.result() for r in futures]
+        
 
-    res, cellres = results
-
-    return cellres, res
+        return cellres, res
 
 
 def _cellpose_star_block(
@@ -1515,7 +1492,7 @@ def MembraneSeg(
     slice_merge: bool = False,
     do_3D: bool = False,
     z_thresh: int = 2,
-    iterations: int = 2,
+    iterations: int = 1,
 ):
 
     if prob_thresh is None and nms_thresh is None and star_model is not None:
@@ -1594,35 +1571,9 @@ def MembraneSeg(
     if cellpose_model_path is not None:
         cellpose_labels = cellres[0]
 
-    cellpose_labels = np.asarray(cellpose_labels)
-    cellpose_labels = CleanCellPose(
-        cellpose_mask=cellpose_labels,
-        nms_thresh=nms_thresh,
-        z_thresh=z_thresh,
-    )
-    if "T" in axes:
-        for i in range(cellpose_labels.shape[0]):
-            for j in range(cellpose_labels.shape[1]):
-                cellpose_labels[i, j, :] = remove_small_objects(
-                    cellpose_labels[i, j, :].astype("uint16"),
-                    min_size=min_size_mask,
-                )
-                cellpose_labels[i, j, :] = remove_big_objects(
-                    cellpose_labels[i, j, :].astype("uint16"),
-                    max_size=max_size,
-                )
-    if "T" not in axes:
-        for i in range(cellpose_labels.shape[0]):
-
-            cellpose_labels[i, :] = remove_small_objects(
-                cellpose_labels[i, :].astype("uint16"), min_size=min_size_mask
-            )
-            cellpose_labels[i, :] = remove_big_objects(
-                cellpose_labels[i, :].astype("uint16"), max_size=max_size
-            )
-
-    cellpose_labels_copy = cellpose_labels.copy()
-    voll_cell_seg = cellpose_labels_copy
+        cellpose_labels = np.asarray(cellpose_labels)
+        cellpose_labels_copy = cellpose_labels.copy()
+        voll_cell_seg = cellpose_labels_copy
     if (
         noise_model is None
         and star_model is not None
@@ -2236,7 +2187,7 @@ def VollCellSeg(
     slice_merge: bool = False,
     do_3D: bool = False,
     z_thresh: int = 2,
-    iterations: int = 2
+    iterations: int = 1
 ):
 
     if prob_thresh_nuclei is None and nms_thresh_nuclei is None:
