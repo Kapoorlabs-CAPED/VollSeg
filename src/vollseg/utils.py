@@ -5698,7 +5698,8 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=1):
 
 
 def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh=1):
-
+    
+    print('Watershed with Mask 3D')
     CopyImage = Image.copy()
     properties = measure.regionprops(Label)
 
