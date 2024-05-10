@@ -516,7 +516,7 @@ def Skel(smart_seedsLabels, RGB=False):
 
 
 def Region_embedding(image, region, sourceimage, dtype=np.float32, RGB=False):
-
+    print('Region Embedding')
     returnimage = np.zeros(image.shape, dtype=dtype)
     if len(region) == 4 and len(image.shape) == 2:
         rowstart = region[0]
@@ -4308,8 +4308,9 @@ def SuperVollSeg(
     if dounet:
 
         gc.collect()
-        if unet_model_nuclei is not None:
 
+        if unet_model_nuclei is not None:
+            print('UNET Nuclei')
             Mask_nuclei = UNETPrediction3D(
                 patch_nuclei,
                 unet_model_nuclei,
@@ -4382,6 +4383,7 @@ def SuperVollSeg(
        
 
     if star_model_nuclei is not None:
+        print('StarDist Nuclei')
         if donormalize:
 
             patch_star_nuclei = normalize(
@@ -4444,7 +4446,7 @@ def SuperVollSeg(
         
 
     
-
+    print('Returning VollSeg')
     if (
         noise_model is None
         and roi_image is not None
