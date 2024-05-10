@@ -1610,7 +1610,7 @@ def MembraneSeg(
 
         voll_cell_seg = _cellpose_block(
             axes,
-            sized_smart_seeds,
+            star_labels,
             cellpose_labels_copy,
             iterations = iterations
         )
@@ -1642,7 +1642,7 @@ def MembraneSeg(
 
         voll_cell_seg = _cellpose_block(
             axes,
-            sized_smart_seeds,
+            star_labels,
             cellpose_labels_copy,
             iterations = iterations
         )
@@ -1685,7 +1685,7 @@ def MembraneSeg(
 
         voll_cell_seg = _cellpose_block(
             axes,
-            sized_smart_seeds,
+            star_labels,
             cellpose_labels_copy,
             iterations = iterations
         )
@@ -1715,7 +1715,7 @@ def MembraneSeg(
 
         voll_cell_seg = _cellpose_block(
             axes,
-            sized_smart_seeds,
+            star_labels,
             cellpose_labels_copy,
             iterations = iterations
         )
@@ -1746,7 +1746,7 @@ def MembraneSeg(
         roi_image = np.asarray(roi_image)
         voll_cell_seg = _cellpose_block(
             axes,
-            sized_smart_seeds,
+            star_labels,
             cellpose_labels_copy,
             niterations = iterations
         )
@@ -1776,7 +1776,7 @@ def MembraneSeg(
         image = np.asarray(image)
         voll_cell_seg = _cellpose_block(
             axes,
-            sized_smart_seeds,
+            star_labels,
             cellpose_labels_copy,
             iterations = iterations
         )
@@ -2371,7 +2371,7 @@ def VollCellSeg(
 
         voll_cell_seg = _cellpose_block(
             axes,
-            sized_smart_seeds_nuclei,
+            star_labels_nuclei,
             cellpose_labels_copy,
             iterations = iterations
         )
