@@ -3843,14 +3843,7 @@ def VollSeg3D(
             prob_thresh=prob_thresh,
             nms_thresh=nms_thresh,
         )
-        for i in tqdm(range(0, smart_seeds.shape[0])):
-            smart_seeds[i] = remove_small_objects(
-                smart_seeds[i, :].astype("uint16"), min_size=min_size
-            )
-            smart_seeds[i] = remove_big_objects(
-                smart_seeds[i, :].astype("uint16"), max_size=max_size
-            )
-        smart_seeds = fill_label_holes(smart_seeds.astype("uint16"))
+        
 
         smart_seeds = Region_embedding(image, roi_bbox, smart_seeds, dtype=np.uint16)
         sized_smart_seeds[
@@ -5497,7 +5490,7 @@ def STARPrediction3D(
 ):
 
     copymodel = model
-
+    print('Star Prediction 3D')
     grid = copymodel.config.grid
     if prob_thresh is None and nms_thresh is None:
         prob_thresh = model.thresholds.prob
