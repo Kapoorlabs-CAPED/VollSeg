@@ -44,7 +44,6 @@ from .utils import (
     SuperWatershedwithMask,
     CCLabels,
     CellPoseWater,
-    CleanCellPose,
     CleanMask,
     VollOne,
 )
@@ -99,7 +98,6 @@ __all__ = (
     "CellPose3DWater",
     "CCLabels",
     "CellPoseWater",
-    "CleanCellPose",
     "CleanMask",
     "VollOne",
     "SmartNucleiPatches",
