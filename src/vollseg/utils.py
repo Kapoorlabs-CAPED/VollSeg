@@ -366,7 +366,7 @@ def erode_label_regions(segmentation, erosion_iterations=1):
 
     return erode    
 
-    return erode
+ 
 
 
 def match_labels(ys: np.ndarray, nms_thresh=0.5):
@@ -5798,9 +5798,11 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=1):
 
     print('In cell pose watershed routine')
     cellpose_mask_copy = cellpose_mask.copy()
-    mask = cellpose_mask_copy > 0
     contracted_Cellpose = erode_label_regions(cellpose_mask_copy, iterations)
-    
+    mask = contracted_Cellpose > 0
+
+
+    dist_image = distance_transform_edt(contracted_Cellpose)
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
     Coordinates.append((0, 0, 0))
@@ -5809,7 +5811,8 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=1):
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
-    watershedImage = watershed(contracted_Cellpose > 0, markers, mask=mask.copy())
+    watershedImage = watershed(-dist_image, markers, mask=mask.copy())
+    watershedImage = dilate_label_holes(watershedImage, iterations)
     print('Done cell pose watershed routine')
 
     return watershedImage
