@@ -5625,7 +5625,7 @@ def STARPrediction3D(
                 : star_labels.shape[1],
                 : star_labels.shape[2],
             ]
-
+    print('Returning StarPrediction 3D')
     return Watershed, MaxProjectDistance, star_labels, markers
 
 
