@@ -2338,7 +2338,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
             roi_image_nuclei,
         ) = res
 
@@ -2355,7 +2354,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
             roi_image_nuclei,
         ) = res
 
@@ -2364,7 +2362,6 @@ def VollCellSeg(
         star_labels_nuclei = np.asarray(star_labels_nuclei)
         probability_map_nuclei = np.asarray(probability_map_nuclei)
         markers_nuclei = np.asarray(markers_nuclei)
-        skeleton_nuclei = np.asarray(skeleton_nuclei)
         roi_image_nuclei = np.asarray(roi_image_nuclei)
 
        
@@ -2390,7 +2387,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
         ) = res
 
     
@@ -2407,7 +2403,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
             image_nuclei,
             roi_image_nuclei,
         ) = res
@@ -2434,7 +2429,7 @@ def VollCellSeg(
         and cellpose_model_path is not None
     ):
 
-        instance_labels_nuclei, skeleton_nuclei, image = res
+        instance_labels_nuclei, image = res
 
     elif (
         star_model_nuclei is None
@@ -2444,7 +2439,7 @@ def VollCellSeg(
         and cellpose_model_path is not None
     ):
 
-        instance_labels_nuclei, skeleton_nuclei, image = res
+        instance_labels_nuclei,  image = res
 
     elif (
         star_model_nuclei is None
@@ -2454,7 +2449,7 @@ def VollCellSeg(
         and cellpose_model_path is not None
     ):
 
-        instance_labels_nuclei, skeleton_nuclei = res
+        instance_labels_nuclei = res
 
     elif (
         star_model_nuclei is None
@@ -2464,7 +2459,7 @@ def VollCellSeg(
         and cellpose_model_path is not None
     ):
 
-        roi_image_nuclei, skeleton_nuclei = res
+        roi_image_nuclei = res
         instance_labels_nuclei = roi_image_nuclei
 
     elif (
@@ -2475,7 +2470,7 @@ def VollCellSeg(
         and cellpose_model_path is not None
     ):
 
-        roi_image_nuclei, skeleton_nuclei, image = res
+        roi_image_nuclei, image = res
         instance_labels_nuclei = roi_image_nuclei
 
     elif (
@@ -2486,7 +2481,7 @@ def VollCellSeg(
         and cellpose_model_path is not None
     ):
 
-        roi_image_nuclei, skeleton_nuclei = res
+        roi_image_nuclei = res
         instance_labels_nuclei = roi_image_nuclei
 
     if save_dir is not None:
@@ -2531,12 +2526,10 @@ def VollCellSeg(
             stardist_results = Path(save_dir) / "NucleiStarDist"
             probability_results = Path(save_dir) / "NucleiProbability"
             marker_results = Path(save_dir) / "NucleiMarkers"
-            skel_results = Path(save_dir) / "NucleiSkeleton"
             Path(vollseg_results).mkdir(exist_ok=True)
             Path(stardist_results).mkdir(exist_ok=True)
             Path(probability_results).mkdir(exist_ok=True)
             Path(marker_results).mkdir(exist_ok=True)
-            Path(skel_results).mkdir(exist_ok=True)
             imwrite(
                 (os.path.join(stardist_results.as_posix(), Name + ".tif")),
                 np.asarray(star_labels_nuclei).astype("uint16"),
@@ -2553,10 +2546,7 @@ def VollCellSeg(
                 (os.path.join(marker_results.as_posix(), Name + ".tif")),
                 np.asarray(markers_nuclei).astype("uint16"),
             )
-            imwrite(
-                (os.path.join(skel_results.as_posix(), Name + ".tif")),
-                np.asarray(skeleton_nuclei).astype("uint16"),
-            )
+           
 
         
 
@@ -2590,7 +2580,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
             roi_image_nuclei,
         )
 
@@ -2607,7 +2596,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
             roi_image_nuclei,
             cellpose_labels,
             voll_cell_seg,
@@ -2626,7 +2614,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
         )
 
     elif (
@@ -2642,7 +2629,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
             cellpose_labels,
             voll_cell_seg,
         )
@@ -2661,7 +2647,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
             image,
             roi_image_nuclei,
         )
@@ -2679,7 +2664,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
             image,
             roi_image_nuclei,
             cellpose_labels,
@@ -2699,7 +2683,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
             image,
         )
 
@@ -2716,7 +2699,6 @@ def VollCellSeg(
             star_labels_nuclei,
             probability_map_nuclei,
             markers_nuclei,
-            skeleton_nuclei,
             image,
             cellpose_labels,
             voll_cell_seg,
@@ -2730,7 +2712,7 @@ def VollCellSeg(
         and cellpose_model_path is None
     ):
 
-        return instance_labels_nuclei, skeleton_nuclei, image
+        return instance_labels_nuclei, image
 
     elif (
         star_model_nuclei is None
@@ -2739,7 +2721,7 @@ def VollCellSeg(
         and cellpose_model_path is None
     ):
 
-        return roi_image_nuclei, skeleton_nuclei
+        return roi_image_nuclei
 
     elif (
         star_model_nuclei is None
@@ -2748,7 +2730,7 @@ def VollCellSeg(
         and cellpose_model_path is None
     ):
 
-        return roi_image_nuclei, skeleton_nuclei, image
+        return roi_image_nuclei, image
 
     elif (
         noise_model is not None
@@ -2758,7 +2740,7 @@ def VollCellSeg(
         and cellpose_model_path is None
     ):
 
-        return instance_labels_nuclei, skeleton_nuclei, image
+        return instance_labels_nuclei, image
 
     elif (
         star_model_nuclei is None
@@ -2768,7 +2750,7 @@ def VollCellSeg(
         and cellpose_model_path is None
     ):
 
-        return instance_labels_nuclei, skeleton_nuclei
+        return instance_labels_nuclei
 
 
 def _cellpose_block(axes, sized_smart_seeds, cellpose_labels, iterations = 1):
@@ -4459,12 +4441,7 @@ def SuperVollSeg(
         sized_stardist_nuclei[
             :, : star_labels_nuclei.shape[1], : star_labels_nuclei.shape[2]
         ] = star_labels_nuclei
-        skeleton_nuclei = np.zeros_like(sized_smart_seeds_nuclei)
-        for i in range(0, sized_smart_seeds_nuclei.shape[0]):
-            skeleton_nuclei[i] = SmartSkel(
-                sized_smart_seeds_nuclei[i], sized_probability_map_nuclei[i]
-            )
-        skeleton_nuclei = skeleton_nuclei > 0
+        
 
     
 
@@ -4479,7 +4456,6 @@ def SuperVollSeg(
             star_labels_nuclei.astype("uint16"),
             sized_probability_map_nuclei,
             markers_nuclei.astype("uint16"),
-            skeleton_nuclei.astype("uint16"),
             roi_image.astype("uint16"),
         )
     if (
@@ -4493,7 +4469,6 @@ def SuperVollSeg(
             star_labels_nuclei.astype("uint16"),
             sized_probability_map_nuclei,
             markers_nuclei.astype("uint16"),
-            skeleton_nuclei.astype("uint16"),
         )
     if (
         noise_model is not None
@@ -4506,7 +4481,6 @@ def SuperVollSeg(
             star_labels_nuclei.astype("uint16"),
             sized_probability_map_nuclei,
             markers_nuclei.astype("uint16"),
-            skeleton_nuclei.astype("uint16"),
             image_nuclei,
         )
     if (
@@ -4520,7 +4494,6 @@ def SuperVollSeg(
             star_labels_nuclei.astype("uint16"),
             sized_probability_map_nuclei,
             markers_nuclei.astype("uint16"),
-            skeleton_nuclei.astype("uint16"),
             image_nuclei,
             roi_image.astype("uint16"),
         )
@@ -4532,7 +4505,6 @@ def SuperVollSeg(
     ):
         return (
             instance_labels_nuclei.astype("uint16"),
-            skeleton_nuclei,
             image_nuclei,
             roi_image.astype("uint16"),
         )
@@ -4545,7 +4517,6 @@ def SuperVollSeg(
     ):
         return (
             instance_labels_nuclei.astype("uint16"),
-            skeleton_nuclei,
             image_nuclei,
         )
 
@@ -4555,7 +4526,7 @@ def SuperVollSeg(
         and star_model_nuclei is None
         and unet_model_nuclei is not None
     ):
-        return (instance_labels_nuclei.astype("uint16"), skeleton_nuclei)
+        return (instance_labels_nuclei.astype("uint16"))
 
     
     
