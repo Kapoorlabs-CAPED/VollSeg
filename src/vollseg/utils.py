@@ -4401,14 +4401,7 @@ def SuperVollSeg(
             prob_thresh=prob_thresh_nuclei,
             nms_thresh=nms_thresh_nuclei,
         )
-        for i in tqdm(range(0, smart_seeds_nuclei.shape[0])):
-            smart_seeds_nuclei[i] = remove_small_objects(
-                smart_seeds_nuclei[i, :].astype("uint16"), min_size=min_size
-            )
-            smart_seeds_nuclei[i] = remove_big_objects(
-                smart_seeds_nuclei[i, :].astype("uint16"), max_size=max_size
-            )
-        smart_seeds_nuclei = fill_label_holes(smart_seeds_nuclei.astype("uint16"))
+        
 
         smart_seeds_nuclei = Region_embedding(
             image_nuclei, roi_bbox, smart_seeds_nuclei, dtype=np.uint16
