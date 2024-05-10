@@ -339,7 +339,7 @@ def dilate_label_holes(lbl_img, iterations):
 
 
 
-def erode_label_regions(segmentation, erosion_iterations=2):
+def erode_label_regions(segmentation, erosion_iterations=1):
     regions = regionprops(segmentation)
     erode = np.zeros(segmentation.shape)
 
@@ -352,9 +352,19 @@ def erode_label_regions(segmentation, erosion_iterations=2):
         relabeled_eroded = np.where(eroded == 1, label_id, 0)
         return relabeled_eroded
 
-    for i in range(len(regions)):
-        label_id = regions[i].label
-        erode = erode + erode_mask(segmentation, label_id, erosion_iterations)
+
+    if segmentation.ndim == 3:
+        for i in range(len(regions)):
+            label_id = regions[i].label
+           
+            for z in range(segmentation.shape[0]):
+                erode[z, :, :] += erode_mask(segmentation[z, :, :], label_id, erosion_iterations)
+    else:
+        for i in range(len(regions)):
+            label_id = regions[i].label
+            erode += erode_mask(segmentation, label_id, erosion_iterations)
+
+    return erode    
 
     return erode
 
@@ -2761,7 +2771,7 @@ def VollCellSeg(
         return instance_labels_nuclei, skeleton_nuclei
 
 
-def _cellpose_block(axes, sized_smart_seeds, cellpose_labels, iterations = 2):
+def _cellpose_block(axes, sized_smart_seeds, cellpose_labels, iterations = 1):
 
     if "T" not in axes:
 
@@ -5715,7 +5725,7 @@ def CleanCellPose(cellpose_mask, nms_thresh, z_thresh=1):
     return cellpose_mask_copy
 
 
-def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=2):
+def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=1):
 
     print('In cell pose watershed routine')
     cellpose_mask_copy = cellpose_mask.copy()
