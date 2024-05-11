@@ -1426,6 +1426,7 @@ def CellPoseSeg(
     cellprob_threshold: float = 0.0,
     anisotropy=None,
     cellpose_model_path: str = None,
+    cellpose_model_type: str = None,
     gpu: bool = False,
     axes: str = "ZYX",
     save_dir: str = None,
@@ -1436,10 +1437,15 @@ def CellPoseSeg(
 
 
     if len(image.shape) == 3 and "T" not in axes:
+        if cellpose_model_path is not None:
+            cellpose_model = models.CellposeModel(
+                gpu=gpu, pretrained_model=cellpose_model_path
+            )
+        if cellpose_model_type is not None:
+            cellpose_model = models.CellposeModel(
+                gpu=gpu, model_type=cellpose_model_type
+            )
 
-        cellpose_model = models.CellposeModel(
-            gpu=gpu, pretrained_model=cellpose_model_path
-        )
         if anisotropy is not None:
             cellres = cellpose_model.eval(
                 image,
