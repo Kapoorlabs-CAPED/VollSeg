@@ -1526,7 +1526,7 @@ def CellPoseSeg(
     if save_dir is not None:
         Path(save_dir).mkdir(exist_ok=True)
 
-        if cellpose_model_path is not None:
+        if cellpose_model_path is not None  or cellpose_model_type is not None:
             cellpose_results = Path(save_dir) / "CellPose"
             Path(cellpose_results).mkdir(exist_ok=True)
             imwrite(
