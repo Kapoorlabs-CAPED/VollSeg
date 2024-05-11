@@ -1729,8 +1729,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             star_labels,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     if (
@@ -1761,8 +1760,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             star_labels,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     if (
@@ -1804,8 +1802,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             star_labels,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     if (
@@ -1834,8 +1831,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             star_labels,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     if (
@@ -1865,8 +1861,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             star_labels,
-            cellpose_labels_copy,
-            niterations = iterations
+            cellpose_labels_copy
         )
 
     if (
@@ -1895,8 +1890,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             star_labels,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     elif (
@@ -1914,8 +1908,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             instance_labels,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     elif (
@@ -1933,8 +1926,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             instance_labels,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     elif (
@@ -1952,8 +1944,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             instance_labels,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     elif (
@@ -1970,8 +1961,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             instance_labels,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     elif (
@@ -1998,8 +1988,7 @@ def MembraneSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             instance_labels,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     if save_dir is not None:
@@ -2487,8 +2476,7 @@ def VollCellSeg(
         voll_cell_seg = _cellpose_block(
             axes,
             star_labels_nuclei,
-            cellpose_labels_copy,
-            iterations = iterations
+            cellpose_labels_copy
         )
 
     
@@ -2871,11 +2859,11 @@ def VollCellSeg(
         return instance_labels_nuclei
 
 
-def _cellpose_block(axes, sized_smart_seeds, cellpose_labels, iterations = 1):
+def _cellpose_block(axes, sized_smart_seeds, cellpose_labels):
 
     if "T" not in axes:
 
-        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds, iterations = iterations)
+        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds)
     if "T" in axes:
 
         voll_cell_seg = []
@@ -2883,7 +2871,7 @@ def _cellpose_block(axes, sized_smart_seeds, cellpose_labels, iterations = 1):
             cellpose_labels_time = cellpose_labels[time]
             sized_smart_seeds_time = sized_smart_seeds[time]
             voll_cell_seg_time = CellPoseWater(
-                cellpose_labels_time, sized_smart_seeds_time, iterations=iterations
+                cellpose_labels_time, sized_smart_seeds_time
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -5791,18 +5779,45 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh=1)
     return watershedImage, markers
 
 
+def _edt_prob(lbl_img, anisotropy=None):
+    """Perform EDT on each labeled object and normalize."""
+    def grow(sl,interior):
+        return tuple(slice(s.start-int(w[0]),s.stop+int(w[1])) for s,w in zip(sl,interior))
+    def shrink(interior):
+        return tuple(slice(int(w[0]),(-1 if w[1] else None)) for w in interior)
+    constant_img = lbl_img.min() == lbl_img.max() and lbl_img.flat[0] > 0
+    if constant_img:
+        lbl_img = np.pad(lbl_img, ((1,1),)*lbl_img.ndim, mode='constant')
+    objects = find_objects(lbl_img)
+    prob = np.zeros(lbl_img.shape,np.float32)
+    for i,sl in enumerate(objects,1):
+        # i: object label id, sl: slices of object in lbl_img
+        if sl is None: continue
+        interior = [(s.start>0,s.stop<sz) for s,sz in zip(sl,lbl_img.shape)]
+        # 1. grow object slice by 1 for all interior object bounding boxes
+        # 2. perform (correct) EDT for object with label id i
+        # 3. extract EDT for object of original slice and normalize
+        # 4. store edt for object only for pixels of given label id i
+        shrink_slice = shrink(interior)
+        grown_mask = lbl_img[grow(sl,interior)]==i
+        mask = grown_mask[shrink_slice]
+        edt = distance_transform_edt(grown_mask, sampling=anisotropy)[shrink_slice][mask]
+        prob[sl][mask] = edt/(np.max(edt)+1e-10)
+    if constant_img:
+        prob = prob[(slice(1,-1),)*lbl_img.ndim].copy()
+
+    return prob     
 
 
 
-def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=1):
+def CellPoseWater(cellpose_mask, sized_smart_seeds):
 
     print('In cell pose watershed routine')
     cellpose_mask_copy = cellpose_mask.copy()
-    contracted_Cellpose = erode_label_regions(cellpose_mask_copy, iterations)
-    mask = contracted_Cellpose > 0
+    prob_cellpose = _edt_prob(cellpose_mask_copy)
+    mask = cellpose_mask_copy > 0
 
 
-    dist_image = distance_transform_edt(contracted_Cellpose)
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
     Coordinates.append((0, 0, 0))
@@ -5811,8 +5826,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, iterations=1):
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
-    watershedImage = watershed(-dist_image, markers, mask=mask.copy())
-    watershedImage = dilate_label_holes(watershedImage, iterations)
+    watershedImage = watershed(-prob_cellpose, markers, mask=mask.copy())
     print('Done cell pose watershed routine')
 
     return watershedImage
