@@ -1508,7 +1508,7 @@ def CellPoseSeg(
 
 def VollCellSeg(
     image: np.ndarray,
-    nuclei_seg_image=None,
+    nuclei_seg_image: np.ndarray = None,
     diameter_cellpose: float = 34.6,
     stitch_threshold: float = 0.5,
     channel_membrane: int = 0,
@@ -1711,9 +1711,9 @@ def VollCellSeg(
             )
 
     if cellpose_model_path is not None:
-            cellpose_labels = cellres[0]
-            cellpose_labels = np.asarray(cellpose_labels)
-            cellpose_labels_copy = cellpose_labels.copy()
+        cellpose_labels = cellres[0]
+        cellpose_labels = np.asarray(cellpose_labels)
+        cellpose_labels_copy = cellpose_labels.copy()
 
     if nuclei_seg_image is not None:
         if cellpose_model_path is not None:
