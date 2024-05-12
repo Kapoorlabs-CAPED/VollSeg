@@ -1710,7 +1710,7 @@ def VollCellSeg(
                 do_3D,
             )
 
-        if cellpose_model_path is not None:
+    if cellpose_model_path is not None:
             cellpose_labels = cellres[0]
             cellpose_labels = np.asarray(cellpose_labels)
             cellpose_labels_copy = cellpose_labels.copy()
