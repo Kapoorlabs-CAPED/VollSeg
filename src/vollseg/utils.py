@@ -5122,7 +5122,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     
     watershedImage = watershed(-prob_cellpose, markers, mask=mask.copy())
-    watershedImage = dilate_label_regions(cellpose_mask_copy, erosion_iterations = 2) 
+    watershedImage = dilate_label_regions(watershedImage, erosion_iterations = 2) 
     watershedImage *=original_mask.astype(np.uint8)
     watershedImage = relabel_image(watershedImage, cellpose_mask)
     watershedImage *=cellpose_mask
