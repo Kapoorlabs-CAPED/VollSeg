@@ -358,6 +358,32 @@ def erode_label_regions(segmentation, erosion_iterations=1):
 
     return erode
 
+def dilate_label_regions(segmentation, erosion_iterations=1):
+    regions = regionprops(segmentation)
+    erode = np.zeros(segmentation.shape)
+
+    def dilate_mask(segmentation_labels, label_id, erosion_iterations):
+
+        only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
+        eroded = binary_dilation(only_current_label_id, iterations=erosion_iterations)
+        relabeled_eroded = np.where(eroded == 1, label_id, 0)
+        return relabeled_eroded
+
+    if segmentation.ndim == 3:
+        for i in range(len(regions)):
+            label_id = regions[i].label
+
+            for z in range(segmentation.shape[0]):
+                erode[z, :, :] += dilate_mask(
+                    segmentation[z, :, :], label_id, erosion_iterations
+                )
+    else:
+        for i in range(len(regions)):
+            label_id = regions[i].label
+            erode += dilate_mask(segmentation, label_id, erosion_iterations)
+
+    return erode
+
 
 def match_labels(ys: np.ndarray, nms_thresh=0.5):
 
@@ -5083,7 +5109,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds):
     print("In cell pose watershed routine")
     cellpose_mask_copy = cellpose_mask.copy()
     prob_cellpose = _edt_prob(cellpose_mask_copy)
-
+    original_mask = cellpose_mask_copy > 0
     mask = erode_label_regions(cellpose_mask_copy, erosion_iterations = 2)
 
     properties = measure.regionprops(sized_smart_seeds)
@@ -5096,11 +5122,35 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     
     watershedImage = watershed(-prob_cellpose, markers, mask=mask.copy())
-    watershedImage = expand_labels(watershedImage, distance = 2)
+    watershedImage = dilate_label_regions(cellpose_mask_copy, erosion_iterations = 2) * original_mask
+    watershedImage = relabel_image(watershedImage, cellpose_mask)
+    watershedImage *=cellpose_mask
+    watershedImage,_,_ = relabel_sequential(watershedImage)
     print("Done cell pose watershed routine")
 
     return watershedImage
 
+def relabel_image(image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
+    """
+    Relabels image1 such that its minimum label is greater than the maximum label in image2.
+
+    Parameters:
+    - image1 (np.ndarray): First label image to be relabeled.
+    - image2 (np.ndarray): Second label image.
+
+    Returns:
+    - np.ndarray: Relabeled image1.
+    """
+    max_label_image2 = np.max(image2)
+    min_label_image1 = np.min(image1)
+
+    # Calculate the offset to add to image1 labels
+    offset = max_label_image2 - min_label_image1 + 1
+
+    # Relabel image1
+    relabeled_image1 = image1 + offset
+
+    return relabeled_image1
 
 def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh=1):
 
