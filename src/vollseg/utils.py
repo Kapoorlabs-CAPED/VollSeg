@@ -5128,7 +5128,6 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds):
     watershedImage *=cellpose_mask
     watershedImage,_,_ = relabel_sequential(watershedImage.astype(np.uint16))
     
-    watershedImage = expand_labels(watershedImage, distance=4) 
     watershedImage *=original_mask.astype(np.uint8)
     print("Done cell pose watershed routine")
 
