@@ -5123,9 +5123,9 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds):
     
     watershedImage = watershed(-prob_cellpose, markers, mask=mask.copy())
     
-    
+    cellpose_mask_reduced = cellpose_mask_copy * mask 
     watershedImage = relabel_image(watershedImage, cellpose_mask)
-    watershedImage *=cellpose_mask
+    watershedImage *=cellpose_mask_reduced
     watershedImage,_,_ = relabel_sequential(watershedImage.astype(np.uint16))
     
     watershedImage *=original_mask.astype(np.uint8)
