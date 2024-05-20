@@ -5110,8 +5110,8 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds):
     cellpose_mask_copy = cellpose_mask.copy()
     prob_cellpose = _edt_prob(cellpose_mask_copy)
     original_mask = cellpose_mask_copy > 0
-    mask = erode_label_regions(cellpose_mask_copy, erosion_iterations = 4)
-
+    mask = erode_label_regions(cellpose_mask_copy, erosion_iterations = 2)
+    mask = mask > 0
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
     Coordinates.append((0, 0, 0))
@@ -5122,9 +5122,14 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     
     watershedImage = watershed(-prob_cellpose, markers, mask=mask.copy())
-    watershedImage = expand_labels(watershedImage, distance=8) 
+    
+    
+    watershedImage = relabel_image(watershedImage, cellpose_mask)
+    watershedImage *=cellpose_mask
+    watershedImage,_,_ = relabel_sequential(watershedImage.astype(np.uint16))
+    
+    watershedImage = expand_labels(watershedImage, distance=4) 
     watershedImage *=original_mask.astype(np.uint8)
-
     print("Done cell pose watershed routine")
 
     return watershedImage
