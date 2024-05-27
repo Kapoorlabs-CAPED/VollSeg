@@ -5,7 +5,8 @@
 # Developed by KapoorLabs
 
 
-<img src="images/mtrack.png" alt="Logo1" width="150"/><img src="images/kapoorlablogo.png" alt="Logo2" width="150"/>
+<img src="images/mtrack.png" alt="Logo1" width="150"/>
+<img src="images/kapoorlablogo.png" alt="Logo2" width="150"/>
 
 This product is a testament to our expertise at KapoorLabs, where we specialize in creating cutting-edge solutions. We offer bespoke pipeline development services, transforming your developmental biology questions into publishable figures with our advanced computer vision and AI tools. Leverage our expertise and resources to achieve end-to-end solutions that make your research stand out.
 
