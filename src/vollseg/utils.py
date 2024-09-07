@@ -1745,7 +1745,7 @@ def VollCellSeg(
         if cellpose_model_path is not None:
 
             voll_cell_seg = _cellpose_block(
-                axes, nuclei_seg_image, cellpose_labels_copy
+                axes, nuclei_seg_image, cellpose_labels_copy, image_membrane
             )
 
             if save_dir is not None:
@@ -1807,7 +1807,7 @@ def VollCellSeg(
             roi_image_nuclei = np.asarray(roi_image_nuclei)
 
             voll_cell_seg = _cellpose_block(
-                axes, star_labels_nuclei, cellpose_labels_copy
+                axes, star_labels_nuclei, cellpose_labels_copy, image_membrane
             )
 
         if (
@@ -2177,19 +2177,20 @@ def VollCellSeg(
             return instance_labels_nuclei
 
 
-def _cellpose_block(axes, sized_smart_seeds, cellpose_labels):
+def _cellpose_block(axes, sized_smart_seeds, cellpose_labels, image_membrane):
 
     if "T" not in axes:
 
-        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds)
+        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds, image_membrane)
     if "T" in axes:
 
         voll_cell_seg = []
         for time in range(cellpose_labels.shape[0]):
             cellpose_labels_time = cellpose_labels[time]
             sized_smart_seeds_time = sized_smart_seeds[time]
+            image_membrane_time = image_membrane[time]
             voll_cell_seg_time = CellPoseWater(
-                cellpose_labels_time, sized_smart_seeds_time
+                cellpose_labels_time, sized_smart_seeds_time, image_membrane_time
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -5104,13 +5105,11 @@ def _edt_prob(lbl_img, anisotropy=None):
     return prob
 
 
-
-
-def CellPoseWater(cellpose_mask, sized_smart_seeds):
+def CellPoseWater(cellpose_mask, sized_smart_seeds, image_membrane):
 
     print("In cell pose watershed routine")
     cellpose_mask_copy = cellpose_mask.copy()
-    prob_cellpose = _edt_prob(cellpose_mask_copy)
+    prob_cellpose = _edt_prob(image_membrane)
     original_mask = cellpose_mask_copy > 0
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
@@ -5121,9 +5120,8 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     
-    watershedImage = watershed(-prob_cellpose, markers, mask=cellpose_mask_copy.copy())
+    watershedImage = watershed(prob_cellpose, markers, mask=cellpose_mask_copy.copy())
     
-    watershedImage = relabel_image(watershedImage, cellpose_mask)
     watershedImage *=cellpose_mask_copy
     watershedImage,_,_ = relabel_sequential(watershedImage.astype(np.uint16))
     
