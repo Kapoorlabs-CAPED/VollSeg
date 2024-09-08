@@ -4599,15 +4599,14 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
 
     # Get centroids of regions in the current slice
     properties = measure.regionprops(sized_smart_seeds)
+    
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0))  # Adjust to 2D by removing z-coordinate
+    Coordinates.append((0, 0, 0))
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
-
-    # Create marker image for the current slice
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
-    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))  # Using disk for 2D
+    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
     # Apply watershed for the current slice
     watershed_slice = watershed(membrane_image, markers, mask=cellpose_labels_copy_binary)
