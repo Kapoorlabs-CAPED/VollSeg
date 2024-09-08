@@ -4583,6 +4583,7 @@ def _edt_prob(lbl_img, anisotropy=None):
 def CellPoseWater(roi_image, sized_smart_seeds, image_membrane):
 
     print("In cell pose watershed routine")
+    roi_image = np.stack([roi_image] * image_membrane.shape[0], axis=0)
     roi_image_copy = roi_image.copy()
     prob_cellpose = image_membrane
     original_mask = roi_image_copy > 0
