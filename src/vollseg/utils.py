@@ -4589,7 +4589,7 @@ def CellPoseWater(cellpose_labels, sized_smart_seeds, image_membrane):
    
     prob_cellpose = image_membrane
     cellpose_labels_copy = cellpose_labels.copy()
-    cellpose_labels_copy = erode_labels(cellpose_labels_copy)
+    cellpose_labels_copy = erode_label_regions(cellpose_labels_copy)
     cellpose_labels_copy_binary = cellpose_labels_copy > 0
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
