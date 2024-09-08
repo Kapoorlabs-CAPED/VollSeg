@@ -1628,7 +1628,7 @@ def VollCellSeg(
         
 
             voll_cell_seg = _cellpose_block(
-                axes, nuclei_seg_image, image_membrane,  roi_image
+                axes, nuclei_seg_image, image_membrane,  roi_image, stitch_threshold
             )
 
             if save_dir is not None:
@@ -1652,11 +1652,11 @@ def VollCellSeg(
     
 
 
-def _cellpose_block(axes, sized_smart_seeds, image_membrane, roi_image):
+def _cellpose_block(axes, sized_smart_seeds, image_membrane, roi_image, stitch_threshold):
 
     if "T" not in axes:
 
-        voll_cell_seg = CellPoseWater(roi_image, sized_smart_seeds, image_membrane)
+        voll_cell_seg = CellPoseWater(roi_image, sized_smart_seeds, image_membrane, stitch_threshold)
     if "T" in axes:
 
         voll_cell_seg = []
@@ -1665,7 +1665,7 @@ def _cellpose_block(axes, sized_smart_seeds, image_membrane, roi_image):
             image_membrane_time = image_membrane[time]
             roi_image_time = roi_image[time]
             voll_cell_seg_time = CellPoseWater(
-                roi_image_time, sized_smart_seeds_time, image_membrane_time
+                roi_image_time, sized_smart_seeds_time, image_membrane_time, stitch_threshold
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -4579,30 +4579,46 @@ def _edt_prob(lbl_img, anisotropy=None):
 
     return prob
 
-
-def CellPoseWater(roi_image, sized_smart_seeds, image_membrane):
-
-    print("In cell pose watershed routine")
+def CellPoseWater(roi_image, sized_smart_seeds, image_membrane, stitch_threshold):
+    # Ensure 3D shape consistency for ROI image and membrane image
     roi_image = np.stack([roi_image] * image_membrane.shape[0], axis=0)
     roi_image_copy = roi_image.copy()
     prob_cellpose = image_membrane
     original_mask = roi_image_copy > 0
-    properties = measure.regionprops(sized_smart_seeds)
-    Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))
-    Coordinates = np.asarray(Coordinates)
-    coordinates_int = np.round(Coordinates).astype(int)
-    markers_raw = np.zeros_like(sized_smart_seeds)
-    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
-    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     
-    watershedImage = watershed(prob_cellpose, markers, mask=original_mask.copy())
+    # Initialize an empty array to hold the watershed results for each slice
+    watershed_slices = np.zeros_like(prob_cellpose, dtype=np.uint16)
     
-    watershedImage,_,_ = relabel_sequential(watershedImage.astype(np.uint16))
-    
-    print("Done cell pose watershed routine")
+    # Process slice by slice in dimension 0
+    for z in range(prob_cellpose.shape[0]):
+        # Get the region properties for the seeds (sized_smart_seeds should be 2D for each slice)
+        properties = measure.regionprops(sized_smart_seeds[z])
+        Coordinates = [prop.centroid for prop in properties]
+        Coordinates.append((0, 0))  # 2D slice, so we drop one dimension for centroid
+        
+        Coordinates = np.asarray(Coordinates)
+        coordinates_int = np.round(Coordinates).astype(int)
+        
+        # Create markers for this slice
+        markers_raw = np.zeros_like(sized_smart_seeds[z])
+        markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+        markers = morphology.dilation(markers_raw.astype("uint16"), morphology.disk(2))  # 2D dilation
+        
+        # Apply watershed on this slice
+        watershed_slice = watershed(prob_cellpose[z], markers, mask=original_mask[z].copy())
+        
+        # Relabel the segmented regions
+        watershed_slice, _, _ = relabel_sequential(watershed_slice.astype(np.uint16))
+        
+        # Store the result in the 3D watershed result array
+        watershed_slices[z] = watershed_slice
 
-    return watershedImage
+    watershed_slices = stitch3D(watershed_slices, stitch_threshold=stitch_threshold)    
+    
+    return watershed_slices
+
+
+
 
 def relabel_image(image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
     """
