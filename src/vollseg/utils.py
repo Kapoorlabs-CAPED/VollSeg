@@ -4619,6 +4619,7 @@ def CellPoseWater(cellpose_labels, sized_smart_seeds, image_membrane):
    
     prob_cellpose = image_membrane
     cellpose_labels_copy = cellpose_labels.copy()
+    cellpose_labels_copy = erode_label_regions(cellpose_labels_copy)
     cellpose_labels_copy_binary = cellpose_labels_copy > 0
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
@@ -4631,6 +4632,7 @@ def CellPoseWater(cellpose_labels, sized_smart_seeds, image_membrane):
     
     watershedImage = watershed(prob_cellpose, markers, mask=cellpose_labels_copy_binary)
     watershedImage,_,_ = relabel_sequential(watershedImage.astype(np.uint16))
+    watershedImage = dilate_label_regions(watershedImage)
     return watershedImage
 
 
