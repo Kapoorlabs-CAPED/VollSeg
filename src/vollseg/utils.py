@@ -4607,7 +4607,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     # Create marker image for the current slice
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
-    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.disk(2))  # Using disk for 2D
+    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))  # Using disk for 2D
 
     # Apply watershed for the current slice
     watershed_slice = watershed(membrane_image, markers, mask=cellpose_labels_copy_binary)
