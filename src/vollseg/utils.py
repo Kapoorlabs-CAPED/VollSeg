@@ -4581,8 +4581,8 @@ def simple_dist(label_image):
 
     # Create an empty output image
     binary_image = np.zeros_like(label_image, dtype=np.float32)
-    binary_image[i] = find_boundaries(label_image, mode="outer") * 255
-    binary_image[i] = gaussian_filter(binary_image, sigma = 2)
+    binary_image = find_boundaries(label_image, mode="outer") * 255
+    binary_image = gaussian_filter(binary_image, sigma = 2)
     output_image = binary_image / np.max(binary_image)
     return output_image  
 
