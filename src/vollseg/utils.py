@@ -4607,7 +4607,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     inverted_membrane = membrane_image == 0
     # Apply watershed for the current slice
     distance_map = distance_transform_edt(inverted_membrane)
-    watershed_result = watershed(distance_map, markers, mask=cellpose_labels_copy_binary)
+    watershed_result = watershed(-distance_map, markers, mask=cellpose_labels_copy_binary)
 
 
     # Relabel sequentially to remove any gaps in the label numbers
