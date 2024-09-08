@@ -331,6 +331,15 @@ def dilate_label_holes(lbl_img, iterations):
         lbl_img_filled[mask_filled] = lb
     return lbl_img_filled
 
+def erode_labels(lbl_img, iterations=1):
+    lbl_img_filled = np.zeros_like(lbl_img)
+    for lb in range(np.min(lbl_img), np.max(lbl_img) + 1):
+        mask = lbl_img == lb
+        mask_filled = binary_erosion(mask, iterations=iterations)
+        lbl_img_filled[mask_filled] = lb
+    return lbl_img_filled
+
+
 
 def erode_label_regions(segmentation, erosion_iterations=1):
     regions = regionprops(segmentation)
@@ -4580,7 +4589,7 @@ def CellPoseWater(cellpose_labels, sized_smart_seeds, image_membrane):
    
     prob_cellpose = image_membrane
     cellpose_labels_copy = cellpose_labels.copy()
-    cellpose_labels_copy = erode_label_regions(cellpose_labels_copy)
+    cellpose_labels_copy = erode_labels(cellpose_labels_copy)
     cellpose_labels_copy_binary = cellpose_labels_copy > 0
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
