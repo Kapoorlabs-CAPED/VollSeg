@@ -24,7 +24,7 @@ from skimage.segmentation import clear_border
 import pandas as pd
 from cellpose import models
 from csbdeep.utils import normalize
-
+from concurrent.futures import ThreadPoolExecutor
 from scipy import spatial
 from scipy.ndimage import (
     binary_dilation,
@@ -339,59 +339,89 @@ def erode_labels(lbl_img, iterations=1):
         lbl_img_filled[mask_filled] = lb
     return lbl_img_filled
 
-
-
 def erode_label_regions(segmentation, erosion_iterations=1):
     regions = regionprops(segmentation)
     erode = np.zeros(segmentation.shape)
 
     def erode_mask(segmentation_labels, label_id, erosion_iterations):
-
         only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
         eroded = binary_erosion(only_current_label_id, iterations=erosion_iterations)
         relabeled_eroded = np.where(eroded == 1, label_id, 0)
         return relabeled_eroded
 
-    if segmentation.ndim == 3:
-        for i in range(len(regions)):
-            label_id = regions[i].label
+    def process_region_2d(label_id):
+        return erode_mask(segmentation, label_id, erosion_iterations)
 
-            for z in range(segmentation.shape[0]):
-                erode[z, :, :] += erode_mask(
-                    segmentation[z, :, :], label_id, erosion_iterations
-                )
+    def process_region_3d(label_id, z):
+        return erode_mask(segmentation[z, :, :], label_id, erosion_iterations)
+
+    # For 3D segmentation, we parallelize over both regions and slices (z-axis)
+    if segmentation.ndim == 3:
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            for i in range(len(regions)):
+                label_id = regions[i].label
+                for z in range(segmentation.shape[0]):
+                    futures.append(executor.submit(process_region_3d, label_id, z))
+
+            # Aggregate results
+            for future in futures:
+                result, z = future.result(), futures.index(future) % segmentation.shape[0]
+                erode[z, :, :] += result
+
+    # For 2D segmentation, we parallelize only over regions
     else:
-        for i in range(len(regions)):
-            label_id = regions[i].label
-            erode += erode_mask(segmentation, label_id, erosion_iterations)
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(process_region_2d, regions[i].label) for i in range(len(regions))]
+            
+            # Aggregate results
+            for future in futures:
+                erode += future.result()
 
     return erode
 
-def dilate_label_regions(segmentation, erosion_iterations=1):
+
+def dilate_label_regions(segmentation, dilation_iterations=1):
     regions = regionprops(segmentation)
     erode = np.zeros(segmentation.shape)
 
-    def dilate_mask(segmentation_labels, label_id, erosion_iterations):
-
+    def dilate_mask(segmentation_labels, label_id, dilation_iterations):
         only_current_label_id = np.where(segmentation_labels == label_id, 1, 0)
-        eroded = binary_dilation(only_current_label_id, iterations=erosion_iterations)
-        relabeled_eroded = np.where(eroded == 1, label_id, 0)
-        return relabeled_eroded
+        dilated = binary_dilation(only_current_label_id, iterations=dilation_iterations)
+        relabeled_dilated = np.where(dilated == 1, label_id, 0)
+        return relabeled_dilated
 
+    def process_region_2d(label_id):
+        return dilate_mask(segmentation, label_id, dilation_iterations)
+
+    def process_region_3d(label_id, z):
+        return dilate_mask(segmentation[z, :, :], label_id, dilation_iterations)
+
+    # For 3D segmentation, parallelize over both regions and slices (z-axis)
     if segmentation.ndim == 3:
-        for i in range(len(regions)):
-            label_id = regions[i].label
+        with ThreadPoolExecutor() as executor:
+            futures = []
+            for i in range(len(regions)):
+                label_id = regions[i].label
+                for z in range(segmentation.shape[0]):
+                    futures.append(executor.submit(process_region_3d, label_id, z))
 
-            for z in range(segmentation.shape[0]):
-                erode[z, :, :] += dilate_mask(
-                    segmentation[z, :, :], label_id, erosion_iterations
-                )
+            # Aggregate results
+            for future in futures:
+                result, z = future.result(), futures.index(future) % segmentation.shape[0]
+                erode[z, :, :] += result
+
+    # For 2D segmentation, parallelize only over regions
     else:
-        for i in range(len(regions)):
-            label_id = regions[i].label
-            erode += dilate_mask(segmentation, label_id, erosion_iterations)
+        with ThreadPoolExecutor() as executor:
+            futures = [executor.submit(process_region_2d, regions[i].label) for i in range(len(regions))]
+            
+            # Aggregate results
+            for future in futures:
+                erode += future.result()
 
     return erode
+
 
 
 def match_labels(ys: np.ndarray, nms_thresh=0.5):
