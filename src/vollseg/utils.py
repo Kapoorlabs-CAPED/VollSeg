@@ -4602,6 +4602,7 @@ def CellPoseWater(cellpose_labels, sized_smart_seeds):
     
     watershedImage = watershed(prob_cellpose, markers, mask=cellpose_labels_copy_binary)
     watershedImage = relabel_image(watershedImage, cellpose_labels_copy)
+    watershedImage = expand_labels(watershedImage, distance = 10)
     watershedImage *= cellpose_labels_copy
     watershedImage,_,_ = relabel_sequential(watershedImage.astype(np.uint16))
     return watershedImage
