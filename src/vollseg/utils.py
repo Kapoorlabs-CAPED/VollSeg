@@ -5109,7 +5109,7 @@ def CellPoseWater(cellpose_mask, sized_smart_seeds, image_membrane):
 
     print("In cell pose watershed routine")
     cellpose_mask_copy = cellpose_mask.copy()
-    prob_cellpose = _edt_prob(image_membrane)
+    prob_cellpose = image_membrane
     original_mask = cellpose_mask_copy > 0
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
