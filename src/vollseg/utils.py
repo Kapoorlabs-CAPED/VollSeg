@@ -4626,7 +4626,7 @@ def CellPoseWater(cellpose_labels, sized_smart_seeds, stitch_threshold):
         # Store the result back into the 3D result array
         watershed_result[z, :, :] = watershed_slice
     
-    watershed_result = stitch3D(watershed_result, stitch_threshold)
+    watershed_result = match_labels(watershed_result)
 
     return watershed_result
 
