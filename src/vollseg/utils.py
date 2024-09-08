@@ -1664,7 +1664,7 @@ def VollCellSeg(
         
 
             voll_cell_seg = _cellpose_block(
-                axes,cellpose_labels,  nuclei_seg_image
+                axes,cellpose_labels,  nuclei_seg_image,stitch_threshold
             )
 
             if save_dir is not None:
@@ -1688,11 +1688,11 @@ def VollCellSeg(
     
 
 
-def _cellpose_block(axes, cellpose_labels, sized_smart_seeds):
+def _cellpose_block(axes, cellpose_labels, sized_smart_seeds,stitch_threshold):
 
     if "T" not in axes:
 
-        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds)
+        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds,stitch_threshold)
     if "T" in axes:
 
         voll_cell_seg = []
@@ -1700,7 +1700,7 @@ def _cellpose_block(axes, cellpose_labels, sized_smart_seeds):
             sized_smart_seeds_time = sized_smart_seeds[time]
             cellpose_labels_time = cellpose_labels[time]
             voll_cell_seg_time = CellPoseWater(
-                cellpose_labels_time, sized_smart_seeds_time
+                cellpose_labels_time, sized_smart_seeds_time,stitch_threshold
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -4586,29 +4586,49 @@ def simple_dist(label_image):
     output_image = binary_image / np.max(binary_image)
     return output_image  
 
-def CellPoseWater(cellpose_labels, sized_smart_seeds):
-   
+
+
+
+def CellPoseWater(cellpose_labels, sized_smart_seeds, stitch_threshold):
     prob_cellpose = simple_dist(cellpose_labels)
     cellpose_labels_copy = cellpose_labels.copy()
     cellpose_labels_copy_binary = cellpose_labels_copy > 0
-    properties = measure.regionprops(sized_smart_seeds)
-    Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))
-    Coordinates = np.asarray(Coordinates)
-    coordinates_int = np.round(Coordinates).astype(int)
-    markers_raw = np.zeros_like(sized_smart_seeds)
-    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
-    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
+
+    # Initialize empty result array for the watershed result
+    watershed_result = np.zeros_like(cellpose_labels, dtype=np.uint16)
+
+    # Process each slice independently
+    for z in range(cellpose_labels.shape[0]):
+        # Get the current slice from the 3D volumes
+        seeds_slice = sized_smart_seeds[z, :, :]
+        prob_slice = prob_cellpose[z, :, :]
+        cellpose_binary_slice = cellpose_labels_copy_binary[z, :, :]
+
+        # Get centroids of regions in the current slice
+        properties = measure.regionprops(seeds_slice)
+        Coordinates = [prop.centroid for prop in properties]
+        Coordinates.append((0, 0))  # Adjust to 2D by removing z-coordinate
+        Coordinates = np.asarray(Coordinates)
+        coordinates_int = np.round(Coordinates).astype(int)
+
+        # Create marker image for the current slice
+        markers_raw = np.zeros_like(seeds_slice)
+        markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+        markers = morphology.dilation(markers_raw.astype("uint16"), morphology.disk(2))  # Using disk for 2D
+
+        # Apply watershed for the current slice
+        watershed_slice = watershed(prob_slice, markers, mask=cellpose_binary_slice)
+
+
+        # Relabel sequentially to remove any gaps in the label numbers
+        watershed_slice, _, _ = relabel_sequential(watershed_slice.astype(np.uint16))
+
+        # Store the result back into the 3D result array
+        watershed_result[z, :, :] = watershed_slice
     
-    watershedImage = watershed(prob_cellpose, markers, mask=cellpose_labels_copy_binary)
-    watershedImage = relabel_image(watershedImage, cellpose_labels_copy)
-    watershedImage = expand_labels(watershedImage, distance = 10)
-    watershedImage *= cellpose_labels_copy
-    watershedImage,_,_ = relabel_sequential(watershedImage.astype(np.uint16))
-    return watershedImage
+    watershed_result = stitch3D(watershed_result, stitch_threshold)
 
-
-
+    return watershed_result
 
 def relabel_image(image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
     """
