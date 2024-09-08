@@ -4604,6 +4604,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
+    membrane_image = gaussian_filter(membrane_image, sigma=4)
     inverted_membrane = membrane_image == 0
     # Apply watershed for the current slice
     distance_map = distance_transform_edt(inverted_membrane)
