@@ -1535,7 +1535,6 @@ def CellPoseSeg(
 def VollCellSeg(
     image: np.ndarray,
     nuclei_seg_image: np.ndarray ,
-    roi_image: np.ndarray = None,
     cellpose_labels: np.ndarray = None,
     diameter_cellpose: float = 34.6,
     stitch_threshold: float = 0.5,
@@ -1552,7 +1551,7 @@ def VollCellSeg(
     Name: str = "Result",
     do_3D: bool = False,
     channels=None,
-    max_size:int = 10000, 
+    
 ):
 
     
@@ -1564,7 +1563,6 @@ def VollCellSeg(
         if cellpose_model_path is not None:
             cellres = _cellpose_voll(
                 image_membrane,
-                roi_image= roi_image,
                 diameter_cellpose=diameter_cellpose,
                 stitch_threshold=stitch_threshold,
                 flow_threshold=flow_threshold,
@@ -1580,12 +1578,10 @@ def VollCellSeg(
 
     if len(image.shape) == 4 and "T" not in axes:
         image_membrane = image[:, channel_membrane, :, :]
-        image_nuclei = image[:, channel_nuclei, :, :]
 
         if cellpose_model_path is not None:
             cellres = _cellpose_voll(
                 image_membrane,
-                roi_image= roi_image,
                 diameter_cellpose=diameter_cellpose,
                 stitch_threshold=stitch_threshold,
                 flow_threshold=flow_threshold,
@@ -1608,7 +1604,6 @@ def VollCellSeg(
         if cellpose_model_path is not None:
             cellres = _cellpose_voll_time(
                 image_membrane,
-                roi_image= roi_image, 
                 diameter_cellpose=diameter_cellpose,
                 stitch_threshold=stitch_threshold,
                 flow_threshold=flow_threshold,
@@ -1630,7 +1625,7 @@ def VollCellSeg(
         
 
             voll_cell_seg = _cellpose_block(
-                axes,cellpose_labels,  nuclei_seg_image, image_membrane, roi_image
+                axes,cellpose_labels,  nuclei_seg_image, image_membrane
             )
 
             if save_dir is not None:
@@ -1658,17 +1653,16 @@ def _cellpose_block(axes, cellpose_labels, sized_smart_seeds, image_membrane, ro
 
     if "T" not in axes:
 
-        voll_cell_seg = CellPoseWater(cellpose_labels, roi_image, sized_smart_seeds, image_membrane)
+        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds, image_membrane)
     if "T" in axes:
 
         voll_cell_seg = []
         for time in range(sized_smart_seeds.shape[0]):
             sized_smart_seeds_time = sized_smart_seeds[time]
             image_membrane_time = image_membrane[time]
-            roi_image_time = roi_image[time]
             cellpose_labels_time = cellpose_labels[time]
             voll_cell_seg_time = CellPoseWater(
-                cellpose_labels_time, roi_image_time, sized_smart_seeds_time, image_membrane_time
+                cellpose_labels_time, sized_smart_seeds_time, image_membrane_time
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -4582,12 +4576,12 @@ def _edt_prob(lbl_img, anisotropy=None):
 
     return prob
 
-def CellPoseWater(cellpose_labels, roi_image, sized_smart_seeds, image_membrane):
+def CellPoseWater(cellpose_labels, sized_smart_seeds, image_membrane):
    
-    roi_image = np.stack([roi_image] * image_membrane.shape[0], axis=0)
-    roi_image_copy = roi_image.copy()
     prob_cellpose = image_membrane
-    original_mask = roi_image_copy > 0
+    cellpose_labels_copy = cellpose_labels.copy()
+    cellpose_labels_copy = erode_label_regions(cellpose_labels_copy)
+    cellpose_labels_copy_binary = cellpose_labels_copy > 0
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
     Coordinates.append((0, 0, 0))
@@ -4597,9 +4591,8 @@ def CellPoseWater(cellpose_labels, roi_image, sized_smart_seeds, image_membrane)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     
-    watershedImage = watershed(prob_cellpose, markers, mask=original_mask.copy())
+    watershedImage = watershed(prob_cellpose, markers, mask=cellpose_labels_copy_binary)
     watershedImage = relabel_image(watershedImage, cellpose_labels)
-    watershedImage *= cellpose_labels
     watershedImage,_,_ = relabel_sequential(watershedImage.astype(np.uint16))
     
     return watershedImage
