@@ -1551,6 +1551,7 @@ def VollCellSeg(
     Name: str = "Result",
     do_3D: bool = False,
     channels=None,
+    max_size:int = 10000, 
 ):
 
     
@@ -1628,7 +1629,7 @@ def VollCellSeg(
         
 
             voll_cell_seg = _cellpose_block(
-                axes, nuclei_seg_image, image_membrane,  roi_image, stitch_threshold
+                axes, nuclei_seg_image, image_membrane,  roi_image, stitch_threshold, max_size
             )
 
             if save_dir is not None:
@@ -1652,11 +1653,11 @@ def VollCellSeg(
     
 
 
-def _cellpose_block(axes, sized_smart_seeds, image_membrane, roi_image, stitch_threshold):
+def _cellpose_block(axes, sized_smart_seeds, image_membrane, roi_image, stitch_threshold, max_size):
 
     if "T" not in axes:
 
-        voll_cell_seg = CellPoseWater(roi_image, sized_smart_seeds, image_membrane, stitch_threshold)
+        voll_cell_seg = CellPoseWater(roi_image, sized_smart_seeds, image_membrane, stitch_threshold, max_size)
     if "T" in axes:
 
         voll_cell_seg = []
@@ -1665,7 +1666,7 @@ def _cellpose_block(axes, sized_smart_seeds, image_membrane, roi_image, stitch_t
             image_membrane_time = image_membrane[time]
             roi_image_time = roi_image[time]
             voll_cell_seg_time = CellPoseWater(
-                roi_image_time, sized_smart_seeds_time, image_membrane_time, stitch_threshold
+                roi_image_time, sized_smart_seeds_time, image_membrane_time, stitch_threshold, max_size
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -4579,7 +4580,7 @@ def _edt_prob(lbl_img, anisotropy=None):
 
     return prob
 
-def CellPoseWater(roi_image, sized_smart_seeds, image_membrane, stitch_threshold):
+def CellPoseWater(roi_image, sized_smart_seeds, image_membrane, stitch_threshold, max_size):
     # Ensure 3D shape consistency for ROI image and membrane image
     roi_image = np.stack([roi_image] * image_membrane.shape[0], axis=0)
     roi_image_copy = roi_image.copy()
@@ -4613,6 +4614,10 @@ def CellPoseWater(roi_image, sized_smart_seeds, image_membrane, stitch_threshold
         # Store the result in the 3D watershed result array
         watershed_slices[z] = watershed_slice
 
+        watershed_slices[z] = remove_big_objects(
+                    watershed_slices[z].astype("uint16"), max_size=max_size
+                )
+        
     watershed_slices = stitch3D(watershed_slices, stitch_threshold=stitch_threshold)    
     
     return watershed_slices
