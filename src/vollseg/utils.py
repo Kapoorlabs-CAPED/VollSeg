@@ -1649,7 +1649,7 @@ def VollCellSeg(
     
 
 
-def _cellpose_block(axes, cellpose_labels, sized_smart_seeds, image_membrane, roi_image):
+def _cellpose_block(axes, cellpose_labels, sized_smart_seeds, image_membrane):
 
     if "T" not in axes:
 
