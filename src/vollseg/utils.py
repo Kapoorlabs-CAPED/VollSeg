@@ -4596,36 +4596,26 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     # Initialize empty result array for the watershed result
     watershed_result = np.zeros_like(membrane_image, dtype=np.uint16)
 
-    # Process each slice independently
-    for z in range(membrane_image.shape[0]):
-        # Get the current slice from the 3D volumes
-        seeds_slice = sized_smart_seeds[z, :, :]
-        prob_slice = membrane_image[z, :, :]
-        cellpose_binary_slice = cellpose_labels_copy_binary[z, :, :]
 
-        # Get centroids of regions in the current slice
-        properties = measure.regionprops(seeds_slice)
-        Coordinates = [prop.centroid for prop in properties]
-        Coordinates.append((0, 0))  # Adjust to 2D by removing z-coordinate
-        Coordinates = np.asarray(Coordinates)
-        coordinates_int = np.round(Coordinates).astype(int)
+    # Get centroids of regions in the current slice
+    properties = measure.regionprops(sized_smart_seeds)
+    Coordinates = [prop.centroid for prop in properties]
+    Coordinates.append((0, 0))  # Adjust to 2D by removing z-coordinate
+    Coordinates = np.asarray(Coordinates)
+    coordinates_int = np.round(Coordinates).astype(int)
 
-        # Create marker image for the current slice
-        markers_raw = np.zeros_like(seeds_slice)
-        markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
-        markers = morphology.dilation(markers_raw.astype("uint16"), morphology.disk(2))  # Using disk for 2D
+    # Create marker image for the current slice
+    markers_raw = np.zeros_like(sized_smart_seeds)
+    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.disk(2))  # Using disk for 2D
 
-        # Apply watershed for the current slice
-        watershed_slice = watershed(prob_slice, markers, mask=cellpose_binary_slice)
+    # Apply watershed for the current slice
+    watershed_slice = watershed(membrane_image, markers, mask=cellpose_labels_copy_binary)
 
 
-        # Relabel sequentially to remove any gaps in the label numbers
-        watershed_slice, _, _ = relabel_sequential(watershed_slice.astype(np.uint16))
-
-        # Store the result back into the 3D result array
-        watershed_result[z, :, :] = watershed_slice
+    # Relabel sequentially to remove any gaps in the label numbers
+    watershed_slice, _, _ = relabel_sequential(watershed_slice.astype(np.uint16))
     
-    #watershed_result = match_labels(watershed_result, nms_thresh=0.2)
 
     return watershed_result
 
