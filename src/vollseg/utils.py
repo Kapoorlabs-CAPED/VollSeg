@@ -19,7 +19,7 @@ from scipy.optimize import linear_sum_assignment
 from scipy.ndimage import convolve, mean
 import cv2
 from skimage.segmentation import clear_border
-
+from scipy.ndimage import gaussian_filter
 # import matplotlib.pyplot as plt
 import pandas as pd
 from cellpose import models
@@ -1664,7 +1664,7 @@ def VollCellSeg(
         
 
             voll_cell_seg = _cellpose_block(
-                axes,cellpose_labels,  nuclei_seg_image, image_membrane
+                axes,cellpose_labels,  nuclei_seg_image
             )
 
             if save_dir is not None:
@@ -1688,20 +1688,19 @@ def VollCellSeg(
     
 
 
-def _cellpose_block(axes, cellpose_labels, sized_smart_seeds, image_membrane):
+def _cellpose_block(axes, cellpose_labels, sized_smart_seeds):
 
     if "T" not in axes:
 
-        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds, image_membrane)
+        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds)
     if "T" in axes:
 
         voll_cell_seg = []
         for time in range(sized_smart_seeds.shape[0]):
             sized_smart_seeds_time = sized_smart_seeds[time]
-            image_membrane_time = image_membrane[time]
             cellpose_labels_time = cellpose_labels[time]
             voll_cell_seg_time = CellPoseWater(
-                cellpose_labels_time, sized_smart_seeds_time, image_membrane_time
+                cellpose_labels_time, sized_smart_seeds_time
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -4578,11 +4577,19 @@ def SuperWatershedwithMask(Image, Label, mask, nms_thresh, seedpool, z_thresh=1)
     return watershedImage, markers
 
 
+def simple_dist(label_image):
 
+    # Create an empty output image
+    binary_image = np.zeros_like(label_image, dtype=np.float32)
+    for i in range(binary_image.shape[0]):
+       binary_image[i] = find_boundaries(label_image[i], mode="outer") * 255
+       binary_image[i] = gaussian_filter(binary_image[i], sigma = 2)
+    output_image = binary_image / np.max(binary_image)
+    return output_image  
 
-def CellPoseWater(cellpose_labels, sized_smart_seeds, image_membrane):
+def CellPoseWater(cellpose_labels, sized_smart_seeds):
    
-    prob_cellpose = image_membrane
+    prob_cellpose = simple_dist(cellpose_labels)
     cellpose_labels_copy = cellpose_labels.copy()
     cellpose_labels_copy_binary = cellpose_labels_copy > 0
     properties = measure.regionprops(sized_smart_seeds)
