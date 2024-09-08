@@ -4595,6 +4595,7 @@ def CellPoseWater(cellpose_labels, sized_smart_seeds, image_membrane):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     
     watershedImage = watershed(prob_cellpose, markers, mask=cellpose_labels_copy_binary)
+    watershedImage = expand_labels(watershedImage, distance= 2)
     watershedImage = relabel_image(watershedImage, cellpose_labels_copy)
     watershedImage *= cellpose_labels_copy
     watershedImage,_,_ = relabel_sequential(watershedImage.astype(np.uint16))
