@@ -4593,9 +4593,6 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     
     cellpose_labels_copy_binary = cellpose_labels > 0
 
-    # Initialize empty result array for the watershed result
-    watershed_result = np.zeros_like(membrane_image, dtype=np.uint16)
-
 
     # Get centroids of regions in the current slice
     properties = measure.regionprops(sized_smart_seeds)
@@ -4609,11 +4606,11 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
     # Apply watershed for the current slice
-    watershed_slice = watershed(membrane_image, markers, mask=cellpose_labels_copy_binary)
+    watershed_result = watershed(membrane_image, markers, mask=cellpose_labels_copy_binary)
 
 
     # Relabel sequentially to remove any gaps in the label numbers
-    watershed_slice, _, _ = relabel_sequential(watershed_slice.astype(np.uint16))
+    watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
     
 
     return watershed_result
