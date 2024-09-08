@@ -1664,7 +1664,7 @@ def VollCellSeg(
         
 
             voll_cell_seg = _cellpose_block(
-                axes,cellpose_labels,  nuclei_seg_image,stitch_threshold
+                axes, image_membrane,  nuclei_seg_image, cellpose_labels
             )
 
             if save_dir is not None:
@@ -1688,19 +1688,19 @@ def VollCellSeg(
     
 
 
-def _cellpose_block(axes, cellpose_labels, sized_smart_seeds,stitch_threshold):
+def _cellpose_block(axes, membrane_image, sized_smart_seeds,cellpose_labels):
 
     if "T" not in axes:
 
-        voll_cell_seg = CellPoseWater(cellpose_labels, sized_smart_seeds,stitch_threshold)
+        voll_cell_seg = CellPoseWater(membrane_image, sized_smart_seeds,cellpose_labels)
     if "T" in axes:
 
         voll_cell_seg = []
         for time in range(sized_smart_seeds.shape[0]):
             sized_smart_seeds_time = sized_smart_seeds[time]
-            cellpose_labels_time = cellpose_labels[time]
+            membrane_image_time = membrane_image[time]
             voll_cell_seg_time = CellPoseWater(
-                cellpose_labels_time, sized_smart_seeds_time,stitch_threshold
+                membrane_image_time, sized_smart_seeds_time,cellpose_labels
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -4589,19 +4589,18 @@ def simple_dist(label_image):
 
 
 
-def CellPoseWater(cellpose_labels, sized_smart_seeds, stitch_threshold):
-    prob_cellpose = simple_dist(cellpose_labels)
-    cellpose_labels_copy = cellpose_labels.copy()
-    cellpose_labels_copy_binary = cellpose_labels_copy > 0
+def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
+    
+    cellpose_labels_copy_binary = cellpose_labels > 0
 
     # Initialize empty result array for the watershed result
-    watershed_result = np.zeros_like(cellpose_labels, dtype=np.uint16)
+    watershed_result = np.zeros_like(membrane_image, dtype=np.uint16)
 
     # Process each slice independently
-    for z in range(cellpose_labels.shape[0]):
+    for z in range(membrane_image.shape[0]):
         # Get the current slice from the 3D volumes
         seeds_slice = sized_smart_seeds[z, :, :]
-        prob_slice = prob_cellpose[z, :, :]
+        prob_slice = membrane_image[z, :, :]
         cellpose_binary_slice = cellpose_labels_copy_binary[z, :, :]
 
         # Get centroids of regions in the current slice
