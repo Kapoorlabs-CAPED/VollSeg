@@ -23,6 +23,7 @@ from .PredictTiledLoader import PredictTiled
 from .TrainTiledLoader import TrainTiled
 from .Tiles_3D import VolumeSlicer
 from .SmartNucleiPatches import SmartNucleiPatches
+from .ProjectionUpsampling3D import ProjectionUpsamplingConfig, ProjectionUpsampling
 import os
 from .utils import (
     VollCellSeg,
@@ -103,6 +104,8 @@ __all__ = (
     "VollOne",
     "SmartNucleiPatches",
     "CellPoseSeg",
+    "ProjectionUpsamplingConfig",
+    "ProjectionUpsampling"
 )
 
 clear_models_and_aliases(StarDist2D, StarDist3D, UNET, CARE, MASKUNET)
