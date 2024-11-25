@@ -4406,6 +4406,9 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
        cellpose_labels_copy_binary = cellpose_labels > 0
     else:
         cellpose_labels_copy_binary = np.ones_like(membrane_image)
+
+
+    membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100)    
     # Get centroids of regions in the current slice
     properties = measure.regionprops(sized_smart_seeds)
 
@@ -4430,7 +4433,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
 
     # Replace zero or weak regions in the original membrane with the binary mask
     enhanced_membrane_image[closed_binary_membrane > 0] = np.maximum(
-        enhanced_membrane_image[closed_binary_membrane > 0], 1  # Assign minimal value
+        enhanced_membrane_image[closed_binary_membrane > 0], 1  
     )
 
     # Optionally apply Gaussian smoothing to reduce noise
