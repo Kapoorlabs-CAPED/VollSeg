@@ -2,8 +2,8 @@ import numpy as np
 import os
 
 # from IPython.display import clear_output
-from scipy.ndimage import binary_fill_holes
-from scipy.ndimage.measurements import find_objects
+from scipy.ndimage import binary_fill_holes, find_objects
+
 from scipy.ndimage import binary_dilation
 from csbdeep.io import load_training_data
 from csbdeep.utils import axes_dict
@@ -14,17 +14,7 @@ from skimage.measure import regionprops
 from scipy import ndimage
 
 
-def _raise(e):
-    raise e
 
-
-def _fill_label_holes(lbl_img, **kwargs):
-    lbl_img_filled = np.zeros_like(lbl_img)
-    for lb in set(np.unique(lbl_img)) - {0}:
-        mask = lbl_img == lb
-        mask_filled = binary_fill_holes(mask, **kwargs)
-        lbl_img_filled[mask_filled] = lb
-    return lbl_img_filled
 
 
 def fill_label_holes(lbl_img, **kwargs):
