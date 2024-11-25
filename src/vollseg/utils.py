@@ -62,7 +62,7 @@ from vollseg.seedpool import SeedPool
 from vollseg.unetstarmask import UnetStarMask
 from numba import njit
 from csbdeep.models import ProjectionCARE
-
+from skimage.filters import threshold_otsu
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -4416,7 +4416,21 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
+
+    otsu_threshold = threshold_otsu(membrane_image)
+
+    # Apply Otsu threshold to create a binary mask
+    binary_membrane = membrane_image > otsu_threshold
+
+    # Morphological closing to fill gaps in the membrane
+    closed_binary_membrane = morphology.closing(binary_membrane, morphology.ball(2))
+
+    # Combine the processed binary mask with the original image
+    membrane_image = membrane_image * closed_binary_membrane
+
+    # Optionally apply Gaussian smoothing to reduce noise
     membrane_image = gaussian_filter(membrane_image, sigma=1)
+
     inverted_membrane = membrane_image == 0
     distance_map = distance_transform_edt(inverted_membrane)
     watershed_result = watershed(
