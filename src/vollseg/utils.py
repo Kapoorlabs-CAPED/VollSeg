@@ -4590,11 +4590,12 @@ def simple_dist(label_image):
     output_image = binary_image / np.max(binary_image)
     return output_image
 
-
 def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
 
-    cellpose_labels_copy_binary = cellpose_labels > 0
-
+    if cellpose_labels is not None:
+       cellpose_labels_copy_binary = cellpose_labels > 0
+    else:
+        cellpose_labels_copy_binary = np.ones_like(membrane_image)
     # Get centroids of regions in the current slice
     properties = measure.regionprops(sized_smart_seeds)
 
@@ -4607,7 +4608,6 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
     membrane_image = gaussian_filter(membrane_image, sigma=1)
     inverted_membrane = membrane_image == 0
-    # Apply watershed for the current slice
     distance_map = distance_transform_edt(inverted_membrane)
     watershed_result = watershed(
         -distance_map, markers, mask=cellpose_labels_copy_binary
@@ -4617,6 +4617,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
+
 
 
 def relabel_image(image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
