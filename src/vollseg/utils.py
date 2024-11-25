@@ -4425,13 +4425,17 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     # Morphological closing to fill gaps in the membrane
     closed_binary_membrane = morphology.closing(binary_membrane, morphology.ball(2))
 
-    # Combine the processed binary mask with the original image
-    membrane_image = membrane_image * closed_binary_membrane
+
+    enhanced_membrane_image = membrane_image.copy()
+
+    # Replace zero or weak regions in the original membrane with the binary mask
+    enhanced_membrane_image[closed_binary_membrane > 0] = np.maximum(
+        enhanced_membrane_image[closed_binary_membrane > 0], 1  # Assign minimal value
+    )
 
     # Optionally apply Gaussian smoothing to reduce noise
-    membrane_image = gaussian_filter(membrane_image, sigma=1)
 
-    inverted_membrane = membrane_image == 0
+    inverted_membrane = enhanced_membrane_image == 0
     distance_map = distance_transform_edt(inverted_membrane)
     watershed_result = watershed(
         -distance_map, markers, mask=cellpose_labels_copy_binary
