@@ -1586,15 +1586,8 @@ def CellPoseSeg(
 def VollCellSeg(
     image: np.ndarray,
     nuclei_seg_image: np.ndarray,
-    cellpose_labels: np.ndarray = None,
-    diameter_cellpose: float = 34.6,
-    stitch_threshold: float = 0.5,
+    mask: np.ndarray = None,
     channel_membrane: int = 0,
-    channel_nuclei: int = 1,
-    flow_threshold: float = 0.4,
-    cellprob_threshold: float = 0.0,
-    anisotropy=None,
-    cellpose_model_path: str = None,
     gpu: bool = False,
     axes: str = "ZYX",
     n_tiles: tuple = (1, 1, 1),
@@ -1608,36 +1601,12 @@ def VollCellSeg(
         # Just a 3D image
         image_membrane = image
 
-        if cellpose_model_path is not None:
-            cellres = _cellpose_voll(
-                image_membrane,
-                diameter_cellpose=diameter_cellpose,
-                stitch_threshold=stitch_threshold,
-                flow_threshold=flow_threshold,
-                cellprob_threshold=cellprob_threshold,
-                anisotropy=anisotropy,
-                cellpose_model_path=cellpose_model_path,
-                gpu=gpu,
-                do_3D=do_3D,
-                channels=channels,
-            )
+       
 
     if len(image.shape) == 4 and "T" not in axes:
         image_membrane = image[:, channel_membrane, :, :]
 
-        if cellpose_model_path is not None:
-            cellres = _cellpose_voll(
-                image_membrane,
-                diameter_cellpose=diameter_cellpose,
-                stitch_threshold=stitch_threshold,
-                flow_threshold=flow_threshold,
-                cellprob_threshold=cellprob_threshold,
-                anisotropy=anisotropy,
-                cellpose_model_path=cellpose_model_path,
-                gpu=gpu,
-                do_3D=do_3D,
-                channels=channels,
-            )
+        
 
     if len(image.shape) > 4 and "T" in axes:
 
@@ -1645,41 +1614,19 @@ def VollCellSeg(
             n_tiles = (n_tiles[1], n_tiles[2], n_tiles[3])
         image_membrane = image[:, :, channel_membrane, :, :]
 
-        if cellpose_model_path is not None:
-            cellres = _cellpose_voll_time(
-                image_membrane,
-                diameter_cellpose=diameter_cellpose,
-                stitch_threshold=stitch_threshold,
-                flow_threshold=flow_threshold,
-                cellprob_threshold=cellprob_threshold,
-                anisotropy=anisotropy,
-                cellpose_model_path=cellpose_model_path,
-                gpu=gpu,
-                do_3D=do_3D,
-                channels=channels,
-            )
+      
 
-    if cellpose_model_path is not None:
-        cellpose_labels = cellres[0]
-        cellpose_labels = np.asarray(cellpose_labels)
-
+    
     if nuclei_seg_image is not None:
 
-        voll_cell_seg = _cellpose_block(
-            axes, image_membrane, nuclei_seg_image, cellpose_labels
+        voll_cell_seg = _cellwater_block(
+            axes, image_membrane, nuclei_seg_image, mask
         )
 
         if save_dir is not None:
             Path(save_dir).mkdir(exist_ok=True)
 
-            if cellpose_model_path is not None:
-                cellpose_results = Path(save_dir) / "CellPose"
-                Path(cellpose_results).mkdir(exist_ok=True)
-                imwrite(
-                    (os.path.join(cellpose_results.as_posix(), Name + ".tif")),
-                    np.asarray(cellpose_labels).astype("uint16"),
-                )
-
+           
             vollcellpose_results = Path(save_dir) / "VollCellPose"
             Path(vollcellpose_results).mkdir(exist_ok=True)
             imwrite(
@@ -1688,12 +1635,12 @@ def VollCellSeg(
             )
 
 
-def _cellpose_block(axes, membrane_image, sized_smart_seeds, cellpose_labels):
+def _cellwater_block(axes, membrane_image, sized_smart_seeds, mask):
 
     if "T" not in axes:
 
         voll_cell_seg = CellPoseWater(
-            membrane_image, sized_smart_seeds, cellpose_labels
+            membrane_image, sized_smart_seeds, mask
         )
     if "T" in axes:
 
@@ -1702,7 +1649,7 @@ def _cellpose_block(axes, membrane_image, sized_smart_seeds, cellpose_labels):
             sized_smart_seeds_time = sized_smart_seeds[time]
             membrane_image_time = membrane_image[time]
             voll_cell_seg_time = CellPoseWater(
-                membrane_image_time, sized_smart_seeds_time, cellpose_labels
+                membrane_image_time, sized_smart_seeds_time, mask
             )
             voll_cell_seg.append(voll_cell_seg_time)
         voll_cell_seg = np.asarray(voll_cell_seg_time)
@@ -4400,18 +4347,11 @@ def simple_dist(label_image):
     output_image = binary_image / np.max(binary_image)
     return output_image
 
-def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask):
 
-    if cellpose_labels is not None:
-       cellpose_labels_copy_binary = cellpose_labels > 0
-    else:
-        cellpose_labels_copy_binary = np.ones_like(membrane_image)
-
-
-    membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100)    
-    # Get centroids of regions in the current slice
+    
+    membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
     properties = measure.regionprops(sized_smart_seeds)
-
     Coordinates = [prop.centroid for prop in properties]
     Coordinates.append((0, 0, 0))
     Coordinates = np.asarray(Coordinates)
@@ -4420,31 +4360,10 @@ def CellPoseWater(membrane_image, sized_smart_seeds, cellpose_labels):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    otsu_threshold = threshold_otsu(membrane_image)
-
-    # Apply Otsu threshold to create a binary mask
-    binary_membrane = membrane_image > otsu_threshold
-
-    # Morphological closing to fill gaps in the membrane
-    closed_binary_membrane = morphology.closing(binary_membrane, morphology.ball(2))
-
-
-    enhanced_membrane_image = membrane_image.copy()
-
-    # Replace zero or weak regions in the original membrane with the binary mask
-    enhanced_membrane_image[closed_binary_membrane > 0] = np.maximum(
-        enhanced_membrane_image[closed_binary_membrane > 0], 1  
-    )
-
-    # Optionally apply Gaussian smoothing to reduce noise
-
-    inverted_membrane = enhanced_membrane_image == 0
-    distance_map = distance_transform_edt(inverted_membrane)
     watershed_result = watershed(
-        -distance_map, markers, mask=cellpose_labels_copy_binary
+        membrane_image, markers, mask=mask
     )
 
-    # Relabel sequentially to remove any gaps in the label numbers
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
