@@ -4343,15 +4343,20 @@ def simple_dist(label_image):
 
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=10):
+    """
+    Perform watershed segmentation with precomputed marker-specific Z-decay
+    to speed up processing while preventing label spill.
+    """
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
-
+    binary_membrane = membrane_image > 0
+    distance_map = distance_transform_edt(binary_membrane)
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0)) 
+    Coordinates.append((0, 0, 0))  
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
@@ -4359,38 +4364,28 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    z_dim = membrane_image.shape[0]
-    weighted_image = np.zeros_like(membrane_image)
+    z_dim = distance_map.shape[0]
+    z_decay_table = np.zeros((z_dim, z_dim), dtype=np.float32)  
+    for z_marker in coordinates_int[:, 0]:
+        
+        z_decay_table[z_marker] = np.exp(-decay_multiplier* z_dim * z_dim * np.abs(np.arange(z_dim) - z_marker) )
 
+    weighted_image = np.zeros_like(distance_map)
     for idx, coord in enumerate(coordinates_int):
         z_center = coord[0]
-
         if z_center < 0 or z_center >= z_dim:
-            continue
+            continue 
 
-        z_min = max(0, z_center - 1)
-        z_max = min(z_dim - 1, z_center + 1)
+        z_weights = z_decay_table[z_center][:, np.newaxis, np.newaxis]
+        weighted_image += (markers == (idx + 1)) * (distance_map * z_weights)
 
-        z_slice = membrane_image[z_min:z_max + 1]
-
-        z_weights = np.zeros(z_max - z_min + 1)
-        z_weights[z_center - z_min] = 1
-        if z_center - 1 >= z_min:
-            z_weights[z_center - z_min - 1] = 1
-        if z_center + 1 <= z_max:
-            z_weights[z_center - z_min + 1] = 1
-
-        # Expand z_weights to match the dimensions of z_slice
-        z_weights_expanded = z_weights[:, np.newaxis, np.newaxis]
-
-        weighted_image[z_min:z_max + 1] += (markers == (idx + 1)) * (z_slice * z_weights_expanded)
-
-    watershed_result = watershed(weighted_image, markers, mask=mask)
+    watershed_result = watershed(
+        -weighted_image, markers, mask=mask
+    )
 
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
-
 
 
 
