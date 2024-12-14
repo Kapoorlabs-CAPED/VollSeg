@@ -4372,7 +4372,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, ignore_z = 3):
 
     valid_mask = np.zeros(mask.shape[0], dtype=bool)
     for label, (z, y, x) in enumerate(coordinates_int, start=1):
-        if 0 <= z < z_dim - ignore_z:
+        if ignore_z <= z < z_dim - ignore_z:
             valid_mask[z] = True
 
     mask = mask * valid_mask[:, np.newaxis, np.newaxis]
