@@ -4343,6 +4343,10 @@ def simple_dist(label_image):
 
 
 
+import numpy as np
+from skimage import measure, morphology
+from skimage.segmentation import watershed
+
 def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_radius=1):
     """
     Perform watershed segmentation with precomputed marker-specific Z-decay
@@ -4368,39 +4372,35 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_radius=1):
 
     z_dim = membrane_image.shape[0]
 
-    z_decay_table = {}  # Initialize an empty dictionary for Z-decay weights
-    for z_marker in coordinates_int[:, 0]:  
-        z_decay_table[z_marker] = 0  
-        if z_marker > 0:
-            z_decay_table[z_marker - 1] = 1  
-        z_decay_table[z_marker] = 1  
-        if z_marker < z_dim - 1:
-            z_decay_table[z_marker + 1] = 1  
+    # Create a 3D array of z_weights with shape (z_dim, 1, 1), each slice has weights for its center and neighbors
+    z_weights = np.zeros((z_dim, membrane_image.shape[1], membrane_image.shape[2]), dtype=np.float32)
 
-    weighted_image = np.zeros_like(membrane_image)
+    for z_marker in coordinates_int[:, 0]:
+        z_weights[z_marker] = 1  # set the center slice weight to 1
+        if z_marker > 0:
+            z_weights[z_marker - 1] = 1  # set one slice above to 1
+        if z_marker < z_dim - 1:
+            z_weights[z_marker + 1] = 1  # set one slice below to 1
+
+    # Create a weighted image by multiplying the membrane_image with the z_weights
+    weighted_image = np.zeros_like(membrane_image, dtype=np.float32)
+    
     for idx, coord in enumerate(coordinates_int):
         z_center = coord[0]
         if z_center < 0 or z_center >= z_dim:
-            continue  
+            continue
 
-        # Create a 3D array of weights
-        z_weights = z_decay_table.get(z_center, 0)  # Default to 0 if the key is not found
-        
-        # Create a 3D array with the same shape as the membrane_image but with z_weights applied
-        z_weights = np.zeros_like(membrane_image)
-        z_weights[z_center, :, :] = 1
-        if z_center > 0:
-            z_weights[z_center - 1, :, :] = 1
-        if z_center < z_dim - 1:
-            z_weights[z_center + 1, :, :] = 1
-        
+        # Apply the z_weights to the image corresponding to the marker
         weighted_image += (markers == (idx + 1)) * (membrane_image * z_weights)
 
+    # Perform watershed segmentation on the weighted image
     watershed_result = watershed(weighted_image, markers, mask=mask)
 
+    # Relabel the watershed result
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
+
 
 
 
