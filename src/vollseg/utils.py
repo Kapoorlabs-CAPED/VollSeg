@@ -4373,14 +4373,12 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
 
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
     
-    #with ThreadPoolExecutor() as executor:
-    #    decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], membrane_image.shape, decay_rate), Coordinates))
+    with ThreadPoolExecutor() as executor:
+        decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], membrane_image.shape, decay_rate), Coordinates))
     
-    #for decay_map in decay_maps:
-    #    for z in range(z_dim):
-    #        membrane_image[z] *= decay_map[z]
-    
-    
+    for decay_map in decay_maps:
+        for z in range(z_dim):
+            membrane_image[z] *= decay_map[z]
     
 
     watershed_result = watershed(membrane_image, markers) * mask
