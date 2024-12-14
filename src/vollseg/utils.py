@@ -4350,50 +4350,53 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     Perform 2D watershed segmentation for each slice from the 3D seed centroids.
     Each centroid is used to generate 2D markers for the corresponding slice.
     This also includes morphological opening and closing to remove small objects.
+    Ensures that segmentation labels are consistent across slices by using unique marker IDs.
     """
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
-    # Normalize and mask the membrane image
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
 
-    # Perform morphological opening and closing to remove small pixels
     membrane_image = morphology.opening(membrane_image, morphology.ball(2))
     membrane_image = morphology.closing(membrane_image, morphology.ball(2))
-    thresh = threshold_otsu(membrane_image)
-    binary_membrane = membrane_image > thresh  
-    distance_map = distance_transform_edt(binary_membrane)
 
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
     Coordinates = np.asarray(Coordinates)
 
-    # Initialize an empty 3D result
     watershed_result = np.zeros_like(membrane_image, dtype=np.uint16)
 
-    
+    label_map = {}
+
     for z in range(membrane_image.shape[0]):
         slice_membrane = membrane_image[z, :, :]
-        slice_distance_map = distance_map[z, :, :]
         mask_binary = mask[z, :, :]
-        # Initialize markers for the current slice
         slice_markers = np.zeros_like(slice_membrane, dtype=np.uint16)
 
-        # For each centroid, if it's in the current slice, place a marker
         for i, (center_z, center_y, center_x) in enumerate(Coordinates):
-            if int(center_z) == z:
-                slice_markers[int(center_y), int(center_x)] = i + 1  # Place the marker for the seed
+            if int(center_z) == z:  
+                slice_markers[int(center_y), int(center_x)] = i + 1  
+                label_map[(i + 1, z)] = i + 1  
 
-        # Perform 2D watershed on the current slice
-        slice_watershed_result = watershed(-slice_distance_map, slice_markers, mask=mask_binary)
+            elif int(center_z) == z - 1:  
+                slice_markers[int(center_y), int(center_x)] = i + 1
+                label_map[(i + 1, z - 1)] = i + 1  
 
-        # Store the result in the corresponding slice of the final 3D result
+            elif int(center_z) == z + 1:  
+                slice_markers[int(center_y), int(center_x)] = i + 1
+                label_map[(i + 1, z + 1)] = i + 1  
+
+        slice_watershed_result = watershed(slice_membrane, slice_markers, mask=mask_binary)
+
         watershed_result[z, :, :] = slice_watershed_result
 
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
-    return watershed_result
+    for seed_id, z in label_map.keys():
+        label = label_map[(seed_id, z)]
+        watershed_result[watershed_result == label] = seed_id
 
+    return watershed_result
 
 
 
