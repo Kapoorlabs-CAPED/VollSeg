@@ -4360,7 +4360,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
    
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
-
+    z_dim = membrane_image.shape[0]
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
     Coordinates.append((0, 0, 0))  
@@ -4377,7 +4377,8 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
         decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], membrane_image.shape, decay_rate), Coordinates))
     
     for decay_map in decay_maps:
-        membrane_image *= decay_map
+        for z in range(z_dim):
+            membrane_image[z] *= decay_map[z]
 
     labeled_image = np.zeros(membrane_image.shape)
     for i in range(membrane_image.shape[0]):
