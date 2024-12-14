@@ -4343,38 +4343,54 @@ def simple_dist(label_image):
 
 
 
+def exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate=1.0):
+    """
+    Exponentially decaying function centered at (center_z, center_y, center_x).
+    The farther from the center, the smaller the value.
+    """
+    distance = np.sqrt((z - center_z)**2 + (y - center_y)**2 + (x - center_x)**2)
+    return np.exp(-decay_rate * distance)
+
+def generate_decay_map(center_z, center_y, center_x, distance_map_shape, decay_rate):
+    z, y, x = np.indices(distance_map_shape)
+    return exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate)
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, distance_threshold=20):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
+   
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
+    
 
     mask = morphology.opening(mask, morphology.ball(10))
+    
     mask = morphology.closing(mask, morphology.ball(10))
-
-    membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100)
 
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  # Add (0,0,0) as a fallback if no centroids found
+    Coordinates.append((0, 0, 0))  
     Coordinates = np.asarray(Coordinates)
-
-    dist_map = np.zeros_like(membrane_image, dtype=float)
-
-    for z in range(membrane_image.shape[0]):
-        for i, centroid in enumerate(Coordinates):
-            dist_map[z] += np.linalg.norm(np.array([z, 0, 0]) - np.array(centroid))
-
-    membrane_image[dist_map > distance_threshold] = 0  # Set pixels that are too far from centroids to zero
-
-    labeled_image = label(invertimage(membrane_image))
-
     coordinates_int = np.round(Coordinates).astype(int)
+
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
+    
+    membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
+    
+    with ThreadPoolExecutor() as executor:
+        decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], coords[1], coords[2], membrane_image.shape, decay_rate), Coordinates))
+    
+    for decay_map in decay_maps:
+        membrane_image *= decay_map
 
-    watershed_result = watershed(membrane_image, markers, mask=labeled_image) * mask
+    labeled_image = np.zeros(membrane_image.shape)
+    for i in range(membrane_image.shape[0]):
+       labeled_image[i] = label(invertimage(membrane_image[i]))
+    
+    
+
+    watershed_result = watershed(membrane_image, markers, mask=labeled_image > 0) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
