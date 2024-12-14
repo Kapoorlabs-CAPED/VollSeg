@@ -4343,47 +4343,70 @@ def simple_dist(label_image):
 
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=5):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     """
-    Perform watershed segmentation with precomputed marker-specific Z-decay
-    to speed up processing while preventing label spill.
+    Perform watershed segmentation limited to the Z-center plane (one slice above and below).
+    
+    Parameters:
+    - membrane_image: 3D array representing the membrane signal.
+    - sized_smart_seeds: 3D array of precomputed seed markers.
+    - mask: Binary mask, 2D or 3D.
+    
+    Returns:
+    - 3D segmented labels, with watershed restricted to Z-center ±1 slices.
     """
+    # Ensure the mask is 3D if it's 2D
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
+    # Normalize membrane image
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
 
+    # Get marker centroids
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  
+    Coordinates.append((0, 0, 0))  # Ensure background is included
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
+    # Create markers from centroids
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    z_dim = membrane_image.shape[0]
-    z_decay_table = np.zeros((z_dim, z_dim), dtype=np.float32)  
-    for z_marker in range(z_dim):
-        z_decay_table[z_marker] = np.exp(-decay_multiplier* z_dim * np.abs(np.arange(z_dim) - z_marker) )
+    # Restrict watershed to z-center ±1 slices for each marker
+    z_dim, y_dim, x_dim = membrane_image.shape
+    restricted_labels = np.zeros_like(sized_smart_seeds, dtype=np.uint16)
 
-    weighted_image = np.zeros_like(membrane_image)
     for idx, coord in enumerate(coordinates_int):
         z_center = coord[0]
         if z_center < 0 or z_center >= z_dim:
-            continue 
+            continue  # Skip invalid centroids
 
-        z_weights = z_decay_table[z_center][:, np.newaxis, np.newaxis]
-        weighted_image += (markers == (idx + 1)) * (membrane_image * z_weights)
+        # Define Z-range (z_center ± 1)
+        z_min = max(0, z_center - 1)
+        z_max = min(z_dim, z_center + 2)  # Exclusive range
 
-    watershed_result = watershed(
-        weighted_image, markers, mask=mask
-    )
+        # Extract the relevant slices
+        sub_image = membrane_image[z_min:z_max]
+        sub_markers = markers[z_min:z_max]
+        sub_mask = mask[z_min:z_max]
 
-    watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
+        # Perform watershed on the restricted Z-slices
+        sub_watershed_result = watershed(
+            sub_image, sub_markers, mask=sub_mask
+        )
 
-    return watershed_result
+        # Update the restricted labels
+        restricted_labels[z_min:z_max] = np.maximum(
+            restricted_labels[z_min:z_max], sub_watershed_result
+        )
+
+    # Relabel to ensure sequential labels
+    restricted_labels, _, _ = relabel_sequential(restricted_labels.astype(np.uint16))
+
+    return restricted_labels
+
 
 
 
