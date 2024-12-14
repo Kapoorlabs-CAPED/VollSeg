@@ -4356,7 +4356,7 @@ def generate_decay_map(center_z, distance_map_shape, decay_rate):
     return exponential_decay(z, center_z, decay_rate)
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, veto_factor = 3):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask):
 
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
@@ -4386,8 +4386,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, veto_factor = 3):
     watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
     watershed_result = watershed_result.astype(np.uint16)
-    inverted_binary_image = invertimage(binary_image).astype(np.uint16)
-    watershed_result *= inverted_binary_image
+    watershed_result = image_conditionals(watershed_result, binary_image > 0, watershed_result == 0)
 
     return watershed_result
 
