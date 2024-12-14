@@ -4344,7 +4344,6 @@ def simple_dist(label_image):
 
 
 
-
 def exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate=1.0):
     """
     Exponentially decaying function centered at (center_z, center_y, center_x).
@@ -4352,6 +4351,10 @@ def exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate=1.0):
     """
     distance = np.sqrt((z - center_z)**2 + (y - center_y)**2 + (x - center_x)**2)
     return np.exp(-decay_rate * distance)
+
+def generate_decay_map(center_z, center_y, center_x, distance_map_shape, decay_rate):
+    z, y, x = np.indices(distance_map_shape)
+    return exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate)
 
 def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate=1.0):
     """
@@ -4377,50 +4380,19 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate=1.0):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    # Apply the exponential decay to the distance map around each marker
-    for i, (center_z, center_y, center_x) in enumerate(Coordinates):
-        # Create a grid of coordinates (z, y, x)
-        z, y, x = np.indices(distance_map.shape)
-        
-        # Apply the exponential decay to the distance map
-        decay_map = exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate)
-        
-        # Apply the decay to the distance map
-        distance_map *= decay_map
+    with ThreadPoolExecutor() as executor:
+        decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], coords[1], coords[2], distance_map.shape, decay_rate), Coordinates))
     
-    # Run watershed on the modified distance map
-    watershed_result = watershed(-distance_map, markers, mask=mask)
+    for decay_map in decay_maps:
+        distance_map *= decay_map
 
-    # Relabel the watershed result
+    watershed_result = watershed(-distance_map, markers, mask=mask)
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
 
 
 
-
-
-def relabel_image(image1: np.ndarray, image2: np.ndarray) -> np.ndarray:
-    """
-    Relabels image1 such that its minimum label is greater than the maximum label in image2.
-
-    Parameters:
-    - image1 (np.ndarray): First label image to be relabeled.
-    - image2 (np.ndarray): Second label image.
-
-    Returns:
-    - np.ndarray: Relabeled image1.
-    """
-    max_label_image2 = np.max(image2)
-    min_label_image1 = np.min(image1)
-
-    # Calculate the offset to add to image1 labels
-    offset = max_label_image2 - min_label_image1 + 1
-
-    # Relabel image1
-    relabeled_image1 = image1 + offset
-
-    return relabeled_image1
 
 
 def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh=1):
