@@ -4360,7 +4360,9 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
 
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
-
+    
+    mask = binary_erosion(mask, iterations = 10)
+    mask = binary_dilation(mask, iterations = 10)
     z_dim = membrane_image.shape[0]
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
@@ -4382,13 +4384,14 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     thresh = threshold_otsu(membrane_image)
     binary_image = membrane_image > thresh
     thick_binary_image = binary_image.copy()
-    binary_image = find_boundaries(binary_image, mode="outer") * 255
+    thin_binary_image = binary_erosion(binary_image, iterations = 4)
+    thin_binary_image = find_boundaries(thin_binary_image, mode="outer") * 255
 
-    watershed_result = watershed(binary_image, markers) * mask
+    watershed_result = watershed(thin_binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
     watershed_result = watershed_result.astype(np.uint16)
 
-    thinner_binary_image = binary_dilation(thick_binary_image, iterations = 2)
+    thinner_binary_image = binary_erosion(thick_binary_image, iterations = 6)
     labels_to_remove = np.unique(watershed_result[thinner_binary_image > 0])
 
     for label in labels_to_remove:
