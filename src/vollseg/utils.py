@@ -4356,32 +4356,44 @@ def generate_decay_map(center_z, distance_map_shape, decay_rate):
     return exponential_decay(z, center_z, decay_rate)
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
-   
+def CellPoseWater(membrane_image, sized_smart_seeds, mask):
+    
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
+
     z_dim = membrane_image.shape[0]
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  
+    Coordinates.append((0, 0, 0))  # Add a dummy background label
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
+
     valid_mask = np.zeros(mask.shape[0], dtype=bool)
     for label, (z, y, x) in enumerate(coordinates_int, start=1):
         if 0 <= z < z_dim:
             valid_mask[z] = True
 
     mask = mask * valid_mask[:, np.newaxis, np.newaxis]
+
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
     thresh = threshold_otsu(membrane_image)
-    binary_image = membrane_image> thresh 
+    binary_image = membrane_image > thresh
     binary_image = find_boundaries(binary_image, mode="outer") * 255
 
     watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
+
+    for z in range(z_dim):
+        slice_labels, counts = np.unique(watershed_result[z], return_counts=True)
+        slice_area = mask[z].sum()
+        max_label_size = slice_area // 4
+
+        for label, count in zip(slice_labels, counts):
+            if label != 0 and count > max_label_size:  
+                watershed_result[z][watershed_result[z] == label] = 0
 
     return watershed_result
 
