@@ -4351,9 +4351,9 @@ def exponential_decay(z, center_z, decay_rate=1.0):
     distance = np.abs(z - center_z)
     return np.exp(-decay_rate * distance)
 
-def generate_decay_map(center_z, distance_map_shape, decay_rate):
-    z = np.arange(distance_map_shape[0])  
-    return exponential_decay(z, center_z, decay_rate)
+def generate_decay_map(center_z, z_dim, decay_rate):
+   
+    return exponential_decay(z_dim, center_z, decay_rate)
 
 
 def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
