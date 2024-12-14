@@ -4376,9 +4376,11 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-   
+    thresh = threshold_otsu(membrane_image)
+    binary_image = membrane_image> thresh 
+    binary_image = find_boundaries(binary_image, mode="outer") * 255
 
-    watershed_result = watershed(membrane_image, markers) * mask
+    watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
