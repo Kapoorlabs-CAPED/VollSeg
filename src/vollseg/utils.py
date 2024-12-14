@@ -4386,13 +4386,8 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, veto_factor = 3):
     watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
     
-    label_areas = []
     unique_labels = np.unique(watershed_result)
-    for label in unique_labels:
-        if label == 0:  # Ignore background label
-            continue
-        area = np.sum(watershed_result == label)
-        label_areas.append((label, area))
+    label_areas = list(map(lambda label: (label, np.sum(watershed_result == label)), unique_labels if label != 0 else []))
 
     # Calculate area thresholds to identify outliers
     label_areas = np.array(label_areas, dtype=[('label', int), ('area', int)])
@@ -4400,19 +4395,9 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, veto_factor = 3):
     area_threshold = veto_factor * median_area  # Define an outlier threshold as 3x the median
 
     # Remove outlier labels based on area
-    for label, area in label_areas:
-        if area > area_threshold:
-            watershed_result[watershed_result == label] = 0
-
-    # Remove labels that touch the binary_image
-    for label in np.unique(watershed_result):
-        if label == 0:
-            continue
-
-        label_mask = (watershed_result == label)
-        if np.any(label_mask & binary_image):
-            watershed_result[label_mask] = 0
-   
+    outlier_labels = [label for label, area in label_areas if area > area_threshold]
+    for label in outlier_labels:
+        watershed_result[watershed_result == label] = 0
 
     return watershed_result
 
