@@ -4386,13 +4386,11 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
     thick_binary_image = binary_image.copy()
     binary_image = find_boundaries(binary_image, mode="outer") * 255
 
-    decay_maps = np.zeros_like(markers_raw, dtype=float)
-    for label, (z, y, x) in enumerate(coordinates_int, start=1):
-        if 0 <= z < z_dim:
-            decay_map = generate_decay_map(z, z_dim, decay_rate)
-            decay_maps[z, :, :] = decay_map[:, np.newaxis] 
-
-    markers = markers_raw.astype(float) * decay_maps  
+    with ThreadPoolExecutor() as executor:
+        decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], z_dim, decay_rate), Coordinates))
+    
+    for decay_map in decay_maps:
+        membrane_image *= decay_map 
 
     watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
