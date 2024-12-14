@@ -4361,17 +4361,27 @@ def generate_decay_map(center_z, center_y, center_x, distance_map_shape, z_dim, 
     z, y, x = np.indices(distance_map_shape)
     return exponential_decay(z, y, x, center_z, center_y, center_x, z_dim, decay_factor)
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0, small_object_size=100):
     """
     Perform watershed segmentation with precomputed marker-specific Z-decay
     to speed up processing while preventing label spill.
     This version decays the membrane image value symmetrically in the Z-direction
     around each marker to stop watershed growth.
+    This also includes morphological opening and closing to remove small objects.
     """
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
+    # Normalize and mask the membrane image
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
+
+    # Perform morphological opening and closing to remove small pixels
+    # Opening removes small foreground objects (small connected components)
+    membrane_image = morphology.opening(membrane_image, morphology.ball(2))
+    
+    # Closing fills small holes in the foreground
+    membrane_image = morphology.closing(membrane_image, morphology.ball(2))
+
     binary_membrane = membrane_image > 0  
     distance_map = distance_transform_edt(binary_membrane)
 
