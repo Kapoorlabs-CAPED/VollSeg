@@ -4361,8 +4361,8 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
     
-    mask = binary_erosion(mask, iterations = 10)
-    mask = binary_dilation(mask, iterations = 10)
+    mask = binary_erosion(mask, iterations = 1)
+    mask = binary_dilation(mask, iterations = 1)
     z_dim = membrane_image.shape[0]
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
