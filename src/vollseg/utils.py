@@ -4344,19 +4344,24 @@ def simple_dist(label_image):
 
 
 
-def exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate=1.0):
+def exponential_decay(z, y, x, center_z, center_y, center_x, z_dim, decay_factor=1.0):
     """
     Exponentially decaying function centered at (center_z, center_y, center_x).
-    The farther from the center, the smaller the value.
+    The decay rate is proportional to the z-dimension to avoid over-expansion in z-direction.
     """
     distance = np.sqrt((z - center_z)**2 + (y - center_y)**2 + (x - center_x)**2)
+
+    # Adjust decay rate based on distance along the z-dimension
+    z_scale = abs(z - center_z) / z_dim  # Normalized distance in z-direction
+    decay_rate = decay_factor * (1 + z_scale)  # Proportional decay factor
+
     return np.exp(-decay_rate * distance)
 
-def generate_decay_map(center_z, center_y, center_x, distance_map_shape, decay_rate):
+def generate_decay_map(center_z, center_y, center_x, distance_map_shape, z_dim, decay_factor):
     z, y, x = np.indices(distance_map_shape)
-    return exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate)
+    return exponential_decay(z, y, x, center_z, center_y, center_x, z_dim, decay_factor)
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate=1.0):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0):
     """
     Perform watershed segmentation with precomputed marker-specific Z-decay
     to speed up processing while preventing label spill.
@@ -4380,8 +4385,10 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate=1.0):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
+    z_dim = membrane_image.shape[0]  # The size of the z-dimension
+
     with ThreadPoolExecutor() as executor:
-        decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], coords[1], coords[2], distance_map.shape, decay_rate), Coordinates))
+        decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], coords[1], coords[2], distance_map.shape, z_dim, decay_factor), Coordinates))
     
     for decay_map in decay_maps:
         distance_map *= decay_map
@@ -4390,7 +4397,6 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate=1.0):
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
-
 
 
 
