@@ -4386,7 +4386,8 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
     watershed_result = watershed_result.astype(np.uint16)
-    watershed_result = image_conditionals(watershed_result, binary_image > 0, watershed_result == 0)
+    pixel_replace_condition = 0
+    watershed_result = image_conditionals(watershed_result, binary_image > 0, pixel_replace_condition)
 
     return watershed_result
 
