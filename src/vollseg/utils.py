@@ -4351,9 +4351,8 @@ def exponential_decay(z, y, x, center_z, center_y, center_x, z_dim, decay_factor
     """
     distance = np.sqrt((z - center_z)**2 + (y - center_y)**2 + (x - center_x)**2)
 
-    # Adjust decay rate based on distance along the z-dimension
-    z_scale = abs(z - center_z) / z_dim  # Normalized distance in z-direction
-    decay_rate = decay_factor * (1 + z_scale)  # Proportional decay factor
+    z_scale = abs(z - center_z) / z_dim  
+    decay_rate = decay_factor * (1 + z_scale)  
 
     return np.exp(-decay_rate * distance)
 
@@ -4361,7 +4360,7 @@ def generate_decay_map(center_z, center_y, center_x, distance_map_shape, z_dim, 
     z, y, x = np.indices(distance_map_shape)
     return exponential_decay(z, y, x, center_z, center_y, center_x, z_dim, decay_factor)
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0, small_object_size=100):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0):
     """
     Perform watershed segmentation with precomputed marker-specific Z-decay
     to speed up processing while preventing label spill.
@@ -4372,22 +4371,18 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0, sma
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
-    # Normalize and mask the membrane image
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
 
-    # Perform morphological opening and closing to remove small pixels
-    # Opening removes small foreground objects (small connected components)
     membrane_image = morphology.opening(membrane_image, morphology.ball(2))
     
-    # Closing fills small holes in the foreground
     membrane_image = morphology.closing(membrane_image, morphology.ball(2))
 
-    binary_membrane = membrane_image > 0  
-    distance_map = distance_transform_edt(binary_membrane)
-
+    #binary_membrane = membrane_image > 0  
+    #distance_map = distance_transform_edt(binary_membrane)
+    distance_map = membrane_image
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  # add an origin marker
+    Coordinates.append((0, 0, 0))  
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
@@ -4395,15 +4390,15 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0, sma
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    z_dim = membrane_image.shape[0]  # The size of the z-dimension
+    z_dim = membrane_image.shape[0] 
 
-    with ThreadPoolExecutor() as executor:
+    with ThreadPoolExecutor(max_workers = os.cpu_count() - 1) as executor:
         decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], coords[1], coords[2], distance_map.shape, z_dim, decay_factor), Coordinates))
     
     for decay_map in decay_maps:
         distance_map *= decay_map
 
-    watershed_result = watershed(-distance_map, markers, mask=mask)
+    watershed_result = watershed(distance_map, markers, mask=mask)
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
