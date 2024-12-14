@@ -4390,7 +4390,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
 
     for idx, decay_map in enumerate(decay_maps):
         z, y, x = coordinates_int[idx]
-        decay_map_3d[z, :, :] = decay_map[:, np.newaxis]  
+        decay_map_3d[z, :, :] = decay_map[:, np.newaxis, np.newaxis]  
 
     membrane_image = membrane_image.astype(np.float64)
 
