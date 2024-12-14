@@ -4396,10 +4396,8 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
             if label != 0 and count > max_label_size:  # Ignore background label (0)
                 watershed_result[z][watershed_result[z] == label] = 0
 
-    # Remove labels that touch the eroded membrane_image
-    eroded_membrane = morphology.binary_erosion(membrane_image > 0, morphology.ball(1))
     for z in range(z_dim):
-        touching_labels = np.unique(watershed_result[z][~eroded_membrane[z]])
+        touching_labels = np.unique(watershed_result[z][~binary_image[z]])
         for label in touching_labels:
             if label != 0:  # Ignore background label (0)
                 watershed_result[z][watershed_result[z] == label] = 0
