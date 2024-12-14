@@ -1588,24 +1588,18 @@ def VollCellSeg(
     nuclei_seg_image: np.ndarray,
     mask: np.ndarray = None,
     channel_membrane: int = 0,
-    gpu: bool = False,
     axes: str = "ZYX",
     n_tiles: tuple = (1, 1, 1),
     save_dir: str = None,
     Name: str = "Result",
-    do_3D: bool = False,
-    channels=None,
 ):
 
     if len(image.shape) == 3 and "T" not in axes:
-        # Just a 3D image
         image_membrane = image
-
        
 
     if len(image.shape) == 4 and "T" not in axes:
         image_membrane = image[:, channel_membrane, :, :]
-
         
 
     if len(image.shape) > 4 and "T" in axes:
@@ -4347,15 +4341,29 @@ def simple_dist(label_image):
     output_image = binary_image / np.max(binary_image)
     return output_image
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask):
 
-    
+
+def CellPoseWater(membrane_image, sized_smart_seeds, mask):
+    """
+    Perform watershed-based segmentation with adjustments to handle
+    weak membrane signals at the start and end of the stack.
+    """
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
+    
+    smoothed_membrane = morphology.ball(1)
+    membrane_image = morphology.closing(membrane_image, smoothed_membrane)
+
+    z_dim = membrane_image.shape[0]
+    z_weights = np.linspace(0.5, 1.0, z_dim) 
+    z_weights = np.minimum(z_weights, z_weights[::-1]) 
+    membrane_image *= z_weights[:, np.newaxis, np.newaxis]
+
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
     Coordinates.append((0, 0, 0))
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
+
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
@@ -4367,6 +4375,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
+
 
 
 
