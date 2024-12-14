@@ -4343,17 +4343,17 @@ def simple_dist(label_image):
 
 
 
-def exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate=1.0):
+def exponential_decay(z, center_z, decay_rate=1.0):
     """
-    Exponentially decaying function centered at (center_z, center_y, center_x).
-    The farther from the center, the smaller the value.
+    Exponentially decaying function centered at center_z.
+    The farther from the center_z, the smaller the value.
     """
-    distance = np.sqrt((z - center_z)**2 + (y - center_y)**2 + (x - center_x)**2)
+    distance = np.abs(z - center_z)
     return np.exp(-decay_rate * distance)
 
-def generate_decay_map(center_z, center_y, center_x, distance_map_shape, decay_rate):
-    z, y, x = np.indices(distance_map_shape)
-    return exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate)
+def generate_decay_map(center_z, distance_map_shape, decay_rate):
+    z = np.arange(distance_map_shape[0])  
+    return exponential_decay(z, center_z, decay_rate)
 
 
 def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
@@ -4375,7 +4375,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
-    
+
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
     
     with ThreadPoolExecutor() as executor:
