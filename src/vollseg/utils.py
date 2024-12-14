@@ -4343,7 +4343,7 @@ def simple_dist(label_image):
 
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=5):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=2):
     """
     Perform watershed segmentation with precomputed marker-specific Z-decay
     to speed up processing while preventing label spill.
@@ -4371,7 +4371,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=5):
     z_dim = membrane_image.shape[0]
     z_decay_table = np.zeros((z_dim, z_dim), dtype=np.float32)  # [z_marker, z_slice]
     for z_marker in range(z_dim):
-        z_decay_table[z_marker] = np.exp(-decay_multiplier*np.abs(np.arange(z_dim) - z_marker) / z_dim)
+        z_decay_table[z_marker] = np.exp(-decay_multiplier* z_dim * np.abs(np.arange(z_dim) - z_marker) )
 
     # Create a weighted image using the precomputed decay table
     weighted_image = np.zeros_like(membrane_image)
