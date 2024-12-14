@@ -4357,7 +4357,7 @@ def generate_decay_map(center_z, distance_map_shape, decay_rate):
 
 
 def CellPoseWater(membrane_image, sized_smart_seeds, mask):
-    
+
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
@@ -4386,13 +4386,22 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
+    # Remove large labels slice by slice
     for z in range(z_dim):
         slice_labels, counts = np.unique(watershed_result[z], return_counts=True)
         slice_area = mask[z].sum()
         max_label_size = slice_area // 4
 
         for label, count in zip(slice_labels, counts):
-            if label != 0 and count > max_label_size:  
+            if label != 0 and count > max_label_size:  # Ignore background label (0)
+                watershed_result[z][watershed_result[z] == label] = 0
+
+    # Remove labels that touch the eroded membrane_image
+    eroded_membrane = morphology.binary_erosion(membrane_image > 0, morphology.ball(1))
+    for z in range(z_dim):
+        touching_labels = np.unique(watershed_result[z][~eroded_membrane[z]])
+        for label in touching_labels:
+            if label != 0:  # Ignore background label (0)
                 watershed_result[z][watershed_result[z] == label] = 0
 
     return watershed_result
