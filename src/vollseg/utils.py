@@ -4356,7 +4356,7 @@ def generate_decay_map(center_z, distance_map_shape, decay_rate):
     return exponential_decay(z, center_z, decay_rate)
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, veto_factor = 16):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, veto_factor = 3):
 
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
@@ -4385,17 +4385,33 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, veto_factor = 16):
 
     watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
+    
+    label_areas = []
+    unique_labels = np.unique(watershed_result)
+    for label in unique_labels:
+        if label == 0:  # Ignore background label
+            continue
+        area = np.sum(watershed_result == label)
+        label_areas.append((label, area))
 
-    # Remove large labels slice by slice
-    for z in range(z_dim):
-        slice_labels, counts = np.unique(watershed_result[z], return_counts=True)
-        slice_area = mask[z].sum()
-        max_label_size = slice_area // veto_factor
+    # Calculate area thresholds to identify outliers
+    label_areas = np.array(label_areas, dtype=[('label', int), ('area', int)])
+    median_area = np.median(label_areas['area'])
+    area_threshold = veto_factor * median_area  # Define an outlier threshold as 3x the median
 
-        for label, count in zip(slice_labels, counts):
-            if label != 0 and count > max_label_size:  # Ignore background label (0)
-                watershed_result[z][watershed_result[z] == label] = 0
+    # Remove outlier labels based on area
+    for label, area in label_areas:
+        if area > area_threshold:
+            watershed_result[watershed_result == label] = 0
 
+    # Remove labels that touch the binary_image
+    for label in np.unique(watershed_result):
+        if label == 0:
+            continue
+
+        label_mask = (watershed_result == label)
+        if np.any(label_mask & binary_image):
+            watershed_result[label_mask] = 0
    
 
     return watershed_result
