@@ -4366,32 +4366,22 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
     Coordinates.append((0, 0, 0))  
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
+    valid_mask = np.zeros(mask.shape[0], dtype=bool)
+    for label, (z, y, x) in enumerate(coordinates_int, start=1):
+        if 0 <= z < z_dim:
+            valid_mask[z] = True
 
+    mask = mask * valid_mask[:, np.newaxis, np.newaxis]
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    thresh = threshold_otsu(membrane_image)
-    binary_image = membrane_image > thresh
-    binary_image = find_boundaries(binary_image, mode="outer") * 255 
-    #with ThreadPoolExecutor() as executor:
-    #    decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], membrane_image.shape, decay_rate), Coordinates))
-    
-    #for decay_map in decay_maps:
-    #    for z in range(z_dim):
-    #        membrane_image[z] *= decay_map[z]
-    
-    labeled_image = np.zeros(membrane_image.shape, dtype=np.uint16)
-    for i in range(membrane_image.shape[0]):
-       labeled_image[i] = label(binary_image[i])
-    
-    
-    labeled_image = fill_label_holes(labeled_image)
+   
 
-    #watershed_result = watershed(membrane_image, markers, mask=labeled_image > 0) * mask
-    #watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
+    watershed_result = watershed(membrane_image, markers) * mask
+    watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
-    return labeled_image
+    return watershed_result
 
 
 
