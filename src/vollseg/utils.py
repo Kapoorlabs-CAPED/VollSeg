@@ -4396,11 +4396,14 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
             if label != 0 and count > max_label_size:  # Ignore background label (0)
                 watershed_result[z][watershed_result[z] == label] = 0
 
-    for z in range(z_dim):
-        touching_labels = np.unique(watershed_result[z][~binary_image[z]])
-        for label in touching_labels:
-            if label != 0:  # Ignore background label (0)
-                watershed_result[z][watershed_result[z] == label] = 0
+    unique_labels = np.unique(watershed_result)
+    for label in unique_labels:
+        if label == 0:  # Ignore background label
+            continue
+
+        label_mask = (watershed_result == label)
+        if np.any(label_mask & binary_image):
+            watershed_result[label_mask] = 0
 
     return watershed_result
 
