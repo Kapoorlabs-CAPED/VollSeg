@@ -4355,7 +4355,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
 
     z_dim = membrane_image.shape[0]
-    z_weights = np.exp(-np.abs(np.linspace(-1, 1, z_dim)) * 5)  
+    z_weights = np.exp(-np.abs(np.linspace(-1, 1, z_dim)) * z_dim)  
     membrane_image *= z_weights[:, np.newaxis, np.newaxis]
 
     properties = measure.regionprops(sized_smart_seeds)
