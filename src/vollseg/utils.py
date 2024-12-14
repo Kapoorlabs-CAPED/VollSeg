@@ -4364,7 +4364,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, veto_factor = 3):
     z_dim = membrane_image.shape[0]
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  # Add a dummy background label
+    Coordinates.append((0, 0, 0))  
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
@@ -4385,8 +4385,8 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, veto_factor = 3):
 
     watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
-    
-    inverted_binary_image = invertimage(binary_image)
+    watershed_result = watershed_result.astype(np.uint16)
+    inverted_binary_image = invertimage(binary_image).astype(np.uint16)
     watershed_result *= inverted_binary_image
 
     return watershed_result
