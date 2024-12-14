@@ -4361,7 +4361,6 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
     
-    membrane_image = membrane_image.astype(np.uint32)
     mask = binary_erosion(mask, iterations = 1)
     mask = binary_dilation(mask, iterations = 1)
     z_dim = membrane_image.shape[0]
@@ -4385,7 +4384,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
     
     with ThreadPoolExecutor() as executor:
         decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], z_dim, decay_rate), Coordinates))
-    
+    membrane_image = membrane_image.astype(np.float64)
     for decay_map in decay_maps:
         membrane_image *= decay_map 
     
