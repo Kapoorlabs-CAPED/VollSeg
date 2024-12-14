@@ -4343,17 +4343,12 @@ def simple_dist(label_image):
 
 
 
-import numpy as np
-from skimage import measure, morphology
-from skimage.segmentation import watershed
-
 def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_radius=1):
     """
-    Perform watershed segmentation with precomputed marker-specific Z-decay
-    to speed up processing while preventing label spill.
-    This version applies a weight of 1 to the slice where the centroid lies,
-    and its immediate neighbors (one slice above and below), while other slices
-    have weight 0.
+    Perform watershed segmentation with marker-specific Z-decay to speed up
+    processing while preventing label spill. This version applies a weight of
+    1 to the slice where the centroid lies and its immediate neighbors (one slice
+    above and one below), while other slices have weight 0.
     """
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
@@ -4362,7 +4357,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_radius=1):
 
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  
+    Coordinates.append((0, 0, 0))  # Append a dummy centroid to avoid empty list errors
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
@@ -4371,27 +4366,25 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_radius=1):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
     z_dim = membrane_image.shape[0]
+    weighted_image = np.zeros_like(membrane_image)
 
-    # Create a 3D array of z_weights with shape (z_dim, 1, 1), each slice has weights for its center and neighbors
-    z_weights = np.zeros((z_dim, membrane_image.shape[1], membrane_image.shape[2]), dtype=np.float32)
-
-    for z_marker in coordinates_int[:, 0]:
-        z_weights[z_marker] = 1  # set the center slice weight to 1
-        if z_marker > 0:
-            z_weights[z_marker - 1] = 1  # set one slice above to 1
-        if z_marker < z_dim - 1:
-            z_weights[z_marker + 1] = 1  # set one slice below to 1
-
-    # Create a weighted image by multiplying the membrane_image with the z_weights
-    weighted_image = np.zeros_like(membrane_image, dtype=np.float32)
-    
+    # Loop over each centroid in coordinates_int and apply Z-decay
     for idx, coord in enumerate(coordinates_int):
         z_center = coord[0]
+
         if z_center < 0 or z_center >= z_dim:
             continue
 
-        # Apply the z_weights to the image corresponding to the marker
-        weighted_image += (markers == (idx + 1)) * (membrane_image * z_weights)
+        # Apply decay: weight current slice and neighbors (one above, one below)
+        z_weights = np.zeros(z_dim)
+        z_weights[z_center] = 1
+        if z_center > 0:
+            z_weights[z_center - 1] = 1  # One slice above
+        if z_center < z_dim - 1:
+            z_weights[z_center + 1] = 1  # One slice below
+
+        # Apply weights to the image for this marker
+        weighted_image += (markers == (idx + 1)) * (membrane_image * z_weights[:, np.newaxis, np.newaxis])
 
     # Perform watershed segmentation on the weighted image
     watershed_result = watershed(weighted_image, markers, mask=mask)
@@ -4400,13 +4393,6 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_radius=1):
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
-
-
-
-
-
-
-
 
 
 
