@@ -4372,9 +4372,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
-    thresh = threshold_otsu(membrane_image)
-    binary_image = membrane_image > thresh
-    binary_image = find_boundaries(binary_image, mode="outer") * 255 
+    
     #with ThreadPoolExecutor() as executor:
     #    decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], membrane_image.shape, decay_rate), Coordinates))
     
@@ -4382,14 +4380,13 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
     #    for z in range(z_dim):
     #        membrane_image[z] *= decay_map[z]
     
-    labeled_image = label(binary_image)
     
     
 
-    #watershed_result = watershed(membrane_image, markers, mask=labeled_image > 0) * mask
+    watershed_result = watershed(membrane_image, markers) * mask
     #watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
-    return labeled_image
+    return watershed_result
 
 
 
