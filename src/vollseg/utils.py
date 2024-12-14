@@ -4345,7 +4345,7 @@ def simple_dist(label_image):
 
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0, small_object_size=100):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     """
     Perform 2D watershed segmentation for each slice from the 3D seed centroids.
     Each centroid is used to generate 2D markers for the corresponding slice.
@@ -4371,11 +4371,11 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0, sma
     # Initialize an empty 3D result
     watershed_result = np.zeros_like(membrane_image, dtype=np.uint16)
 
-    # Iterate over each z-slice
+    
     for z in range(membrane_image.shape[0]):
         slice_membrane = membrane_image[z, :, :]
         slice_distance_map = distance_map[z, :, :]
-
+        mask_binary = mask[z, :, :]
         # Initialize markers for the current slice
         slice_markers = np.zeros_like(slice_membrane, dtype=np.uint16)
 
@@ -4385,7 +4385,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0, sma
                 slice_markers[int(center_y), int(center_x)] = i + 1  # Place the marker for the seed
 
         # Perform 2D watershed on the current slice
-        slice_watershed_result = watershed(-slice_distance_map, slice_markers, mask=slice_membrane)
+        slice_watershed_result = watershed(-slice_distance_map, slice_markers, mask=mask_binary)
 
         # Store the result in the corresponding slice of the final 3D result
         watershed_result[z, :, :] = slice_watershed_result
