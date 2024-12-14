@@ -4356,7 +4356,7 @@ def generate_decay_map(center_z, z_dim, decay_rate):
     return exponential_decay(z, center_z, decay_rate)
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, ignore_z = 3):
 
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
@@ -4372,7 +4372,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
 
     valid_mask = np.zeros(mask.shape[0], dtype=bool)
     for label, (z, y, x) in enumerate(coordinates_int, start=1):
-        if 0 <= z < z_dim:
+        if 0 <= z < z_dim - ignore_z:
             valid_mask[z] = True
 
     mask = mask * valid_mask[:, np.newaxis, np.newaxis]
@@ -4394,8 +4394,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
     thinner_binary_image = binary_erosion(thick_binary_image, iterations=2)
     labels_to_remove = np.unique(watershed_result[thinner_binary_image > 0])
 
-    final_mask = binary_dilation(binary_image, iterations = 10)
-    final_mask = binary_erosion(final_mask, iterations = 10)
+
 
     for label in labels_to_remove:
         if label != 0:  
