@@ -4381,16 +4381,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    
-    with ThreadPoolExecutor() as executor:
-        decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], z_dim, decay_rate), Coordinates))
 
-    markers = markers.astype(np.float64)
-
-    for decay_map in decay_maps:
-        markers *= decay_map[:, np.newaxis, np.newaxis]
-    
-    markers = markers.astype(np.uint16)
     thresh = threshold_otsu(membrane_image)
     binary_image = membrane_image > thresh
     thick_binary_image = binary_image.copy()
