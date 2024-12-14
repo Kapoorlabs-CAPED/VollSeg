@@ -4345,24 +4345,19 @@ def simple_dist(label_image):
 
 def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     """
-    Perform watershed-based segmentation with adjustments to handle
-    weak membrane signals at the start and end of the stack.
+    Perform watershed-based segmentation with stronger Z-weighting to handle
+    weak membrane signals and prevent label spill at the edges.
     Ensures the mask matches the dimensionality of the membrane_image.
     """
-    # Check if the mask is 2D; if so, extend it along the Z-dimension
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
-    # Normalize the membrane signal
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
 
-    # Apply Z-weighting to minimize edge artifacts
     z_dim = membrane_image.shape[0]
-    z_weights = np.linspace(0.5, 1.0, z_dim)  # Gradually reduce weight at edges
-    z_weights = np.minimum(z_weights, z_weights[::-1])  # Symmetrical reduction
+    z_weights = np.exp(-np.abs(np.linspace(-1, 1, z_dim)) * 5)  
     membrane_image *= z_weights[:, np.newaxis, np.newaxis]
 
-    # Create markers from sized_smart_seeds
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
     Coordinates.append((0, 0, 0))
@@ -4373,7 +4368,6 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    # Perform watershed segmentation
     watershed_result = watershed(
         membrane_image, markers, mask=mask
     )
@@ -4382,6 +4376,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
+
 
 
 
