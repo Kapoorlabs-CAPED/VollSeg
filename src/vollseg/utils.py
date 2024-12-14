@@ -4344,13 +4344,29 @@ def simple_dist(label_image):
 
 
 
-
-def CellPoseWater(membrane_image, sized_smart_seeds, mask):
+def exponential_decay(z, y, x, center_z, center_y, center_x, z_dim, decay_factor=1.0):
     """
-    Perform 2D watershed segmentation for each slice from the 3D seed centroids.
-    Each centroid is used to generate 2D markers for the corresponding slice.
+    Exponentially decaying function centered at (center_z, center_y, center_x).
+    The decay rate is proportional to the z-dimension to avoid over-expansion in z-direction.
+    """
+    distance = np.sqrt((z - center_z)**2 + (y - center_y)**2 + (x - center_x)**2)
+
+    z_scale = abs(z - center_z) / z_dim  
+    decay_rate = decay_factor * (1 + z_scale)  
+
+    return np.exp(-decay_rate * distance)
+
+def generate_decay_map(center_z, center_y, center_x, distance_map_shape, z_dim, decay_factor):
+    z, y, x = np.indices(distance_map_shape)
+    return exponential_decay(z, y, x, center_z, center_y, center_x, z_dim, decay_factor)
+
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0):
+    """
+    Perform watershed segmentation with precomputed marker-specific Z-decay
+    to speed up processing while preventing label spill.
+    This version decays the membrane image value symmetrically in the Z-direction
+    around each marker to stop watershed growth.
     This also includes morphological opening and closing to remove small objects.
-    Ensures that segmentation labels are consistent across slices by using unique marker IDs.
     """
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
@@ -4358,45 +4374,35 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
 
     membrane_image = morphology.opening(membrane_image, morphology.ball(2))
+    
     membrane_image = morphology.closing(membrane_image, morphology.ball(2))
-
+    
+    threshold = threshold_otsu(membrane_image)
+    binary_membrane = membrane_image > threshold
+    distance_map = distance_transform_edt(binary_membrane)
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
+    Coordinates.append((0, 0, 0))  
     Coordinates = np.asarray(Coordinates)
+    coordinates_int = np.round(Coordinates).astype(int)
 
-    watershed_result = np.zeros_like(membrane_image, dtype=np.uint16)
+    markers_raw = np.zeros_like(sized_smart_seeds)
+    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    label_map = {}
+    z_dim = membrane_image.shape[0] 
 
-    for z in range(membrane_image.shape[0]):
-        slice_membrane = membrane_image[z, :, :]
-        mask_binary = mask[z, :, :]
-        slice_markers = np.zeros_like(slice_membrane, dtype=np.uint16)
+    with ThreadPoolExecutor(max_workers = os.cpu_count() - 1) as executor:
+        decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], coords[1], coords[2], distance_map.shape, z_dim, decay_factor), Coordinates))
+    
+    for decay_map in decay_maps:
+        distance_map *= decay_map
 
-        for i, (center_z, center_y, center_x) in enumerate(Coordinates):
-            if int(center_z) == z:  
-                slice_markers[int(center_y), int(center_x)] = i + 1  
-                label_map[(i + 1, z)] = i + 1  
-
-            elif int(center_z) == z - 1:  
-                slice_markers[int(center_y), int(center_x)] = i + 1
-                label_map[(i + 1, z - 1)] = i + 1  
-
-            elif int(center_z) == z + 1:  
-                slice_markers[int(center_y), int(center_x)] = i + 1
-                label_map[(i + 1, z + 1)] = i + 1  
-
-        slice_watershed_result = watershed(slice_membrane, slice_markers, mask=mask_binary)
-
-        watershed_result[z, :, :] = slice_watershed_result
-
+    watershed_result = watershed(-distance_map, markers, mask=mask)
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
-    for seed_id, z in label_map.keys():
-        label = label_map[(seed_id, z)]
-        watershed_result[watershed_result == label] = seed_id
-
     return watershed_result
+
 
 
 
