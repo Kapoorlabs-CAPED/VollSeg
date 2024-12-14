@@ -4357,7 +4357,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     membrane_image = morphology.closing(membrane_image, morphology.ball(2))
     
     
-    labeled_image, num_labels = label(invertimage(membrane_image))
+    labeled_image = label(invertimage(membrane_image))
 
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
