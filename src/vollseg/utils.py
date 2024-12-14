@@ -4343,11 +4343,12 @@ def simple_dist(label_image):
 
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=5):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_radius=1):
     """
     Perform watershed segmentation with precomputed marker-specific Z-decay
     to speed up processing while preventing label spill.
-    The decay is restricted to two successive Z slices.
+    This version applies a weight of 1 to the slice where the centroid lies
+    and 0 to all other slices.
     """
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
@@ -4356,7 +4357,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=5):
 
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  # Add dummy coordinate to prevent out-of-bound errors
+    Coordinates.append((0, 0, 0))  # Add dummy coordinate to avoid out-of-bounds errors
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
@@ -4365,27 +4366,25 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=5):
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
     z_dim = membrane_image.shape[0]
-    
-    # Restrict the decay to the two successive z slices (current z slice and one above and below)
+
+    # Create a decay table where the weight is 1 at the z-center and 0 elsewhere
+    z_decay_table = np.zeros((z_dim, z_dim), dtype=np.float32)  
+    for z_marker in range(z_dim):
+        for z_center in coordinates_int[:, 0]:  # loop over the z centers of the markers
+            if z_marker == z_center:
+                z_decay_table[z_marker] = 1  # Set weight to 1 only at the centroid slice
+            else:
+                z_decay_table[z_marker] = 0  # Set weight to 0 for other slices
+
     weighted_image = np.zeros_like(membrane_image)
     for idx, coord in enumerate(coordinates_int):
         z_center = coord[0]
         if z_center < 0 or z_center >= z_dim:
             continue  # Skip invalid markers
 
-        # Apply sharp decay between only the Z slices (z_center, z_center+1, z_center-1)
-        z_weights = np.zeros(z_dim)
-        z_weights[z_center] = 1  # Full weight at z_center
-        if z_center > 0:
-            z_weights[z_center - 1] = 1 / (decay_multiplier)  # Weight for z_center-1 slice
-        if z_center < z_dim - 1:
-            z_weights[z_center + 1] = 1 / (decay_multiplier)  # Weight for z_center+1 slice
-
-        # Normalize to make sure the weights are not too large
-        z_weights = z_weights / np.sum(z_weights)
-
-        # Apply the weights only to the region around the marker's centroid
-        weighted_image += (markers == (idx + 1)) * (membrane_image * z_weights[:, np.newaxis, np.newaxis])
+        # Apply decay (1 for z_center, 0 for others)
+        z_weights = z_decay_table[z_center][:, np.newaxis, np.newaxis]
+        weighted_image += (markers == (idx + 1)) * (membrane_image * z_weights)
 
     # Apply watershed segmentation
     watershed_result = watershed(weighted_image, markers, mask=mask)
