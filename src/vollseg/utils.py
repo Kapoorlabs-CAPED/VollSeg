@@ -4381,14 +4381,19 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
 
     thresh = threshold_otsu(membrane_image)
     binary_image = membrane_image > thresh
-    skeleton_image = skeletonize(binary_image)
+    thick_binary_image = binary_image.copy()
+    binary_image = find_boundaries(binary_image, mode="outer") * 255
 
-    watershed_result = watershed(skeleton_image, markers) * mask
+    watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
     watershed_result = watershed_result.astype(np.uint16)
-    #pixel_replace_condition = 0
-    #watershed_result = image_conditionals(watershed_result, binary_image > 0, pixel_replace_condition)
+    labels_to_remove = np.unique(watershed_result[thick_binary_image > 0])
 
+    for label in labels_to_remove:
+        if label != 0: 
+            watershed_result[watershed_result == label] = 0
+
+    
     return watershed_result
 
 
