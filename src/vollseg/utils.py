@@ -4360,11 +4360,6 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
    
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
-    
-
-    mask = morphology.opening(mask, morphology.ball(10))
-    
-    mask = morphology.closing(mask, morphology.ball(10))
 
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
