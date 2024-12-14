@@ -4345,34 +4345,70 @@ def simple_dist(label_image):
 
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask):
-   
+import numpy as np
+from skimage import measure, morphology
+from skimage.segmentation import watershed
+from scipy.ndimage import distance_transform_edt
+
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate=0.1, max_distance=100):
+    """
+    Perform watershed segmentation with exponentially decaying influence in the z-dimension around markers.
+    
+    Args:
+        membrane_image (ndarray): The membrane image (binary or grayscale).
+        sized_smart_seeds (ndarray): The labeled seeds for marker points.
+        mask (ndarray): The mask where watershed segmentation will occur.
+        decay_rate (float): Rate of exponential decay for influence around centroids.
+        max_distance (int): The maximum distance over which the mask decays in the z-dimension.
+
+    Returns:
+        ndarray: The labeled result from the watershed segmentation.
+    """
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
-    membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
+    # Preprocess mask with morphological operations (opening and closing)
+    mask = morphology.opening(mask, morphology.ball(10))
+    mask = morphology.closing(mask, morphology.ball(10))
 
-    membrane_image = morphology.opening(membrane_image, morphology.ball(2))
+    # Normalize the membrane image (if needed)
+    membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100)
     
-    membrane_image = morphology.closing(membrane_image, morphology.ball(2))
-    
-    
+    # Invert the membrane image to prepare for watershed (black interior labeling)
     labeled_image = label(invertimage(membrane_image))
 
+    # Get the coordinates of the centroids of the markers (seed points)
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  
+    Coordinates.append((0, 0, 0))  # Add (0,0,0) as a fallback if no centroids found
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
+    # Create an empty mask for the markers and place markers at centroids
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
+    
+    # Perform dilation on the markers to give some neighborhood influence
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    watershed_result = watershed(membrane_image, markers, mask=labeled_image) * mask
+    # Step 1: Generate the distance transform in the z-dimension (only z-axis)
+    dist_transform_z = distance_transform_edt(markers == 0, sampling=[1, 1, 1])  # Distance in z only
+    
+    # Step 2: Apply the exponential decay function in the z-dimension
+    exp_decay_mask = np.exp(-decay_rate * dist_transform_z)  # Exponential decay based on z-distance
+    
+    # Step 3: Mask the watershed result with the decay mask to limit influence to nearby areas in the z-dimension
+    adjusted_mask = mask * exp_decay_mask
+    adjusted_mask = np.clip(adjusted_mask, 0, 1)  # Ensure mask is in [0, 1] range
+
+    # Step 4: Apply the watershed algorithm with the adjusted mask
+    watershed_result = watershed(membrane_image, markers, mask=adjusted_mask) * mask
+
+    # Step 5: Relabel the watershed result to ensure consistent labeling
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
+
 
 
 
