@@ -4343,69 +4343,57 @@ def simple_dist(label_image):
 
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=5):
     """
-    Perform watershed segmentation limited to the Z-center plane (one slice above and below).
-    
-    Parameters:
-    - membrane_image: 3D array representing the membrane signal.
-    - sized_smart_seeds: 3D array of precomputed seed markers.
-    - mask: Binary mask, 2D or 3D.
-    
-    Returns:
-    - 3D segmented labels, with watershed restricted to Z-center ±1 slices.
+    Perform watershed segmentation with precomputed marker-specific Z-decay
+    to speed up processing while preventing label spill.
+    The decay is restricted to two successive Z slices.
     """
-    # Ensure the mask is 3D if it's 2D
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
-    # Normalize membrane image
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
 
-    # Get marker centroids
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  # Ensure background is included
+    Coordinates.append((0, 0, 0))  # Add dummy coordinate to prevent out-of-bound errors
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
-    # Create markers from centroids
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    # Restrict watershed to z-center ±1 slices for each marker
-    z_dim, y_dim, x_dim = membrane_image.shape
-    restricted_labels = np.zeros_like(sized_smart_seeds, dtype=np.uint16)
-
+    z_dim = membrane_image.shape[0]
+    
+    # Restrict the decay to the two successive z slices (current z slice and one above and below)
+    weighted_image = np.zeros_like(membrane_image)
     for idx, coord in enumerate(coordinates_int):
         z_center = coord[0]
         if z_center < 0 or z_center >= z_dim:
-            continue  # Skip invalid centroids
+            continue  # Skip invalid markers
 
-        # Define Z-range (z_center ± 1)
-        z_min = max(0, z_center - 1)
-        z_max = min(z_dim, z_center + 2)  # Exclusive range
+        # Apply sharp decay between only the Z slices (z_center, z_center+1, z_center-1)
+        z_weights = np.zeros(z_dim)
+        z_weights[z_center] = 1  # Full weight at z_center
+        if z_center > 0:
+            z_weights[z_center - 1] = 1 / (decay_multiplier)  # Weight for z_center-1 slice
+        if z_center < z_dim - 1:
+            z_weights[z_center + 1] = 1 / (decay_multiplier)  # Weight for z_center+1 slice
 
-        # Extract the relevant slices
-        sub_image = membrane_image[z_min:z_max]
-        sub_markers = markers[z_min:z_max]
-        sub_mask = mask[z_min:z_max]
+        # Normalize to make sure the weights are not too large
+        z_weights = z_weights / np.sum(z_weights)
 
-        # Perform watershed on the restricted Z-slices
-        sub_watershed_result = watershed(
-            sub_image, sub_markers, mask=sub_mask
-        )
+        # Apply the weights only to the region around the marker's centroid
+        weighted_image += (markers == (idx + 1)) * (membrane_image * z_weights[:, np.newaxis, np.newaxis])
 
-        # Update the restricted labels
-        restricted_labels[z_min:z_max] = np.maximum(
-            restricted_labels[z_min:z_max], sub_watershed_result
-        )
+    # Apply watershed segmentation
+    watershed_result = watershed(weighted_image, markers, mask=mask)
 
-    # Relabel to ensure sequential labels
-    restricted_labels, _, _ = relabel_sequential(restricted_labels.astype(np.uint16))
+    # Relabel the watershed result to ensure consistency of labels
+    watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
-    return restricted_labels
+    return watershed_result
 
 
 
