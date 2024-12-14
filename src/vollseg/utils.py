@@ -4369,7 +4369,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    watershed_result = watershed(membrane_image, markers, mask=labeled_image)
+    watershed_result = watershed(membrane_image, markers, mask=labeled_image) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
