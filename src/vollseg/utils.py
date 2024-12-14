@@ -4346,13 +4346,7 @@ def simple_dist(label_image):
 
 
 def CellPoseWater(membrane_image, sized_smart_seeds, mask):
-    """
-    Perform watershed segmentation with precomputed marker-specific Z-decay
-    to speed up processing while preventing label spill.
-    This version decays the membrane image value symmetrically in the Z-direction
-    around each marker to stop watershed growth.
-    This also includes morphological opening and closing to remove small objects.
-    """
+   
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
@@ -4363,7 +4357,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     membrane_image = morphology.closing(membrane_image, morphology.ball(2))
     
     
-    labeled_image, num_labels = label(membrane_image == 0)
+    labeled_image, num_labels = label(invertimage(membrane_image))
 
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
