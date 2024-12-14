@@ -4367,25 +4367,8 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=10):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-    z_dim = distance_map.shape[0]
-
-    z_decay_table = np.zeros((z_dim, z_dim), dtype=np.float32)
-
-    for z_marker in coordinates_int[:, 0]:
-        z_decay_table[z_marker] = np.exp(-decay_multiplier * np.abs(np.arange(z_dim) - z_marker))
-
-    weighted_image = np.zeros_like(distance_map)
-
-    for idx, coord in enumerate(coordinates_int):
-        z_center = coord[0]
-        if z_center < 0 or z_center >= z_dim:
-            continue 
-
-        z_weights = z_decay_table[z_center][:, np.newaxis, np.newaxis]
-        
-        weighted_image += (markers == (idx + 1)) * (distance_map * z_weights)
-
-    watershed_result = watershed(-weighted_image, markers, mask=mask)
+    
+    watershed_result = watershed(-distance_map, markers, mask=mask)
 
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
