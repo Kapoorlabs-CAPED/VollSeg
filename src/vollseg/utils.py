@@ -4381,13 +4381,13 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
 
     thresh = threshold_otsu(membrane_image)
     binary_image = membrane_image > thresh
-    binary_image = find_boundaries(binary_image, mode="outer") * 255
+    skeleton_image = skeletonize(binary_image)
 
-    watershed_result = watershed(binary_image, markers) * mask
+    watershed_result = watershed(skeleton_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
     watershed_result = watershed_result.astype(np.uint16)
-    pixel_replace_condition = 0
-    watershed_result = image_conditionals(watershed_result, binary_image > 0, pixel_replace_condition)
+    #pixel_replace_condition = 0
+    #watershed_result = image_conditionals(watershed_result, binary_image > 0, pixel_replace_condition)
 
     return watershed_result
 
