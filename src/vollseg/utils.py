@@ -4352,8 +4352,8 @@ def exponential_decay(z, center_z, decay_rate=1.0):
     return np.exp(-decay_rate * distance)
 
 def generate_decay_map(center_z, z_dim, decay_rate):
-   
-    return exponential_decay(z_dim, center_z, decay_rate)
+    z = np.arange(z_dim)
+    return exponential_decay(z, center_z, decay_rate)
 
 
 def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
@@ -4390,7 +4390,6 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1.0):
     for label, (z, y, x) in enumerate(coordinates_int, start=1):
         if 0 <= z < z_dim:
             decay_map = generate_decay_map(z, z_dim, decay_rate)
-            print(decay_map.shape)
             decay_maps[z, :, :] = decay_map[:, np.newaxis] 
 
     markers = markers_raw.astype(float) * decay_maps  
