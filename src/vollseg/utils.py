@@ -4344,61 +4344,52 @@ def simple_dist(label_image):
 
 
 
-def exponential_decay(z, y, x, center_z, center_y, center_x, z_dim, decay_factor=1.0):
+
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0, small_object_size=100):
     """
-    Exponentially decaying function centered at (center_z, center_y, center_x).
-    The decay rate is proportional to the z-dimension to avoid over-expansion in z-direction.
-    """
-    distance = np.sqrt((z - center_z)**2 + (y - center_y)**2 + (x - center_x)**2)
-
-    z_scale = abs(z - center_z) / z_dim  
-    decay_rate = decay_factor * (1 + z_scale)  
-
-    return np.exp(-decay_rate * distance)
-
-def generate_decay_map(center_z, center_y, center_x, distance_map_shape, z_dim, decay_factor):
-    z, y, x = np.indices(distance_map_shape)
-    return exponential_decay(z, y, x, center_z, center_y, center_x, z_dim, decay_factor)
-
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_factor=1.0):
-    """
-    Perform watershed segmentation with precomputed marker-specific Z-decay
-    to speed up processing while preventing label spill.
-    This version decays the membrane image value symmetrically in the Z-direction
-    around each marker to stop watershed growth.
+    Perform 2D watershed segmentation for each slice from the 3D seed centroids.
+    Each centroid is used to generate 2D markers for the corresponding slice.
     This also includes morphological opening and closing to remove small objects.
     """
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
+    # Normalize and mask the membrane image
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
 
+    # Perform morphological opening and closing to remove small pixels
     membrane_image = morphology.opening(membrane_image, morphology.ball(2))
-    
     membrane_image = morphology.closing(membrane_image, morphology.ball(2))
+    thresh = threshold_otsu(membrane_image)
+    binary_membrane = membrane_image > thresh  
+    distance_map = distance_transform_edt(binary_membrane)
 
-    #binary_membrane = membrane_image > 0  
-    #distance_map = distance_transform_edt(binary_membrane)
-    distance_map = membrane_image
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  
     Coordinates = np.asarray(Coordinates)
-    coordinates_int = np.round(Coordinates).astype(int)
 
-    markers_raw = np.zeros_like(sized_smart_seeds)
-    markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
-    markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
+    # Initialize an empty 3D result
+    watershed_result = np.zeros_like(membrane_image, dtype=np.uint16)
 
-    z_dim = membrane_image.shape[0] 
+    # Iterate over each z-slice
+    for z in range(membrane_image.shape[0]):
+        slice_membrane = membrane_image[z, :, :]
+        slice_distance_map = distance_map[z, :, :]
 
-    with ThreadPoolExecutor(max_workers = os.cpu_count() - 1) as executor:
-        decay_maps = list(executor.map(lambda coords: generate_decay_map(coords[0], coords[1], coords[2], distance_map.shape, z_dim, decay_factor), Coordinates))
-    
-    for decay_map in decay_maps:
-        distance_map *= decay_map
+        # Initialize markers for the current slice
+        slice_markers = np.zeros_like(slice_membrane, dtype=np.uint16)
 
-    watershed_result = watershed(distance_map, markers, mask=mask)
+        # For each centroid, if it's in the current slice, place a marker
+        for i, (center_z, center_y, center_x) in enumerate(Coordinates):
+            if int(center_z) == z:
+                slice_markers[int(center_y), int(center_x)] = i + 1  # Place the marker for the seed
+
+        # Perform 2D watershed on the current slice
+        slice_watershed_result = watershed(-slice_distance_map, slice_markers, mask=slice_membrane)
+
+        # Store the result in the corresponding slice of the final 3D result
+        watershed_result[z, :, :] = slice_watershed_result
+
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
