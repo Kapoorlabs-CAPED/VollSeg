@@ -4383,8 +4383,17 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_radius=1):
         if z_center < 0 or z_center >= z_dim:
             continue  
 
+        # Create a 3D array of weights
         z_weights = z_decay_table.get(z_center, 0)  # Default to 0 if the key is not found
-        z_weights = z_weights[:, np.newaxis, np.newaxis]  # Reshape to match image dimensions
+        
+        # Create a 3D array with the same shape as the membrane_image but with z_weights applied
+        z_weights = np.zeros_like(membrane_image)
+        z_weights[z_center, :, :] = 1
+        if z_center > 0:
+            z_weights[z_center - 1, :, :] = 1
+        if z_center < z_dim - 1:
+            z_weights[z_center + 1, :, :] = 1
+        
         weighted_image += (markers == (idx + 1)) * (membrane_image * z_weights)
 
     watershed_result = watershed(weighted_image, markers, mask=mask)
@@ -4392,6 +4401,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_radius=1):
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
+
 
 
 
