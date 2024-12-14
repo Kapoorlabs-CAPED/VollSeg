@@ -4386,20 +4386,8 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, veto_factor = 3):
     watershed_result = watershed(binary_image, markers) * mask
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
     
-    regions = regionprops(watershed_result)
-
-    # Calculate the areas of each region (excluding background)
-    label_areas = [(region.label, region.area) for region in regions if region.label != 0]
-
-    # Calculate area thresholds to identify outliers
-    label_areas = np.array(label_areas, dtype=[('label', int), ('area', int)])
-    median_area = np.median(label_areas['area'])
-    area_threshold = veto_factor * median_area
-
-    # Remove outlier labels based on area
-    outlier_labels = [label for label, area in label_areas if area > area_threshold]
-    for label in outlier_labels:
-        watershed_result[watershed_result == label] = 0
+    inverted_binary_image = invertimage(binary_image)
+    watershed_result *= inverted_binary_image
 
     return watershed_result
 
