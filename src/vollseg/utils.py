@@ -4368,14 +4368,11 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
         if z_center < 0 or z_center >= z_dim:
             continue
 
-        # Define a limited z-range for the current marker (slice around z_center)
         z_min = max(0, z_center - 1)
         z_max = min(z_dim - 1, z_center + 1)
-        
-        # Extract only the relevant z-slices for the current marker
+
         z_slice = membrane_image[z_min:z_max + 1]
 
-        # Define z-weights (1 for the slice where centroid lies, 1 for its neighbors)
         z_weights = np.zeros(z_max - z_min + 1)
         z_weights[z_center - z_min] = 1
         if z_center - 1 >= z_min:
@@ -4383,14 +4380,17 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
         if z_center + 1 <= z_max:
             z_weights[z_center - z_min + 1] = 1
 
-        # Apply the weighted slices to the weighted image
-        weighted_image[z_min:z_max + 1] += (markers == (idx + 1)) * (z_slice * z_weights[:, np.newaxis, np.newaxis])
+        # Expand z_weights to match the dimensions of z_slice
+        z_weights_expanded = z_weights[:, np.newaxis, np.newaxis]
+
+        weighted_image[z_min:z_max + 1] += (markers == (idx + 1)) * (z_slice * z_weights_expanded)
 
     watershed_result = watershed(weighted_image, markers, mask=mask)
 
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
+
 
 
 
