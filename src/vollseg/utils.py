@@ -4384,7 +4384,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
     
     labeled_image = np.zeros(membrane_image.shape)
     for i in range(membrane_image.shape[0]):
-       labeled_image[i] = label(invertimage(binary_image[i]))
+       labeled_image[i] = label(binary_image[i])
     
     
 
