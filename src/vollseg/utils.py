@@ -4345,37 +4345,50 @@ def simple_dist(label_image):
 
 def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     """
-    Perform watershed-based segmentation with stronger Z-weighting to handle
-    weak membrane signals and prevent label spill at the edges.
-    Ensures the mask matches the dimensionality of the membrane_image.
+    Perform watershed segmentation with marker-specific Z-decay to prevent
+    label spill in regions where the membrane signal is weak.
     """
+    # Check if the mask is 2D; if so, extend it along the Z-dimension
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
 
+    # Normalize the membrane signal
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
 
-    z_dim = membrane_image.shape[0]
-    z_weights = np.exp(-np.abs(np.linspace(-1, 1, z_dim)) * (z_dim * 2))  
-    membrane_image *= z_weights[:, np.newaxis, np.newaxis]
-
+    # Get marker centroids
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))
+    Coordinates.append((0, 0, 0))  # Ensure background is included
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
+    # Create markers from centroids
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
+    # Marker-specific Z-decay
+    z_dim = membrane_image.shape[0]
+    weighted_image = np.zeros_like(membrane_image)
+    for idx, coord in enumerate(coordinates_int):
+        z_center = coord[0]
+        if z_center < 0 or z_center >= z_dim:
+            continue  # Skip invalid centroids
+
+        # Create exponential decay profile for this marker
+        z_weights = np.exp(-np.abs(np.arange(z_dim) - z_center) / z_dim)  # Decay based on distance from z_center
+        weighted_image += (markers == (idx + 1)) * (membrane_image * z_weights[:, np.newaxis, np.newaxis])
+
+    # Perform watershed segmentation
     watershed_result = watershed(
-        membrane_image, markers, mask=mask
+        weighted_image, markers, mask=mask
     )
 
     # Relabel to ensure sequential labels
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
+
 
 
 
