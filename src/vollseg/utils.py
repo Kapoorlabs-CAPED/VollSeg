@@ -4350,8 +4350,6 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     """
     membrane_image = normalizeFloatZeroOne(membrane_image, pmin=0, pmax=100) * mask
     
-    smoothed_membrane = morphology.ball(1)
-    membrane_image = morphology.closing(membrane_image, smoothed_membrane)
 
     z_dim = membrane_image.shape[0]
     z_weights = np.linspace(0.5, 1.0, z_dim) 
