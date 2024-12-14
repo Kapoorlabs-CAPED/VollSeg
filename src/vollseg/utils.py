@@ -4382,7 +4382,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate = 1):
     #    for z in range(z_dim):
     #        membrane_image[z] *= decay_map[z]
     
-    labeled_image = label(invertimage(binary_image))
+    labeled_image = label(binary_image)
     
     
 
