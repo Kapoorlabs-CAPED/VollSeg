@@ -4343,7 +4343,17 @@ def simple_dist(label_image):
 
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=10):
+
+
+def exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate=1.0):
+    """
+    Exponentially decaying function centered at (center_z, center_y, center_x).
+    The farther from the center, the smaller the value.
+    """
+    distance = np.sqrt((z - center_z)**2 + (y - center_y)**2 + (x - center_x)**2)
+    return np.exp(-decay_rate * distance)
+
+def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_rate=1.0):
     """
     Perform watershed segmentation with precomputed marker-specific Z-decay
     to speed up processing while preventing label spill.
@@ -4359,7 +4369,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=10):
 
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  
+    Coordinates.append((0, 0, 0))  # add an origin marker
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
@@ -4367,9 +4377,21 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, decay_multiplier=10):
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
+    # Apply the exponential decay to the distance map around each marker
+    for i, (center_z, center_y, center_x) in enumerate(Coordinates):
+        # Create a grid of coordinates (z, y, x)
+        z, y, x = np.indices(distance_map.shape)
+        
+        # Apply the exponential decay to the distance map
+        decay_map = exponential_decay(z, y, x, center_z, center_y, center_x, decay_rate)
+        
+        # Apply the decay to the distance map
+        distance_map *= decay_map
     
+    # Run watershed on the modified distance map
     watershed_result = watershed(-distance_map, markers, mask=mask)
 
+    # Relabel the watershed result
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
 
     return watershed_result
