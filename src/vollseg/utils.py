@@ -4356,7 +4356,7 @@ def generate_decay_map(center_z, z_dim, decay_rate):
     return exponential_decay(z, center_z, decay_rate)
 
 
-def CellPoseWater(membrane_image, sized_smart_seeds, mask, ignore_z = 3):
+def CellPoseWater(membrane_image, sized_smart_seeds, mask):
 
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
@@ -4370,12 +4370,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, ignore_z = 3):
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
 
-    valid_mask = np.zeros(mask.shape[0], dtype=bool)
-    for label, (z, y, x) in enumerate(coordinates_int, start=1):
-        if ignore_z <= z < z_dim - ignore_z:
-            valid_mask[z] = True
-
-    mask = mask * valid_mask[:, np.newaxis, np.newaxis]
+    
 
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
@@ -4385,21 +4380,14 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask, ignore_z = 3):
     thresh = threshold_otsu(membrane_image)
     binary_image = membrane_image > thresh
     thick_binary_image = binary_image.copy()
-    boundary_binary_image = find_boundaries(binary_image.copy(), mode="outer") * 255
+    thinner_binary_image = binary_erosion(thick_binary_image, iterations=2)
+    boundary_binary_image = find_boundaries(thinner_binary_image.copy(), mode="outer") * 255
 
-    watershed_result = watershed(boundary_binary_image, markers) * mask
+    watershed_result = watershed(boundary_binary_image, markers, mask = mask)
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
     watershed_result = watershed_result.astype(np.uint16)
 
-    thinner_binary_image = binary_erosion(thick_binary_image, iterations=2)
-    labels_to_remove = np.unique(watershed_result[thinner_binary_image > 0])
-
-
-
-    for label in labels_to_remove:
-        if label != 0:  
-            watershed_result[watershed_result == label] = 0
-
+   
     return watershed_result
 
 
