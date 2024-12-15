@@ -4380,7 +4380,7 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
     thresh = threshold_otsu(membrane_image)
     binary_image = membrane_image > thresh
     thick_binary_image = binary_image.copy()
-    thinner_binary_image = binary_erosion(thick_binary_image, iterations=2)
+    thinner_binary_image = skeletonize(thick_binary_image)
     boundary_binary_image = find_boundaries(thinner_binary_image.copy(), mode="outer") * 255
 
     watershed_result = watershed(boundary_binary_image, markers, mask = mask)
