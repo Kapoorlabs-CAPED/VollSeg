@@ -63,6 +63,7 @@ from vollseg.unetstarmask import UnetStarMask
 from numba import njit
 from csbdeep.models import ProjectionCARE
 from skimage.filters import threshold_otsu
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
@@ -1596,11 +1597,9 @@ def VollCellSeg(
 
     if len(image.shape) == 3 and "T" not in axes:
         image_membrane = image
-       
 
     if len(image.shape) == 4 and "T" not in axes:
         image_membrane = image[:, channel_membrane, :, :]
-        
 
     if len(image.shape) > 4 and "T" in axes:
 
@@ -1608,19 +1607,13 @@ def VollCellSeg(
             n_tiles = (n_tiles[1], n_tiles[2], n_tiles[3])
         image_membrane = image[:, :, channel_membrane, :, :]
 
-      
-
-    
     if nuclei_seg_image is not None:
 
-        voll_cell_seg = _cellwater_block(
-            axes, image_membrane, nuclei_seg_image, mask
-        )
+        voll_cell_seg = _cellwater_block(axes, image_membrane, nuclei_seg_image, mask)
 
         if save_dir is not None:
             Path(save_dir).mkdir(exist_ok=True)
 
-           
             vollcellpose_results = Path(save_dir) / "VollCellPose"
             Path(vollcellpose_results).mkdir(exist_ok=True)
             imwrite(
@@ -1633,9 +1626,7 @@ def _cellwater_block(axes, membrane_image, sized_smart_seeds, mask):
 
     if "T" not in axes:
 
-        voll_cell_seg = CellPoseWater(
-            membrane_image, sized_smart_seeds, mask
-        )
+        voll_cell_seg = CellPoseWater(membrane_image, sized_smart_seeds, mask)
     if "T" in axes:
 
         voll_cell_seg = []
@@ -4342,7 +4333,6 @@ def simple_dist(label_image):
     return output_image
 
 
-
 def exponential_decay(z, center_z, decay_rate=1.0):
     """
     Exponentially decaying function centered at center_z.
@@ -4350,6 +4340,7 @@ def exponential_decay(z, center_z, decay_rate=1.0):
     """
     distance = np.abs(z - center_z)
     return np.exp(-decay_rate * distance)
+
 
 def generate_decay_map(center_z, z_dim, decay_rate):
     z = np.arange(z_dim)
@@ -4360,45 +4351,37 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
 
     if mask.ndim == 2:
         mask = np.repeat(mask[np.newaxis, :, :], membrane_image.shape[0], axis=0)
-    
-    mask = binary_erosion(mask, iterations = 1)
-    mask = binary_dilation(mask, iterations = 1)
-    z_dim = membrane_image.shape[0]
+
+    mask = binary_erosion(mask, iterations=1)
+    mask = binary_dilation(mask, iterations=1)
     properties = measure.regionprops(sized_smart_seeds)
     Coordinates = [prop.centroid for prop in properties]
-    Coordinates.append((0, 0, 0))  
+    Coordinates.append((0, 0, 0))
     Coordinates = np.asarray(Coordinates)
     coordinates_int = np.round(Coordinates).astype(int)
-
-    
 
     markers_raw = np.zeros_like(sized_smart_seeds)
     markers_raw[tuple(coordinates_int.T)] = 1 + np.arange(len(Coordinates))
     markers = morphology.dilation(markers_raw.astype("uint16"), morphology.ball(2))
 
-
     thresh = threshold_otsu(membrane_image)
     binary_image = membrane_image > thresh
     thick_binary_image = binary_image.copy()
     thinner_binary_image = binary_erosion(thick_binary_image, iterations=2)
-    boundary_binary_image = find_boundaries(thick_binary_image.copy(), mode="outer") * 255
+    boundary_binary_image = (
+        find_boundaries(thick_binary_image.copy(), mode="outer") * 255
+    )
 
-    watershed_result = watershed(boundary_binary_image, markers, mask = mask)
+    watershed_result = watershed(boundary_binary_image, markers, mask=mask)
     watershed_result, _, _ = relabel_sequential(watershed_result.astype(np.uint16))
-    
+
     labels_to_remove = np.unique(watershed_result[thinner_binary_image > 0])
 
+    for rem_label in labels_to_remove:
+        if rem_label != 0:
+            watershed_result[watershed_result == rem_label] = 0
 
-
-    for label in labels_to_remove:
-        if label != 0:  
-            watershed_result[watershed_result == label] = 0
-
-
-   
     return watershed_result
-
-
 
 
 def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh=1):
