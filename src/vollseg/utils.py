@@ -638,7 +638,7 @@ def VollSeg2D(
     upper_perc=99.8,
     UseProbability=True,
     RGB=False,
-    seedpool=True,
+    seedpool=False,
 ):
 
     if star_model is not None:
@@ -2031,6 +2031,7 @@ def VollSeg(
                 n_tiles=n_tiles,
                 UseProbability=UseProbability,
                 RGB=RGB,
+                seedpool=seedpool
             )
 
         # If there is no stardist model we use unet model or denoising model or both to get the semantic segmentation
@@ -2117,6 +2118,7 @@ def VollSeg(
                 n_tiles=n_tiles,
                 UseProbability=UseProbability,
                 RGB=RGB,
+                seedpool=seedpool
             )
         # If there is no stardist model we use unet model with or without denoising model
         if star_model is None:
@@ -2163,6 +2165,7 @@ def VollSeg(
                             n_tiles=n_tiles,
                             UseProbability=UseProbability,
                             RGB=RGB,
+                            seedpool=seedpool
                         )
                         for _x in tqdm(image)
                     )
@@ -4058,7 +4061,6 @@ def SuperSTARPrediction(
     if seedpool:  
        skip_watershed = False
 
-    print(seedpool, skip_watershed)   
     if prob_thresh is None and nms_thresh is None:
         prob_thresh = model.thresholds.prob
         nms_thresh = model.thresholds.nms
