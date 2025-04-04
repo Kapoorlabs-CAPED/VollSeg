@@ -4043,7 +4043,6 @@ def Bbox_region(image):
         largest_bbox = props[largest_blob_ind].bbox
         return largest_bbox
 
-
 def SuperSTARPrediction(
     image,
     model,
@@ -4053,9 +4052,9 @@ def SuperSTARPrediction(
     UseProbability=True,
     prob_thresh=None,
     nms_thresh=None,
-    seedpool=True,
+    seedpool=False,
 ):
-
+    skip_watershed = False
     if prob_thresh is None and nms_thresh is None:
         prob_thresh = model.thresholds.prob
         nms_thresh = model.thresholds.nms
@@ -4104,18 +4103,23 @@ def SuperSTARPrediction(
         OverAllunet_mask = CleanMask(star_labels, OverAllunet_mask)
 
     if unet_mask is None:
+        skip_watershed = True
         unet_mask = star_labels > 0
-    Watershed, markers = SuperWatershedwithMask(
-        MaxProjectDistance,
-        star_labels.astype("uint16"),
-        unet_mask.astype("uint16"),
-        nms_thresh=nms_thresh,
-        seedpool=seedpool,
-    )
-    Watershed = fill_label_holes(Watershed.astype("uint16"))
-
+        
+    if skip_watershed:
+        Watershed = star_labels 
+        markers = star_labels
+    else:        
+        Watershed, markers = SuperWatershedwithMask(
+            MaxProjectDistance,
+            star_labels.astype("uint16"),
+            unet_mask.astype("uint16"),
+            nms_thresh=nms_thresh,
+            seedpool=seedpool,
+        )
+        Watershed = fill_label_holes(Watershed.astype("uint16"))
+        
     return Watershed, markers, star_labels, MaxProjectDistance
-
 
 def STARPrediction3D(
     image,
