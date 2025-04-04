@@ -584,7 +584,6 @@ def Skel(smart_seedsLabels, RGB=False):
 
 
 def Region_embedding(image, region, sourceimage, dtype=np.float32, RGB=False):
-    print("Region Embedding")
     returnimage = np.zeros(image.shape, dtype=dtype)
     if len(region) == 4 and len(image.shape) == 2:
         rowstart = region[0]
@@ -1083,194 +1082,7 @@ def VollSeg_unet(
         return Finalimage.astype("uint16"), skeleton, image, s_Binary
 
 
-def _cellpose_time_block(
-    image_membrane,
-    diameter_cellpose,
-    flow_threshold,
-    cellprob_threshold,
-    stitch_threshold,
-    anisotropy,
-    cellpose_model_path,
-    gpu,
-    do_3D,
-):
 
-    if cellpose_model_path is not None:
-
-        cellpose_model = models.CellposeModel(
-            gpu=gpu, pretrained_model=cellpose_model_path
-        )
-        if anisotropy is not None:
-            cellres = tuple(
-                zip(
-                    *tuple(
-                        cellpose_model.eval(
-                            _x,
-                            diameter=diameter_cellpose,
-                            flow_threshold=flow_threshold,
-                            cellprob_threshold=cellprob_threshold,
-                            stitch_threshold=stitch_threshold,
-                            anisotropy=anisotropy,
-                            tile=True,
-                            do_3D=do_3D,
-                        )
-                        for _x in tqdm(image_membrane)
-                    )
-                )
-            )
-        else:
-            cellres = tuple(
-                zip(
-                    *tuple(
-                        cellpose_model.eval(
-                            _x,
-                            diameter=diameter_cellpose,
-                            flow_threshold=flow_threshold,
-                            cellprob_threshold=cellprob_threshold,
-                            stitch_threshold=stitch_threshold,
-                            tile=True,
-                            do_3D=do_3D,
-                        )
-                        for _x in tqdm(image_membrane)
-                    )
-                )
-            )
-
-    return cellres
-
-
-def _super_star_time_block(
-    image_nuclei,
-    unet_model_nuclei,
-    star_model_nuclei,
-    axes,
-    noise_model,
-    roi_model_nuclei,
-    prob_thresh_nuclei,
-    nms_thresh_nuclei,
-    min_size_mask,
-    min_size,
-    max_size,
-    n_tiles,
-    UseProbability,
-    ExpandLabels,
-    dounet,
-    seedpool,
-    donormalize,
-    lower_perc,
-    upper_perc,
-    slice_merge,
-):
-
-    if star_model_nuclei is not None:
-        if "T" in axes:
-            axes = axes.replace("T", "")
-        if prob_thresh_nuclei is None and nms_thresh_nuclei is None:
-            prob_thresh_nuclei = star_model_nuclei.thresholds.prob
-            nms_thresh_nuclei = star_model_nuclei.thresholds.nms
-
-        res = tuple(
-            zip(
-                *tuple(
-                    SuperVollSeg(
-                        image_nuclei[i, ...],
-                        unet_model_nuclei,
-                        star_model_nuclei,
-                        axes=axes,
-                        noise_model=noise_model,
-                        roi_model_nuclei=roi_model_nuclei,
-                        prob_thresh_nuclei=prob_thresh_nuclei,
-                        nms_thresh_nuclei=nms_thresh_nuclei,
-                        min_size_mask=min_size_mask,
-                        min_size=min_size,
-                        max_size=max_size,
-                        n_tiles=n_tiles,
-                        UseProbability=UseProbability,
-                        ExpandLabels=ExpandLabels,
-                        dounet=dounet,
-                        seedpool=seedpool,
-                        donormalize=donormalize,
-                        lower_perc=lower_perc,
-                        upper_perc=upper_perc,
-                        slice_merge=slice_merge,
-                    )
-                    for i in tqdm(range(image_nuclei.shape[0]))
-                )
-            )
-        )
-
-    return res
-
-
-def _cellpose_star_time_block(
-    image_membrane,
-    image_nuclei,
-    diameter_cellpose,
-    flow_threshold,
-    cellprob_threshold,
-    stitch_threshold,
-    anisotropy,
-    cellpose_model_path,
-    gpu,
-    unet_model_nuclei,
-    star_model_nuclei,
-    roi_model_nuclei,
-    ExpandLabels,
-    axes,
-    noise_model,
-    prob_thresh_nuclei,
-    nms_thresh_nuclei,
-    donormalize,
-    n_tiles,
-    UseProbability,
-    dounet,
-    seedpool,
-    slice_merge,
-    lower_perc,
-    upper_perc,
-    min_size_mask,
-    min_size,
-    max_size,
-    do_3D,
-):
-
-    res = _super_star_time_block(
-        image_nuclei,
-        image_membrane,
-        unet_model_nuclei,
-        star_model_nuclei,
-        axes,
-        noise_model,
-        roi_model_nuclei,
-        prob_thresh_nuclei,
-        nms_thresh_nuclei,
-        min_size_mask,
-        min_size,
-        max_size,
-        n_tiles,
-        UseProbability,
-        ExpandLabels,
-        dounet,
-        seedpool,
-        donormalize,
-        lower_perc,
-        upper_perc,
-        slice_merge,
-    )
-
-    cellres = _cellpose_time_block(
-        image_membrane,
-        diameter_cellpose,
-        flow_threshold,
-        cellprob_threshold,
-        stitch_threshold,
-        anisotropy,
-        cellpose_model_path,
-        gpu,
-        do_3D,
-    )
-
-    return cellres, res
 
 
 def collate_fn(data):
@@ -1288,188 +1100,6 @@ def collate_fn(data):
 
     return input_tensor, slices
 
-
-def _cellpose_star_block(
-    image_membrane,
-    image_nuclei,
-    diameter_cellpose,
-    flow_threshold,
-    cellprob_threshold,
-    stitch_threshold,
-    anisotropy,
-    cellpose_model_path,
-    gpu,
-    unet_model_nuclei,
-    star_model_nuclei,
-    roi_model_nuclei,
-    ExpandLabels,
-    axes,
-    noise_model,
-    prob_thresh_nuclei,
-    nms_thresh_nuclei,
-    donormalize,
-    n_tiles,
-    UseProbability,
-    dounet,
-    seedpool,
-    slice_merge,
-    lower_perc,
-    upper_perc,
-    min_size_mask,
-    min_size,
-    max_size,
-    do_3D,
-):
-
-    cellres = None
-
-    res = SuperVollSeg(
-        image_nuclei,
-        unet_model_nuclei,
-        star_model_nuclei,
-        axes=axes,
-        noise_model=noise_model,
-        roi_model_nuclei=roi_model_nuclei,
-        prob_thresh_nuclei=prob_thresh_nuclei,
-        nms_thresh_nuclei=nms_thresh_nuclei,
-        min_size_mask=min_size_mask,
-        min_size=min_size,
-        max_size=max_size,
-        n_tiles=n_tiles,
-        UseProbability=UseProbability,
-        ExpandLabels=ExpandLabels,
-        dounet=dounet,
-        seedpool=seedpool,
-        donormalize=donormalize,
-        lower_perc=lower_perc,
-        upper_perc=upper_perc,
-        slice_merge=slice_merge,
-    )
-
-    if cellpose_model_path is not None:
-
-        cellpose_model = models.CellposeModel(
-            gpu=gpu, pretrained_model=cellpose_model_path
-        )
-        if anisotropy is not None:
-            cellres = cellpose_model.eval(
-                image_membrane,
-                diameter=diameter_cellpose,
-                flow_threshold=flow_threshold,
-                cellprob_threshold=cellprob_threshold,
-                stitch_threshold=stitch_threshold,
-                anisotropy=anisotropy,
-                tile=True,
-                do_3D=do_3D,
-            )
-        else:
-            cellres = cellpose_model.eval(
-                image_membrane,
-                diameter=diameter_cellpose,
-                flow_threshold=flow_threshold,
-                cellprob_threshold=cellprob_threshold,
-                stitch_threshold=stitch_threshold,
-                tile=True,
-                do_3D=do_3D,
-            )
-
-    return cellres, res
-
-
-def _cellpose_voll(
-    image: np.ndarray,
-    diameter_cellpose: float = 34.6,
-    stitch_threshold: float = 0.5,
-    flow_threshold: float = 0.4,
-    cellprob_threshold: float = 0.0,
-    anisotropy=None,
-    cellpose_model_path: str = None,
-    gpu: bool = False,
-    do_3D: bool = False,
-    channels=None,
-):
-
-    cellpose_model = models.CellposeModel(gpu=gpu, pretrained_model=cellpose_model_path)
-    if anisotropy is not None:
-        cellres = cellpose_model.eval(
-            image,
-            diameter=diameter_cellpose,
-            channels=channels,
-            flow_threshold=flow_threshold,
-            cellprob_threshold=cellprob_threshold,
-            stitch_threshold=stitch_threshold,
-            anisotropy=anisotropy,
-            tile=True,
-            do_3D=do_3D,
-        )
-    else:
-        cellres = cellpose_model.eval(
-            image,
-            diameter=diameter_cellpose,
-            channels=channels,
-            flow_threshold=flow_threshold,
-            cellprob_threshold=cellprob_threshold,
-            stitch_threshold=stitch_threshold,
-            tile=True,
-            do_3D=do_3D,
-        )
-
-    return cellres
-
-
-def _cellpose_voll_time(
-    image: np.ndarray,
-    diameter_cellpose: float = 34.6,
-    stitch_threshold: float = 0.5,
-    flow_threshold: float = 0.4,
-    cellprob_threshold: float = 0.0,
-    anisotropy=None,
-    cellpose_model_path: str = None,
-    gpu: bool = False,
-    do_3D: bool = False,
-    channels=None,
-):
-
-    cellpose_model = models.CellposeModel(gpu=gpu, pretrained_model=cellpose_model_path)
-    if anisotropy is not None:
-        cellres = tuple(
-            zip(
-                *tuple(
-                    cellpose_model.eval(
-                        _x,
-                        diameter=diameter_cellpose,
-                        channels=channels,
-                        flow_threshold=flow_threshold,
-                        cellprob_threshold=cellprob_threshold,
-                        stitch_threshold=stitch_threshold,
-                        anisotropy=anisotropy,
-                        tile=True,
-                        do_3D=do_3D,
-                    )
-                    for _x in tqdm(image)
-                )
-            )
-        )
-    else:
-        cellres = tuple(
-            zip(
-                *tuple(
-                    cellpose_model.eval(
-                        _x,
-                        diameter=diameter_cellpose,
-                        channels=channels,
-                        flow_threshold=flow_threshold,
-                        cellprob_threshold=cellprob_threshold,
-                        stitch_threshold=stitch_threshold,
-                        tile=True,
-                        do_3D=do_3D,
-                    )
-                    for _x in tqdm(image)
-                )
-            )
-        )
-
-    return cellres
 
 
 def CellPoseSeg(
@@ -2979,7 +2609,6 @@ def SuperVollSeg(
         gc.collect()
 
         if unet_model_nuclei is not None:
-            print("UNET Nuclei")
             Mask_nuclei = UNETPrediction3D(
                 patch_nuclei,
                 unet_model_nuclei,
@@ -3048,7 +2677,6 @@ def SuperVollSeg(
         ] = Mask_nuclei
 
     if star_model_nuclei is not None:
-        print("StarDist Nuclei")
         if donormalize:
 
             patch_star_nuclei = normalize(
@@ -3101,7 +2729,6 @@ def SuperVollSeg(
             :, : star_labels_nuclei.shape[1], : star_labels_nuclei.shape[2]
         ] = star_labels_nuclei
 
-    print("Returning VollSeg")
     if noise_model is None and roi_image is not None and star_model_nuclei is not None:
         return (
             sized_smart_seeds_nuclei.astype("uint16"),
@@ -4140,7 +3767,6 @@ def STARPrediction3D(
 ):
 
     copymodel = model
-    print("Star Prediction 3D")
     grid = copymodel.config.grid
     if prob_thresh is None and nms_thresh is None:
         prob_thresh = model.thresholds.prob
@@ -4274,7 +3900,6 @@ def STARPrediction3D(
                 : star_labels.shape[1],
                 : star_labels.shape[2],
             ]
-    print("Returning StarPrediction 3D")
     return Watershed, MaxProjectDistance, star_labels, markers
 
 
@@ -4393,7 +4018,6 @@ def CellPoseWater(membrane_image, sized_smart_seeds, mask):
 
 def WatershedwithMask3D(Image, Label, mask, nms_thresh, seedpool=True, z_thresh=1):
 
-    print("Watershed with Mask 3D")
     CopyImage = Image.copy()
     properties = measure.regionprops(Label)
 
