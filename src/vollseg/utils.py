@@ -779,6 +779,9 @@ def VollSeg2D(
     )
     smart_seeds = remove_small_objects(smart_seeds.astype("uint16"), min_size=min_size)
     smart_seeds = remove_big_objects(smart_seeds.astype("uint16"), max_size=max_size)
+    star_labels = remove_small_objects(star_labels.astype("uint16"), min_size=min_size)
+    star_labels = remove_big_objects(star_labels.astype("uint16"), max_size=max_size)
+    
     skeleton = SmartSkel(smart_seeds, probability_map, RGB)
     skeleton = skeleton > 0
     # For avoiding pixel level error
