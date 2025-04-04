@@ -4057,6 +4057,8 @@ def SuperSTARPrediction(
     skip_watershed = True
     if seedpool:  
        skip_watershed = False
+
+    print(seedpool, skip_watershed)   
     if prob_thresh is None and nms_thresh is None:
         prob_thresh = model.thresholds.prob
         nms_thresh = model.thresholds.nms
