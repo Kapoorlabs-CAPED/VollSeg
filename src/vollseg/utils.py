@@ -4054,7 +4054,9 @@ def SuperSTARPrediction(
     nms_thresh=None,
     seedpool=False,
 ):
-    skip_watershed = False
+    skip_watershed = True
+    if seedpool:  
+       skip_watershed = False
     if prob_thresh is None and nms_thresh is None:
         prob_thresh = model.thresholds.prob
         nms_thresh = model.thresholds.nms
@@ -4103,7 +4105,7 @@ def SuperSTARPrediction(
         OverAllunet_mask = CleanMask(star_labels, OverAllunet_mask)
 
     if unet_mask is None:
-        skip_watershed = True
+        
         unet_mask = star_labels > 0
         
     if skip_watershed:
