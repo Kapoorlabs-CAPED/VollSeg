@@ -1156,7 +1156,7 @@ def CellPoseSeg(
                 do_3D=do_3D,
             )
 
-    if len(image.shape) == 4 and "T" in axes:
+    if len(image.shape) >= 3 and "T" in axes:
 
         cellpose_model = models.CellposeModel(
             gpu=gpu, pretrained_model=cellpose_model_path
