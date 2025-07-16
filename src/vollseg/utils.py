@@ -1120,7 +1120,7 @@ def CellPoseSeg(
     Name: str = "Result",
     do_3D: bool = False,
     channels=[0, 0],
-    batch_size = 4
+    tile=True
 ):
 
     if len(image.shape) == 3 and "T" not in axes:
@@ -1142,9 +1142,8 @@ def CellPoseSeg(
                 cellprob_threshold=cellprob_threshold,
                 stitch_threshold=stitch_threshold,
                 anisotropy=anisotropy,
-                tile=True,
+                tile=tile,
                 do_3D=do_3D,
-                batch_size = batch_size
             )
         else:
             cellres = cellpose_model.eval(
@@ -1154,9 +1153,8 @@ def CellPoseSeg(
                 flow_threshold=flow_threshold,
                 cellprob_threshold=cellprob_threshold,
                 stitch_threshold=stitch_threshold,
-                tile=True,
+                tile=tile,
                 do_3D=do_3D,
-                batch_size = batch_size
             )
 
     if len(image.shape) == 4 and "T" in axes:
@@ -1179,9 +1177,8 @@ def CellPoseSeg(
                             cellprob_threshold=cellprob_threshold,
                             stitch_threshold=stitch_threshold,
                             anisotropy=anisotropy,
-                            tile=True,
+                            tile=tile,
                             do_3D=do_3D,
-                            batch_size = batch_size
                         )
                         for _x in tqdm(image)
                     )
@@ -1198,9 +1195,8 @@ def CellPoseSeg(
                             flow_threshold=flow_threshold,
                             cellprob_threshold=cellprob_threshold,
                             stitch_threshold=stitch_threshold,
-                            tile=True,
+                            tile=tile,
                             do_3D=do_3D,
-                            batch_size = batch_size
                         )
                         for _x in tqdm(image)
                     )
@@ -1225,9 +1221,8 @@ def CellPoseSeg(
                             cellprob_threshold=cellprob_threshold,
                             stitch_threshold=stitch_threshold,
                             anisotropy=anisotropy,
-                            tile=True,
+                            tile=tile,
                             do_3D=do_3D,
-                            batch_size = batch_size
                         )
         else:
             cellres =  cellpose_model.eval(
@@ -1237,9 +1232,8 @@ def CellPoseSeg(
                             flow_threshold=flow_threshold,
                             cellprob_threshold=cellprob_threshold,
                             stitch_threshold=stitch_threshold,
-                            tile=True,
+                            tile=tile,
                             do_3D=do_3D,
-                            batch_size = batch_size
                         )
                        
                   
