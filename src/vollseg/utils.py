@@ -1162,6 +1162,9 @@ def CellPoseSeg(
             gpu=gpu, pretrained_model=cellpose_model_path
         )
         if anisotropy is not None:
+
+            for _x in tqdm(image):
+                print(_x.shape)
             cellres = tuple(
                 zip(
                     *tuple(
