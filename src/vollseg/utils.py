@@ -1141,7 +1141,6 @@ def CellPoseSeg(
                 cellprob_threshold=cellprob_threshold,
                 stitch_threshold=stitch_threshold,
                 anisotropy=anisotropy,
-                tile=True,
                 do_3D=do_3D,
             )
         else:
@@ -1152,7 +1151,6 @@ def CellPoseSeg(
                 flow_threshold=flow_threshold,
                 cellprob_threshold=cellprob_threshold,
                 stitch_threshold=stitch_threshold,
-                tile=True,
                 do_3D=do_3D,
             )
 
@@ -1176,7 +1174,6 @@ def CellPoseSeg(
                             cellprob_threshold=cellprob_threshold,
                             stitch_threshold=stitch_threshold,
                             anisotropy=anisotropy,
-                            tile=True,
                             do_3D=do_3D,
                         )
                         for _x in tqdm(image)
@@ -1194,7 +1191,6 @@ def CellPoseSeg(
                             flow_threshold=flow_threshold,
                             cellprob_threshold=cellprob_threshold,
                             stitch_threshold=stitch_threshold,
-                            tile=True,
                             do_3D=do_3D,
                         )
                         for _x in tqdm(image)
@@ -1216,14 +1212,13 @@ def CellPoseSeg(
                 zip(
                     *tuple(
                         cellpose_model.eval(
-                            _x,
+                            [_x],
                             diameter=diameter_cellpose,
                             channels=channels,
                             flow_threshold=flow_threshold,
                             cellprob_threshold=cellprob_threshold,
                             stitch_threshold=stitch_threshold,
                             anisotropy=anisotropy,
-                            tile=False,
                             do_3D=do_3D,
                         )
                         for _x in tqdm(image)
@@ -1235,13 +1230,12 @@ def CellPoseSeg(
                 zip(
                     *tuple(
                         cellpose_model.eval(
-                            _x,
+                            [_x],
                             diameter=diameter_cellpose,
                             channels=channels,
                             flow_threshold=flow_threshold,
                             cellprob_threshold=cellprob_threshold,
                             stitch_threshold=stitch_threshold,
-                            tile=False,
                             do_3D=do_3D,
                         )
                         for _x in tqdm(image)
