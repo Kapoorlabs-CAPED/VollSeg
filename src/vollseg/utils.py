@@ -1156,13 +1156,12 @@ def CellPoseSeg(
                 do_3D=do_3D,
             )
 
-    if len(image.shape) >= 3 and "T" in axes:
+    if len(image.shape) == 4 and "T" in axes:
 
         cellpose_model = models.CellposeModel(
             gpu=gpu, pretrained_model=cellpose_model_path
         )
-        for _x in tqdm(image):
-                print(_x.shape)
+      
         if anisotropy is not None:
 
             
@@ -1196,6 +1195,53 @@ def CellPoseSeg(
                             cellprob_threshold=cellprob_threshold,
                             stitch_threshold=stitch_threshold,
                             tile=True,
+                            do_3D=do_3D,
+                        )
+                        for _x in tqdm(image)
+                    )
+                )
+            )
+
+
+    if len(image.shape) == 3 and "T" in axes:
+
+        cellpose_model = models.CellposeModel(
+            gpu=gpu, pretrained_model=cellpose_model_path
+        )
+      
+        if anisotropy is not None:
+
+            
+            cellres = tuple(
+                zip(
+                    *tuple(
+                        cellpose_model.eval(
+                            _x,
+                            diameter=diameter_cellpose,
+                            channels=channels,
+                            flow_threshold=flow_threshold,
+                            cellprob_threshold=cellprob_threshold,
+                            stitch_threshold=stitch_threshold,
+                            anisotropy=anisotropy,
+                            tile=False,
+                            do_3D=do_3D,
+                        )
+                        for _x in tqdm(image)
+                    )
+                )
+            )
+        else:
+            cellres = tuple(
+                zip(
+                    *tuple(
+                        cellpose_model.eval(
+                            _x,
+                            diameter=diameter_cellpose,
+                            channels=channels,
+                            flow_threshold=flow_threshold,
+                            cellprob_threshold=cellprob_threshold,
+                            stitch_threshold=stitch_threshold,
+                            tile=False,
                             do_3D=do_3D,
                         )
                         for _x in tqdm(image)
