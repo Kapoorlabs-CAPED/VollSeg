@@ -1231,7 +1231,7 @@ def CellPoseSeg(
                         )
         else:
             cellres =  cellpose_model.eval(
-                            image
+                            image,
                             diameter=diameter_cellpose,
                             channels=channels,
                             flow_threshold=flow_threshold,
