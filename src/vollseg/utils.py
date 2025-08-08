@@ -1079,8 +1079,10 @@ def VollSeg_unet(
                 Finalimage = match_labels(Finalimage, nms_thresh=nms_thresh)
                 Finalimage = fill_label_holes(Finalimage)
 
-    if roi_model is None:
+    if roi_model is None and unet_model is not None:
         return Finalimage.astype("uint16"), skeleton, image
+    elif roi_model is not None and unet_model is None:
+        return label(s_Binary), s_Binary
     else:
         return Finalimage.astype("uint16"), skeleton, image, s_Binary
 
