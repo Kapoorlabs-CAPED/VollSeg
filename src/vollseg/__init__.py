@@ -1,3 +1,9 @@
+
+try:
+    from ._version import version as __version__
+except ImportError:
+    __version__ = "unknown"
+
 from .SmartSeeds3D import SmartSeeds3D
 from .SmartSeeds2D import SmartSeeds2D
 from .seedpool import SeedPool
